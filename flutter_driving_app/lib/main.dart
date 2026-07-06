@@ -1,6 +1,6 @@
 // App Root
 import 'package:flutter/material.dart';
-import 'package:flutter_driving_app/login.dart';
+import 'login.dart';
 
 void main() {
   runApp(const MyApp());

@@ -3,6 +3,9 @@
 
 import 'package:flutter/material.dart';
 
+import 'forgot_password.dart';
+import 'widgets/error_banner.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, this.onLogin});
   // TODO: Implement the callback to handle actual login logic
@@ -126,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                         const SizedBox(height: 32),
 
                         if (_submitError != null) ...[
-                          _ErrorBanner(message: _submitError!),
+                          ErrorBanner(message: _submitError!),
                           const SizedBox(height: _fieldSpacing),
                         ],
 
@@ -184,7 +187,12 @@ class _LoginPageState extends State<LoginPage> {
                             onPressed: _isSubmitting
                                 ? null
                                 : () {
-                                    // TODO: Need navigation to Forgot Password screen from here
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ForgotPasswordPage(),
+                                      ),
+                                    );
                                   },
                             child: const Text('Forgot password?'),
                           ),
@@ -214,37 +222,6 @@ class _LoginPageState extends State<LoginPage> {
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-// Small reusable banner for surfacing a general submission-level error
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: colorScheme.onErrorContainer),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: colorScheme.onErrorContainer),
-            ),
-          ),
-        ],
       ),
     );
   }
