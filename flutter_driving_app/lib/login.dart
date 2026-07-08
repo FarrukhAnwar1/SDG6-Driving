@@ -1,8 +1,7 @@
 // Email and Password Login Screen
-// TODO: Need Sign Up Screen navigation
+// TODO: Need Sign Up Screen navigation in both directions
 
 import 'package:flutter/material.dart';
-
 import 'forgot_password.dart';
 import 'widgets/error_banner.dart';
 
