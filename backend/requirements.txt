@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+pymysql>=1.1              # MySQL driver
+cryptography>=42.0        # required by pymysql for MySQL 8 auth (caching_sha2_password)
+pydantic>=2.7
+pydantic-settings>=2.3    # loads settings from .env
+bcrypt>=4.1              # password hashing for POST /users
