@@ -1,8 +1,8 @@
 // Email and Password Login Screen
-// TODO: Need Sign Up Screen navigation in both directions
 
 import 'package:flutter/material.dart';
 import 'forgot_password_screen.dart';
+import 'signup_screen.dart';
 import 'widgets/error_banner.dart';
 
 class LoginPage extends StatefulWidget {
@@ -212,6 +212,27 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 )
                               : const Text('Log in'),
+                        ),
+                        const SizedBox(height: 16),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Don't have an account?"),
+                            TextButton(
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              const SignUpPage(),
+                                        ),
+                                      );
+                                    },
+                              child: const Text('Sign up'),
+                            ),
+                          ],
                         ),
                       ],
                     ),

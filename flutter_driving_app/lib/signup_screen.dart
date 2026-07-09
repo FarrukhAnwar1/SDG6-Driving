@@ -1,22 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {// display
-    return const MaterialApp(
-      home: SignUpPage(), // can be replaced with any other page/removed
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
+import 'login_screen.dart';
 
 class SignUpPage extends StatefulWidget {//sign up page
   const SignUpPage({super.key});
@@ -142,6 +127,29 @@ class _SignUpPageState extends State<SignUpPage> {
             ElevatedButton(
               onPressed: signUp,
               child: const Text("Sign Up"),
+            ),
+
+            const SizedBox(height: 16),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text("Already have an account?"),
+                TextButton(
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginPage(),
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text("Log in"),
+                ),
+              ],
             ),
           ],
         ),
