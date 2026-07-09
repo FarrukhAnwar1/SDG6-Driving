@@ -2,7 +2,7 @@
 // TODO: Need Sign Up Screen navigation in both directions
 
 import 'package:flutter/material.dart';
-import 'forgot_password.dart';
+import 'forgot_password_screen.dart';
 import 'widgets/error_banner.dart';
 
 class LoginPage extends StatefulWidget {
