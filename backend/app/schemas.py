@@ -19,3 +19,6 @@ class UserOut(BaseModel):
 
 class Users(BaseModel):
     users: List[UserOut]
+
+class EmailRequest(BaseModel):
+    email: str        # what POST /auth/request-verification accepts
