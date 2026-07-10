@@ -19,3 +19,13 @@ class UserOut(BaseModel):
 
 class Users(BaseModel):
     users: List[UserOut]
+
+class LoginRequest(BaseModel):
+    # what POST /login accepts
+    email: str
+    password: str
+
+class Token(BaseModel):
+    # what POST /login returns on success
+    access_token: str
+    token_type: str = "bearer"
