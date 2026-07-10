@@ -1,7 +1,10 @@
+// Imports for JSON encoding, Flutter widgets, and HTTP requests
 import 'dart:convert';
+import 'login_api.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+// Signup screen widget 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
@@ -10,26 +13,38 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
+  // Form validation key
   final _formKey = GlobalKey<FormState>();
+
+  // Text field controllers
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
+  // Tracks loading state and errors
   bool _isSubmitting = false;
   String? _errorMessage;
 
+  // Backend API URL
   static const String baseUrl = 'http://10.0.2.2:8000';
 
+  // Clean up controllers
   @override
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
+  // Validates input and sends signup request
   Future<void> _signup() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    final isValid = _formKey.currentState?.validate() ?? false;
+    if (!isValid) {
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;
@@ -47,12 +62,15 @@ class _SignupPageState extends State<SignupPage> {
         }),
       );
 
+      // Handle the response status
       if (response.statusCode == 201) {
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Account created successfully')),
         );
-        Navigator.pop(context);
+        // Navigator.pop(context);
       } else if (response.statusCode == 409) {
         setState(() => _errorMessage = 'Username or email already exists.');
       } else {
@@ -67,6 +85,30 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  // Disable button while submitting
+  VoidCallback? _getSubmitCallback() {
+    if (_isSubmitting) {
+      return null;
+    }
+    return _signup;
+  }
+
+  // Shows loading spinner or button text
+  Widget _buildButtonChild() {
+    if (_isSubmitting) {
+      return const SizedBox(
+        height: 20,
+        width: 20,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: Colors.white,
+        ),
+      );
+    }
+    return const Text('Create Account');
+  }
+
+  // Builds the full signup form UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,6 +124,7 @@ class _SignupPageState extends State<SignupPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Error banner, shown only when there's an error message
                 if (_errorMessage != null) ...[
                   Text(
                     _errorMessage!,
@@ -91,6 +134,8 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                   const SizedBox(height: 16),
                 ],
+
+                // Username field
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
@@ -105,6 +150,8 @@ class _SignupPageState extends State<SignupPage> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // Email field
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -123,6 +170,8 @@ class _SignupPageState extends State<SignupPage> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // Password field
                 TextFormField(
                   controller: _passwordController,
                   decoration: const InputDecoration(
@@ -137,12 +186,42 @@ class _SignupPageState extends State<SignupPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+
+                // Confirm password field - must match the password field
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                  ),
+                  obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 24),
+
+                // Submit button - disabled while a request is in flight
                 FilledButton(
-                  onPressed: _isSubmitting ? null : _signup,
-                  child: _isSubmitting
-                      ? const CircularProgressIndicator()
-                      : const Text('Create Account'),
+                  onPressed: _getSubmitCallback(),
+                  child: _buildButtonChild(),
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()),
+                    );
+                  },
+                  child: const Text('Already have an account? Log In'),
                 ),
               ],
             ),
