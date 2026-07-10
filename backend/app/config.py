@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     # for frontend
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # JWT auth (set JWT_SECRET_KEY in .env to a long random string)
+    jwt_secret_key: str = "change-me-in-prod"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 1 day
+
     @property
     def database_url(self) -> str:
         # quote_plus escapes special characters (@, :, /, etc.) in the password
