@@ -16,6 +16,16 @@ class Settings(BaseSettings):
     # for frontend
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # email verification
+    jwt_secret_key: str = "secret-change-me"    # Signing key
+    jwt_algorithm: str = "HS256"                # HMAC algorithm
+    verification_token_expire_hours: int = 24   # Link expiration
+
+    # Resending emails 
+    resend_api_key: str = ""                    # Resend API key
+    from_email: str = "onboarding@resend.dev"   # sandbox email for now
+    api_base_url: str = "http://localhost:8000"  
+
     @property
     def database_url(self) -> str:
         # quote_plus escapes special characters (@, :, /, etc.) in the password
