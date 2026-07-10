@@ -1,14 +1,17 @@
 // Email and Password Login Screen
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 import 'widgets/error_banner.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.onLogin});
-  // TODO: Implement the callback to handle actual login logic
-  final Future<void> Function(String email, String password)? onLogin;
+  const LoginPage({super.key});
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -17,6 +20,9 @@ class _LoginPageState extends State<LoginPage> {
   // Spacing constants
   static const double _fieldSpacing = 16;
   static const double _horizontalPadding = 24;
+
+  // Backend URL (Android emulator)
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Form controllers
   final _formKey = GlobalKey<FormState>();
@@ -29,7 +35,8 @@ class _LoginPageState extends State<LoginPage> {
   bool _isSubmitting = false;
   String? _submitError;
 
-  static final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
+  static final RegExp _emailRegex =
+      RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
 
   @override
   void dispose() {
@@ -42,19 +49,22 @@ class _LoginPageState extends State<LoginPage> {
   String? _validateEmail(String? value) {
     final email = value?.trim() ?? '';
     if (email.isEmpty) return 'Enter your email';
-    if (!_emailRegex.hasMatch(email)) return 'Enter a valid email address';
+    if (!_emailRegex.hasMatch(email)) {
+      return 'Enter a valid email address';
+    }
     return null;
   }
 
   String? _validatePassword(String? value) {
     final password = value ?? '';
     if (password.isEmpty) return 'Enter your password';
-    if (password.length < 8) return 'Password must be at least 8 characters';
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
     return null;
   }
 
   Future<void> _submit() async {
-    // Hide any leftover keyboard/focus before validating
     FocusScope.of(context).unfocus();
 
     final isValid = _formKey.currentState?.validate() ?? false;
@@ -65,33 +75,59 @@ class _LoginPageState extends State<LoginPage> {
       _submitError = null;
     });
 
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
     try {
-      if (widget.onLogin != null) {
-        await widget.onLogin!(email, password);
-      } else {
-        // Fallback demo login call
-        await Future<void>.delayed(const Duration(seconds: 2));
-      }
+      final response = await http.post(
+        Uri.parse('$baseUrl/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': _emailController.text.trim(),
+          'password': _passwordController.text,
+        }),
+      );
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Logged in successfully')));
-      // TODO: Navigate to the next screen (dashboard) after successful login
+      debugPrint('LOGIN STATUS: ${response.statusCode}');
+      debugPrint('LOGIN BODY: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['access_token'];
+
+        debugPrint('TOKEN: $token');
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Logged in successfully'),
+          ),
+        );
+
+        // TODO: Store token securely
+        // TODO: Navigate to dashboard
+      } else if (response.statusCode == 401) {
+        setState(() {
+          _submitError = 'Invalid email or password.';
+        });
+      } else {
+        setState(() {
+          _submitError = 'Login failed. Please try again.';
+        });
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() => _submitError = 'Login failed. Please try again.');
+      debugPrint('LOGIN ERROR: $e');
+
+      setState(() {
+        _submitError = 'Could not connect to backend.';
+      });
     } finally {
       if (mounted) {
-        setState(() => _isSubmitting = false);
+        setState(() {
+          _isSubmitting = false;
+        });
       }
     }
   }
 
-  // Building Login Screen UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,8 +181,9 @@ class _LoginPageState extends State<LoginPage> {
                             border: OutlineInputBorder(),
                           ),
                           validator: _validateEmail,
-                          onFieldSubmitted: (_) =>
-                              _passwordFocusNode.requestFocus(),
+                          onFieldSubmitted: (_) {
+                            _passwordFocusNode.requestFocus();
+                          },
                         ),
                         const SizedBox(height: _fieldSpacing),
 
@@ -170,9 +207,11 @@ class _LoginPageState extends State<LoginPage> {
                               tooltip: _obscurePassword
                                   ? 'Show password'
                                   : 'Hide password',
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
                             ),
                           ),
                           validator: _validatePassword,
@@ -188,7 +227,7 @@ class _LoginPageState extends State<LoginPage> {
                                 : () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (context) =>
+                                        builder: (_) =>
                                             const ForgotPasswordPage(),
                                       ),
                                     );
@@ -206,7 +245,7 @@ class _LoginPageState extends State<LoginPage> {
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
                                       Colors.white,
                                     ),
                                   ),
@@ -225,7 +264,7 @@ class _LoginPageState extends State<LoginPage> {
                                   : () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (context) =>
+                                          builder: (_) =>
                                               const SignUpPage(),
                                         ),
                                       );
