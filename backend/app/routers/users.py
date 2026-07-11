@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from .. import models, schemas
 from ..dependencies import DbSession
-from ..security import hash_password
+from ..security import hash_password, create_verification_token
+from ..email import send_verification_email
 
 router = APIRouter(tags=["users"])
 
@@ -35,4 +36,10 @@ def add_user(user: schemas.UserCreate, db: DbSession):
     db.add(row)
     db.commit()
     db.refresh(row)
+
+    token = create_verification_token(row.id)
+    row.verification_token = token
+    db.commit()
+    send_verification_email(row.email, token)
+    
     return row
