@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import 'widgets/error_banner.dart';
+import 'home_screen.dart';
+import '../widgets/auth_storage.dart';
+import '../widgets/error_banner.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -89,18 +91,23 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final token = data['access_token'];
+        final token = data['access_token'] as String?;
 
-        debugPrint('TOKEN: $token');
+        if (token == null) {
+          setState(() {
+            _submitError = 'Login failed. Please try again.';
+          });
+          return;
+        }
+
+        await AuthStorage.saveToken(token);
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Logged in successfully')));
-
-        // TODO: Store token securely
-        // TODO: Navigate to dashboard
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (route) => false,
+        );
       } else if (response.statusCode == 401) {
         setState(() {
           _submitError = 'Invalid email or password.';
