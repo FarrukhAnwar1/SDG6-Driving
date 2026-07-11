@@ -16,10 +16,16 @@ class Settings(BaseSettings):
     # for frontend
     cors_origins: list[str] = ["http://localhost:3000"]
 
-    # JWT auth (set JWT_SECRET_KEY in .env to a long random string)
-    jwt_secret_key: str = "change-me-in-prod"
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24  # 1 day
+    # email verification
+    jwt_secret_key: str = "secret-change-me"    # Signing key
+    jwt_algorithm: str = "HS256"                # HMAC algorithm
+    verification_token_expire_hours: int = 24   # Link expiration
+    access_token_expire_minutes: int = 60 * 24  # login token lifetime (1 day)
+
+    # Resending emails 
+    resend_api_key: str = ""                    # Resend API key
+    from_email: str = "onboarding@resend.dev"   # sandbox email for now
+    api_base_url: str = "http://localhost:8000"  
 
     @property
     def database_url(self) -> str:
