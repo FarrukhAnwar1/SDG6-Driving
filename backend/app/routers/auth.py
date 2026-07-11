@@ -3,10 +3,10 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from .. import models, schemas
 from ..dependencies import DbSession
-from ..security import create_verification_token, decode_verification_token
+from ..security import create_verification_token, decode_verification_token, create_access_token, verify_password
 from ..email import send_verification_email
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 @router.get("/verify-email")
 def verify_email(token: str, db: DbSession):
@@ -46,3 +46,23 @@ def resend_verification(payload: schemas.EmailRequest, db: DbSession):
     send_verification_email(user.email, token)
     
     return {"message": "If the email is registered and not verified, a new verification email will be sent."}
+
+@router.post("/login", response_model=schemas.Token)
+def login(credentials: schemas.LoginRequest, db: DbSession):
+    user = db.scalar(
+        select(models.User).where(models.User.email == credentials.email)
+    )
+    # One generic error for no such user and wrong password
+    if user is None or not verify_password(credentials.password, user.password_hash):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Incorrect email or password"
+        )
+    token = create_access_token(subject=str(user.id))
+    return schemas.Token(access_token=token)
+
+# Lets a client verify its token and fetch the current user. Included so the JWT
+# flow is testable end-to-end, the API attaches CurrentUser to the actual
+# protected feature routes
+@router.get("/me", response_model=schemas.UserOut)
+def read_me(current_user: CurrentUser):
+    return current_user
