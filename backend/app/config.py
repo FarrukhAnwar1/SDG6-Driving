@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "secret-change-me"    # Signing key
     jwt_algorithm: str = "HS256"                # HMAC algorithm
     verification_token_expire_hours: int = 24   # Link expiration
+    access_token_expire_minutes: int = 60 * 24
 
     # Resending emails 
     resend_api_key: str = ""                    # Resend API key

@@ -1,10 +1,7 @@
 // Email and Password Login Screen
-
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 import 'widgets/error_banner.dart';
@@ -34,9 +31,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isSubmitting = false;
   String? _submitError;
+  bool _showResendVerification = false;
+  bool _isResendingVerification = false;
 
-  static final RegExp _emailRegex =
-      RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
+  static final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
 
   @override
   void dispose() {
@@ -73,6 +71,7 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _isSubmitting = true;
       _submitError = null;
+      _showResendVerification = false;
     });
 
     try {
@@ -96,17 +95,20 @@ class _LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logged in successfully'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Logged in successfully')));
 
         // TODO: Store token securely
         // TODO: Navigate to dashboard
       } else if (response.statusCode == 401) {
         setState(() {
           _submitError = 'Invalid email or password.';
+        });
+      } else if (response.statusCode == 403) {
+        setState(() {
+          _submitError = 'Please verify your email before logging in.';
+          _showResendVerification = true;
         });
       } else {
         setState(() {
@@ -123,6 +125,59 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _resendVerification() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || _isResendingVerification) return;
+
+    setState(() {
+      _isResendingVerification = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/resend-verification'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      debugPrint('RESEND VERIFICATION STATUS: ${response.statusCode}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'If that email is registered, a new verification link has been sent.',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not resend verification email. Please try again.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('RESEND VERIFICATION ERROR: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to backend.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResendingVerification = false;
         });
       }
     }
@@ -165,6 +220,26 @@ class _LoginPageState extends State<LoginPage> {
 
                         if (_submitError != null) ...[
                           ErrorBanner(message: _submitError!),
+                          if (_showResendVerification) ...[
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: _isResendingVerification
+                                    ? null
+                                    : _resendVerification,
+                                child: _isResendingVerification
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('Resend verification email'),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: _fieldSpacing),
                         ],
 
@@ -264,8 +339,7 @@ class _LoginPageState extends State<LoginPage> {
                                   : () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) =>
-                                              const SignUpPage(),
+                                          builder: (_) => const SignUpPage(),
                                         ),
                                       );
                                     },

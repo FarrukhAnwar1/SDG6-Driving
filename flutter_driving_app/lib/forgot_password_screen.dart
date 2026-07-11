@@ -1,5 +1,4 @@
 // Forgot Password Screen
-
 import 'package:flutter/material.dart';
 import 'widgets/error_banner.dart';
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from .. import models, schemas
-from ..dependencies import DbSession
+from ..dependencies import CurrentUser, DbSession
 from ..security import hash_password, create_verification_token
 from ..email import send_verification_email
 
@@ -43,3 +43,9 @@ def add_user(user: schemas.UserCreate, db: DbSession):
     send_verification_email(row.email, token)
     
     return row
+
+@router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_current_user(current_user: CurrentUser, db: DbSession):
+    # Deletes the authenticated user's own account
+    db.delete(current_user)
+    db.commit()

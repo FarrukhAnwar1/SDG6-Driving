@@ -2,7 +2,7 @@ import jwt
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from .. import models, schemas
-from ..dependencies import DbSession
+from ..dependencies import CurrentUser, DbSession
 from ..security import create_verification_token, decode_verification_token, create_access_token, verify_password
 from ..email import send_verification_email
 
@@ -57,6 +57,14 @@ def login(credentials: schemas.LoginRequest, db: DbSession):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "Incorrect email or password"
         )
+
+    # Prevent unverified users from logging in
+    if not user.email_verified:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Please verify your email before logging in.",
+        )
+
     token = create_access_token(subject=str(user.id))
     return schemas.Token(access_token=token)
 
