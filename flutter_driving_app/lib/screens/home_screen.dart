@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
+import 'change_password_screen.dart';
 import '../widgets/auth_storage.dart';
 
 class HomePage extends StatefulWidget {
@@ -82,6 +83,18 @@ class _HomePageState extends State<HomePage> {
   Future<void> _logout() async {
     await AuthStorage.deleteToken();
     _goToLogin();
+  }
+
+  Future<void> _openChangePassword() async {
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => ChangePasswordPage(baseUrl: baseUrl)),
+    );
+
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Your password was updated.')),
+      );
+    }
   }
 
   Future<void> _confirmAndDeleteAccount() async {
@@ -209,6 +222,11 @@ class _HomePageState extends State<HomePage> {
           ),
           const SizedBox(height: 32),
           FilledButton(onPressed: _logout, child: const Text('Log out')),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: _openChangePassword,
+            child: const Text('Change password'),
+          ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
