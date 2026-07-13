@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import 'home_screen.dart';
+import 'permissions_gate_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/api_config.dart';
@@ -103,7 +103,7 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
 
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomePage()),
+          MaterialPageRoute(builder: (_) => const PermissionsGateScreen()),
           (route) => false,
         );
       } else if (response.statusCode == 401) {
