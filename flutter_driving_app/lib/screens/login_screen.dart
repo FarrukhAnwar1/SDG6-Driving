@@ -7,6 +7,7 @@ import 'signup_screen.dart';
 import 'home_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/api_config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,9 +20,6 @@ class _LoginPageState extends State<LoginPage> {
   // Spacing constants
   static const double _fieldSpacing = 16;
   static const double _horizontalPadding = 24;
-
-  // Backend URL (Android emulator)
-  static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Form controllers
   final _formKey = GlobalKey<FormState>();
@@ -78,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('${ApiConfig.baseUrl}/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text.trim(),
@@ -147,7 +145,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/resend-verification'),
+        Uri.parse('${ApiConfig.baseUrl}/resend-verification'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );

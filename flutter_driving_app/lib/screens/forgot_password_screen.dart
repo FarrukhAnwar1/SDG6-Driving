@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/error_banner.dart';
+import '../widgets/api_config.dart';
 
 enum _ForgotPasswordStep { email, resetCode, success }
 
@@ -17,9 +18,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   // Spacing constants
   static const double _fieldSpacing = 16;
   static const double _horizontalPadding = 24;
-
-  // Backend URL (Android emulator)
-  static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Form keys (one per step, since fields differ)
   final _emailFormKey = GlobalKey<FormState>();
@@ -91,7 +89,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/forgot-password'),
+        Uri.parse('${ApiConfig.baseUrl}/forgot-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': _emailController.text.trim()}),
       );
@@ -121,7 +119,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/forgot-password'),
+        Uri.parse('${ApiConfig.baseUrl}/forgot-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': _emailController.text.trim()}),
       );
@@ -161,7 +159,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/reset-password'),
+        Uri.parse('${ApiConfig.baseUrl}/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text.trim(),
@@ -176,8 +174,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         setState(() => _step = _ForgotPasswordStep.success);
       } else if (response.statusCode == 429) {
         setState(
-          () => _submitError =
-              'Too many attempts. Please request a new code.',
+          () => _submitError = 'Too many attempts. Please request a new code.',
         );
       } else {
         setState(
@@ -379,7 +376,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       ? Icons.visibility_outlined
                       : Icons.visibility_off_outlined,
                 ),
-                tooltip: _obscureNewPassword ? 'Show password' : 'Hide password',
+                tooltip: _obscureNewPassword
+                    ? 'Show password'
+                    : 'Hide password',
                 onPressed: () {
                   setState(() => _obscureNewPassword = !_obscureNewPassword);
                 },
@@ -477,7 +476,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 32),
-        FilledButton(onPressed: _backToLogin, child: const Text('Back to login')),
+        FilledButton(
+          onPressed: _backToLogin,
+          child: const Text('Back to login'),
+        ),
       ],
     );
   }

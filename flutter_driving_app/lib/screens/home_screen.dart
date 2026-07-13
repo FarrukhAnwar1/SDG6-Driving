@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import '../widgets/auth_storage.dart';
+import '../widgets/api_config.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,9 +15,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Backend URL (Android emulator)
-  static const String baseUrl = 'http://10.0.2.2:8000';
-
   // State variables
   bool _isLoading = true;
   bool _isDeleting = false;
@@ -38,7 +36,7 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/me'),
+        Uri.parse('${ApiConfig.baseUrl}/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -87,7 +85,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _openChangePassword() async {
     final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => ChangePasswordPage(baseUrl: baseUrl)),
+      MaterialPageRoute(builder: (_) => ChangePasswordPage(baseUrl: ApiConfig.baseUrl)),
     );
 
     if (changed == true && mounted) {
@@ -133,7 +131,7 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/users/me'),
+        Uri.parse('${ApiConfig.baseUrl}/users/me'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

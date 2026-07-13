@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../screens/login_screen.dart';
 import '../screens/home_screen.dart';
 import 'auth_storage.dart';
+import 'api_config.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -14,9 +15,6 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  // Backend URL (Android emulator)
-  static const String baseUrl = 'http://10.0.2.2:8000';
-
   @override
   void initState() {
     super.initState();
@@ -31,7 +29,7 @@ class _AuthGateState extends State<AuthGate> {
     if (token != null) {
       try {
         final response = await http.get(
-          Uri.parse('$baseUrl/me'),
+          Uri.parse('${ApiConfig.baseUrl}/me'),
           headers: {'Authorization': 'Bearer $token'},
         );
 
