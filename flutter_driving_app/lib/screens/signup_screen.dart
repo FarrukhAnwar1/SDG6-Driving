@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
+import '../widgets/api_config.dart';
 
-class SignUpPage extends StatefulWidget {//sign up page
+class SignUpPage extends StatefulWidget {
+  //sign up page
   const SignUpPage({super.key});
 
   @override
-  State<SignUpPage> createState() => _SignUpPageState();//page to page manager
+  State<SignUpPage> createState() => _SignUpPageState(); //page to page manager
 }
 
 class _SignUpPageState extends State<SignUpPage> {
@@ -18,14 +20,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final passwordController = TextEditingController();
   final veriCode = TextEditingController();
 
-  static const String baseUrl = 'http://10.0.2.2:8000';
-
   // Same email/password rules as the login form, so an account created here
   // always satisfies what login later expects
   static final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
-
-  String verificationCode = "123456";
-  bool codeSent = false;
 
   String? _validateUsername(String? value) {
     if ((value ?? '').trim().isEmpty) return 'Enter a username';
@@ -46,25 +43,13 @@ class _SignUpPageState extends State<SignUpPage> {
     return null;
   }
 
-  void sendCode() {
-    setState(() {
-      codeSent = true;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Verification code sent. Demo code: 123456"),
-      ),
-    );
-  }
-
   Future<void> signUp() async {
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/users'),
+        Uri.parse('${ApiConfig.baseUrl}/users'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'username': usernameController.text.trim(),
@@ -82,9 +67,9 @@ class _SignUpPageState extends State<SignUpPage> {
           const SnackBar(content: Text("Username or email already exists")),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Signup failed")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Signup failed")));
       }
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,13 +78,10 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Sign Up"),
-      ),
+      appBar: AppBar(title: const Text("Sign Up")),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -109,51 +91,27 @@ class _SignUpPageState extends State<SignUpPage> {
             children: [
               TextFormField(
                 controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: "Username",
-                ),
+                decoration: const InputDecoration(labelText: "Username"),
                 validator: _validateUsername,
               ),
 
               TextFormField(
                 controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                ),
+                decoration: const InputDecoration(labelText: "Password"),
                 obscureText: true,
                 validator: _validatePassword,
               ),
 
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(
-                  labelText: "Email",
-                ),
+                decoration: const InputDecoration(labelText: "Email"),
                 keyboardType: TextInputType.emailAddress,
                 validator: _validateEmail,
               ),
 
-              const SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: sendCode,
-                child: const Text("Send Verification Code"),
-              ),
-
-              if (codeSent)
-                TextField(
-                  controller: veriCode,
-                  decoration: const InputDecoration(
-                    labelText: "Enter Verification Code",
-                  ),
-                ),
-
               const SizedBox(height: 30),
 
-              ElevatedButton(
-                onPressed: signUp,
-                child: const Text("Sign Up"),
-              ),
+              ElevatedButton(onPressed: signUp, child: const Text("Sign Up")),
 
               const SizedBox(height: 16),
 

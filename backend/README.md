@@ -52,6 +52,14 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     `{"message": "Password reset successfully."}` on success.
     `400` if the code is missing, wrong, or expired. `429` after
     `PASSWORD_RESET_MAX_ATTEMPTS` (default 5) wrong codes, until a new code is requested.
+  - `POST /change-password` (requires a valid access token, `Authorization: Bearer <token>`)
+    with `{"current_password": "...", "new_password": "..."}` →
+    `{"message": "Password changed successfully."}` on success.
+    Use this when a logged-in user knows their current password and wants to
+    set a new one; use `/forgot-password` + `/reset-password` instead when they
+    can't log in at all. `new_password` must be at least 8 characters and
+    different from `current_password`. `401` if `current_password` doesn't
+    match the account's stored password.
 
 ## Notes
 

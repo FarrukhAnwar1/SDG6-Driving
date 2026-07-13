@@ -152,3 +152,20 @@ def reset_password(payload: schemas.ResetPasswordRequest, db: DbSession):
     db.commit()
 
     return {"message": "Password reset successfully."}
+
+# Lets a logged-in user change their password by proving they know the current one
+@router.post("/change-password")
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    current_user: CurrentUser,
+    db: DbSession,
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, "Current password is incorrect."
+        )
+
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+    return {"message": "Password changed successfully."}

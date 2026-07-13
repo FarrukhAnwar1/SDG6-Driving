@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class UserCreate(BaseModel):
     # what POST /users accepts, password is hashed server-side before storing
@@ -37,3 +37,17 @@ class ResetPasswordRequest(BaseModel):
     email: str
     code: str
     new_password: str = Field(min_length=8)
+
+class ChangePasswordRequest(BaseModel):
+    # what POST /change-password accepts, current_password is the user's current password, 
+    # new_password is the desired new password (>8 characters, different from current password)
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_must_differ(cls, new_password, info):
+        current_password = info.data.get("current_password")
+        if current_password is not None and new_password == current_password:
+            raise ValueError("New password must be different from the current password.")
+        return new_password

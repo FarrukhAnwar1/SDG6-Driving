@@ -17,10 +17,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _formKey = GlobalKey<FormState>();
 
   // Form controllers
+  final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   // State variables
+  bool _obscureCurrent = true;
   bool _obscureNew = true;
   bool _obscureConfirm = true;
   bool _isSubmitting = false;
@@ -28,6 +30,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
   @override
   void dispose() {
+    _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -57,15 +60,17 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       return;
     }
 
-    // TODO: replace placeholder API logic with actual logic
     try {
-      final response = await http.put(
-        Uri.parse('${widget.baseUrl}/users/me/password'),
+      final response = await http.post(
+        Uri.parse('${widget.baseUrl}/change-password'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'new_password': _newPasswordController.text}),
+        body: jsonEncode({
+          'current_password': _currentPasswordController.text,
+          'new_password': _newPasswordController.text,
+        }),
       );
 
       debugPrint('CHANGE PASSWORD STATUS: ${response.statusCode}');
@@ -80,15 +85,14 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         return;
       }
 
-      if (response.statusCode == 401) {
+      if (response.statusCode == 401 ||
+          response.statusCode == 400 ||
+          response.statusCode == 422) {
+        final fallback = response.statusCode == 401
+            ? 'Current password is incorrect.'
+            : 'Please check your input and try again.';
         setState(() {
-          _errorMessage = 'You have been signed out. Please log in again.';
-        });
-      } else if (response.statusCode == 400) {
-        setState(() {
-          _errorMessage =
-              _extractErrorMessage(response.body) ??
-              'Could not change your password. Please try again.';
+          _errorMessage = _extractErrorMessage(response.body) ?? fallback;
         });
       } else {
         setState(() {
@@ -113,11 +117,27 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   String? _extractErrorMessage(String body) {
     try {
       final decoded = jsonDecode(body);
-      if (decoded is Map && decoded['detail'] is String) {
-        return decoded['detail'] as String;
+      if (decoded is Map) {
+        final detail = decoded['detail'];
+        if (detail is String) {
+          return detail;
+        }
+        if (detail is List && detail.isNotEmpty && detail.first is Map) {
+          final msg = (detail.first as Map)['msg'];
+          if (msg is String) {
+            return msg;
+          }
+        }
       }
     } catch (_) {
       // Response body wasn't JSON so fall back to the default message
+    }
+    return null;
+  }
+
+  String? _validateCurrentPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Please enter your current password.';
     }
     return null;
   }
@@ -128,6 +148,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     }
     if (value.length < 8) {
       return 'Password must be at least 8 characters.';
+    }
+    if (value.length > 72) {
+      return 'Password must be 72 characters or fewer.';
+    }
+    if (value == _currentPasswordController.text) {
+      return 'New password must be different from the current password.';
     }
     return null;
   }
@@ -164,7 +190,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.08),
+                      color: Colors.red.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.red.shade200),
                     ),
@@ -176,11 +202,34 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   const SizedBox(height: 16),
                 ],
                 TextFormField(
+                  controller: _currentPasswordController,
+                  obscureText: _obscureCurrent,
+                  autofillHints: const [AutofillHints.password],
+                  decoration: InputDecoration(
+                    labelText: 'Current password',
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureCurrent
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscureCurrent = !_obscureCurrent),
+                    ),
+                  ),
+                  validator: _validateCurrentPassword,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
                   controller: _newPasswordController,
                   obscureText: _obscureNew,
                   autofillHints: const [AutofillHints.newPassword],
                   decoration: InputDecoration(
                     labelText: 'New password',
+                    prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -202,6 +251,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   autofillHints: const [AutofillHints.newPassword],
                   decoration: InputDecoration(
                     labelText: 'Confirm new password',
+                    prefixIcon: const Icon(Icons.lock_outline),
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
