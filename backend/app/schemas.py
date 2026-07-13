@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 class UserCreate(BaseModel):
     # what POST /users accepts, password is hashed server-side before storing
@@ -31,3 +31,9 @@ class Token(BaseModel):
     # what POST /login returns on success
     access_token: str
     token_type: str = "bearer"
+
+class ResetPasswordRequest(BaseModel):
+    # what POST /reset-password accepts, code is the 6-digit code emailed by /forgot-password
+    email: str
+    code: str
+    new_password: str = Field(min_length=8)

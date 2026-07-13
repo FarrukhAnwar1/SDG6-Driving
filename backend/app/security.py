@@ -1,3 +1,4 @@
+import secrets
 import bcrypt
 import jwt
 from datetime import datetime, timedelta, timezone
@@ -38,3 +39,16 @@ def create_access_token(subject: str) -> str:
 # Decodes and validates a JWT, raises jwt.PyJWTError if invalid or expired
 def decode_access_token(token: str) -> dict:
     return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+
+# Generates a random 6-digit code (e.g. "042917") for the forgot-password flow.
+# Codes are short so they're easy to type on mobile, secrets keeps them unguessable
+def generate_reset_code() -> str:
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+# Hashes a reset code the same way as a password, so a DB leak never exposes a usable code
+def hash_reset_code(code: str) -> str:
+    return hash_password(code)
+
+# Verifies a plaintext reset code against its stored bcrypt hash
+def verify_reset_code(code: str, code_hash: str) -> bool:
+    return verify_password(code, code_hash)
