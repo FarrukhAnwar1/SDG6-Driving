@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../screens/login_screen.dart';
-import '../screens/home_screen.dart';
+import '../screens/permissions_gate_screen.dart';
 import 'auth_storage.dart';
 import 'api_config.dart';
 
@@ -36,7 +36,7 @@ class _AuthGateState extends State<AuthGate> {
         debugPrint('SESSION CHECK STATUS: ${response.statusCode}');
 
         if (response.statusCode == 200) {
-          destination = const HomePage();
+          destination = const PermissionsGateScreen();
         } else {
           await AuthStorage.deleteToken();
         }

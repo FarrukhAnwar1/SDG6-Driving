@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'change_password_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
+import '../widgets/background_location_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -79,13 +80,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _logout() async {
+    await BackgroundLocationService.stop();
     await AuthStorage.deleteToken();
     _goToLogin();
   }
 
   Future<void> _openChangePassword() async {
     final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(builder: (_) => ChangePasswordPage(baseUrl: ApiConfig.baseUrl)),
+      MaterialPageRoute(
+        builder: (_) => ChangePasswordPage(baseUrl: ApiConfig.baseUrl),
+      ),
     );
 
     if (changed == true && mounted) {
@@ -138,6 +142,7 @@ class _HomePageState extends State<HomePage> {
       debugPrint('DELETE ACCOUNT STATUS: ${response.statusCode}');
 
       if (response.statusCode == 204) {
+        await BackgroundLocationService.stop();
         await AuthStorage.deleteToken();
         _goToLogin();
       } else {
