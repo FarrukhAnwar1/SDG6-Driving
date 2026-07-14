@@ -6,4 +6,6 @@ cryptography>=42.0        # required by pymysql for MySQL 8 auth (caching_sha2_p
 pydantic>=2.7
 pydantic-settings>=2.3    # loads settings from .env
 bcrypt>=4.1              # password hashing for POST /users
-pyjwt>=2.8              # signs/validates JWT login tokens
+pyjwt>=2.8                # signs/verifies JWT email verification tokens
+resend>=2.0               # sends verification emails
+pytest>=8.0               # lightweight backend regression tests

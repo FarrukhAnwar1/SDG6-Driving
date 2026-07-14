@@ -1,6 +1,6 @@
 // App Root
 import 'package:flutter/material.dart';
-import 'login_screen.dart';
+import 'widgets/auth_gate.dart';
 
 void main() {
   runApp(const MyApp());
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Login',
       theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-      home: const LoginPage(),
+      home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );
   }

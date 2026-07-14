@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy import Boolean, DateTime, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
@@ -18,3 +18,11 @@ class User(Base):
     verification_token_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime, nullable=True
     )
+
+    # Forgot-password flow: a short-lived 6-digit code, hashed like a password
+    # so a DB leak never exposes a usable code
+    reset_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reset_code_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime, nullable=True
+    )
+    reset_code_attempts: Mapped[int] = mapped_column(Integer, default=0)

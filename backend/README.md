@@ -43,6 +43,23 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     the created user (same shape as above). The password is hashed with bcrypt
     into `password_hash`; the raw password and verification tokens are never returned.
   - `409` if the `username` or `email` already exists (both are `UNIQUE`).
+  - `POST /forgot-password` with `{"email": "..."}` → always
+    `{"message": "If the email is registered, a password reset code has been sent."}`
+    (same response whether or not the email exists, to avoid leaking which emails
+    are registered). If the account exists, emails a 6-digit code valid for
+    `PASSWORD_RESET_CODE_EXPIRE_MINUTES` (default 15).
+  - `POST /reset-password` with `{"email": "...", "code": "...", "new_password": "..."}` →
+    `{"message": "Password reset successfully."}` on success.
+    `400` if the code is missing, wrong, or expired. `429` after
+    `PASSWORD_RESET_MAX_ATTEMPTS` (default 5) wrong codes, until a new code is requested.
+  - `POST /change-password` (requires a valid access token, `Authorization: Bearer <token>`)
+    with `{"current_password": "...", "new_password": "..."}` →
+    `{"message": "Password changed successfully."}` on success.
+    Use this when a logged-in user knows their current password and wants to
+    set a new one; use `/forgot-password` + `/reset-password` instead when they
+    can't log in at all. `new_password` must be at least 8 characters and
+    different from `current_password`. `401` if `current_password` doesn't
+    match the account's stored password.
 
 ## Notes
 
