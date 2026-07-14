@@ -66,5 +66,22 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We use your location to monitor speed</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>We keep tracking your location in the background to continue monitoring speed</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>We use your camera to check following distance and lane maintenance</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We access your photos to store driving recordings</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>PreciseLocationUsage</key>
+		<string>Precise location lets us pinpoint your exact position instead of an approximate area.</string>
+	</dict>
 </dict>
 </plist>

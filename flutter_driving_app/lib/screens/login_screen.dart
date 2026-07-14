@@ -1,13 +1,13 @@
 // Email and Password Login Screen
-
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import 'widgets/error_banner.dart';
+import 'permissions_gate_screen.dart';
+import '../widgets/auth_storage.dart';
+import '../widgets/error_banner.dart';
+import '../widgets/api_config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,9 +21,6 @@ class _LoginPageState extends State<LoginPage> {
   static const double _fieldSpacing = 16;
   static const double _horizontalPadding = 24;
 
-  // Backend URL (Android emulator)
-  static const String baseUrl = 'http://10.0.2.2:8000';
-
   // Form controllers
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -34,9 +31,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isSubmitting = false;
   String? _submitError;
+  bool _showResendVerification = false;
+  bool _isResendingVerification = false;
 
-  static final RegExp _emailRegex =
-      RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
+  static final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
 
   @override
   void dispose() {
@@ -73,11 +71,12 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _isSubmitting = true;
       _submitError = null;
+      _showResendVerification = false;
     });
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('${ApiConfig.baseUrl}/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text.trim(),
@@ -90,23 +89,31 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final token = data['access_token'];
+        final token = data['access_token'] as String?;
 
-        debugPrint('TOKEN: $token');
+        if (token == null) {
+          setState(() {
+            _submitError = 'Login failed. Please try again.';
+          });
+          return;
+        }
+
+        await AuthStorage.saveToken(token);
 
         if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Logged in successfully'),
-          ),
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const PermissionsGateScreen()),
+          (route) => false,
         );
-
-        // TODO: Store token securely
-        // TODO: Navigate to dashboard
       } else if (response.statusCode == 401) {
         setState(() {
           _submitError = 'Invalid email or password.';
+        });
+      } else if (response.statusCode == 403) {
+        setState(() {
+          _submitError = 'Please verify your email before logging in.';
+          _showResendVerification = true;
         });
       } else {
         setState(() {
@@ -123,6 +130,59 @@ class _LoginPageState extends State<LoginPage> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _resendVerification() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || _isResendingVerification) return;
+
+    setState(() {
+      _isResendingVerification = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/resend-verification'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      debugPrint('RESEND VERIFICATION STATUS: ${response.statusCode}');
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'If that email is registered, a new verification link has been sent.',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not resend verification email. Please try again.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('RESEND VERIFICATION ERROR: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not connect to backend.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResendingVerification = false;
         });
       }
     }
@@ -165,6 +225,26 @@ class _LoginPageState extends State<LoginPage> {
 
                         if (_submitError != null) ...[
                           ErrorBanner(message: _submitError!),
+                          if (_showResendVerification) ...[
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton(
+                                onPressed: _isResendingVerification
+                                    ? null
+                                    : _resendVerification,
+                                child: _isResendingVerification
+                                    ? const SizedBox(
+                                        height: 16,
+                                        width: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Text('Resend verification email'),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: _fieldSpacing),
                         ],
 
@@ -264,8 +344,7 @@ class _LoginPageState extends State<LoginPage> {
                                   : () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) =>
-                                              const SignUpPage(),
+                                          builder: (_) => const SignUpPage(),
                                         ),
                                       );
                                     },
