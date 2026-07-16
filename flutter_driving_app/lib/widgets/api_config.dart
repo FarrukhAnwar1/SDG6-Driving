@@ -22,11 +22,10 @@
 // If both are supplied, API_BASE_URL takes precedence.
 class ApiConfig {
   ApiConfig._();
-  // TODO: update staging (if necessary) and production URLs to actual backend endpoints
   static const Map<String, String> _urls = {
-    'dev': 'http://10.0.2.2:8000', // Android emulator -> localhost:8000
+    'dev': 'http://10.0.2.2:8000', // Android emulator 10.0.2.2:8000 or localhost:8000
     'staging': 'https://staging.example.com',
-    'prod': 'https://204.48.28.1',
+    'prod': 'https://api.driveucf.com',
   };
 
   static const String _envName = String.fromEnvironment(

@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import 'change_password_screen.dart';
+import 'live_dashboard_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
+import '../widgets/trip_summary.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -83,6 +85,20 @@ class _HomePageState extends State<HomePage> {
     await BackgroundLocationService.stop();
     await AuthStorage.deleteToken();
     _goToLogin();
+  }
+
+  Future<void> _startTrip() async {
+    // TODO: Once the Driving Report screen is created, navigate there
+    // instead and pass `summary` along
+    final summary = await Navigator.of(context).push<TripSummary>(
+      MaterialPageRoute(builder: (_) => const LiveDashboardScreen()),
+    );
+    if (summary == null || !mounted) return;
+    debugPrint(
+      'TRIP SUMMARY: ${summary.milesDriven.toStringAsFixed(1)} mi, '
+      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
+      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}',
+    );
   }
 
   Future<void> _openChangePassword() async {
@@ -224,6 +240,12 @@ class _HomePageState extends State<HomePage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
+          FilledButton.icon(
+            onPressed: _startTrip,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Start Trip'),
+          ),
+          const SizedBox(height: 12),
           FilledButton(onPressed: _logout, child: const Text('Log out')),
           const SizedBox(height: 12),
           OutlinedButton(

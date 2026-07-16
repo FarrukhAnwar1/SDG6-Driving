@@ -58,6 +58,8 @@ class _SignUpPageState extends State<SignUpPage> {
         }),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Account created successfully")),
@@ -72,6 +74,8 @@ class _SignUpPageState extends State<SignUpPage> {
         ).showSnackBar(const SnackBar(content: Text("Signup failed")));
       }
     } catch (_) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Could not connect to backend")),
       );
