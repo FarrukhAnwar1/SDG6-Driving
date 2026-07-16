@@ -28,8 +28,8 @@ class Settings(BaseSettings):
 
     # Resending emails 
     resend_api_key: str = ""                    # Resend API key
-    from_email: str = "onboarding@resend.dev"   # sandbox email for now
-    api_base_url: str = "http://localhost:8000"  
+    from_email: str = ""
+    api_base_url: str = ""
 
     @property
     def database_url(self) -> str:
