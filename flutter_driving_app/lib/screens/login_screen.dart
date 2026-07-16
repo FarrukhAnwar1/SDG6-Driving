@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import 'permissions_gate_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/api_config.dart';
+import '../widgets/post_auth_navigation.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -102,8 +102,15 @@ class _LoginPageState extends State<LoginPage> {
 
         if (!mounted) return;
 
+        // Skip PermissionsGateScreen entirely if everything's already
+        // granted from a previous session, so the user doesn't see even a
+        // brief flash of that screen
+        final destination = await postAuthDestination();
+
+        if (!mounted) return;
+
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const PermissionsGateScreen()),
+          MaterialPageRoute(builder: (_) => destination),
           (route) => false,
         );
       } else if (response.statusCode == 401) {

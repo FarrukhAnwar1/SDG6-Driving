@@ -3,9 +3,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../screens/login_screen.dart';
-import '../screens/permissions_gate_screen.dart';
 import 'auth_storage.dart';
 import 'api_config.dart';
+import 'post_auth_navigation.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -36,7 +36,10 @@ class _AuthGateState extends State<AuthGate> {
         debugPrint('SESSION CHECK STATUS: ${response.statusCode}');
 
         if (response.statusCode == 200) {
-          destination = const PermissionsGateScreen();
+          // Skip PermissionsGateScreen entirely if everything's already
+          // granted from a previous session, so the user doesn't see even
+          // a brief flash of that screen on app launch
+          destination = await postAuthDestination();
         } else {
           await AuthStorage.deleteToken();
         }
