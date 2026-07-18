@@ -4,13 +4,12 @@
 // Once everything is granted, it starts continuous background location
 // tracking before handing off to Home. Users who already granted everything
 // go through with no UI shown at all.
-import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'home_screen.dart';
 import '../widgets/background_location_service.dart';
+import '../widgets/permissions_config.dart';
 
 class _RequiredPermission {
   final Permission permission;
@@ -26,11 +25,6 @@ class _RequiredPermission {
   });
 }
 
-const int _manageExternalStorageMinSdk = 30;
-
-// Must match a key in Info.plist's NSLocationTemporaryUsageDescriptionDictionary
-const String _preciseLocationPurposeKey = 'PreciseLocationUsage';
-
 class PermissionsGateScreen extends StatefulWidget {
   const PermissionsGateScreen({super.key});
 
@@ -45,12 +39,15 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   bool _isChecking = true;
   bool _isRequesting = false;
   bool _hasRequestedOnce = false;
-  int? _androidSdkInt;
   List<_RequiredPermission> _requiredPermissions = [];
 
-  bool get _usesManageExternalStorage =>
-      Platform.isAndroid &&
-      (_androidSdkInt ?? 0) >= _manageExternalStorageMinSdk;
+  // The storage variant actually in _requiredPermissions - looked up rather
+  // than re-detecting the SDK version, so this can never disagree with what
+  // requiredPermissions() (shared with the login/session-check flows)
+  // decided.
+  bool get _usesManageExternalStorage => _requiredPermissions.any(
+    (p) => p.permission == Permission.manageExternalStorage,
+  );
 
   @override
   void initState() {
@@ -60,58 +57,68 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   }
 
   Future<void> _init() async {
-    if (Platform.isAndroid) {
-      final androidInfo = await DeviceInfoPlugin().androidInfo;
-      _androidSdkInt = androidInfo.version.sdkInt;
-    }
-    _requiredPermissions = _buildRequiredPermissions();
+    _requiredPermissions = (await requiredPermissions())
+        .map(_withDisplayInfo)
+        .toList();
     await _refreshStatuses(proceedIfGranted: true);
   }
 
-  // Built at runtime (rather than as a static const list) because the
-  // storage permission depends on the detected Android SDK version
-  List<_RequiredPermission> _buildRequiredPermissions() {
-    return [
-      const _RequiredPermission(
-        permission: Permission.locationWhenInUse,
-        title: 'Location',
-        rationale: 'Used to get your speed with an accurate location.',
-        icon: Icons.location_on_outlined,
-      ),
-      const _RequiredPermission(
-        permission: Permission.locationAlways,
-        title: 'Background location',
-        rationale:
-            'Lets us keep tracking your speed when the app is closed or '
-            'your screen is off.',
-        icon: Icons.location_history_outlined,
-      ),
-      const _RequiredPermission(
-        permission: Permission.camera,
-        title: 'Camera',
-        rationale: 'Used for computer vision and driving recordings.',
-        icon: Icons.camera_alt_outlined,
-      ),
-      _RequiredPermission(
-        permission: _usesManageExternalStorage
-            ? Permission.manageExternalStorage
-            : Permission.storage,
-        title: 'Storage',
-        rationale:
-            "Used to save and load recordings anywhere on your device's "
-            'storage.',
-        icon: Icons.folder_outlined,
-      ),
-      if (Platform.isAndroid)
-        const _RequiredPermission(
+  // Attaches this screen's display metadata (title/rationale/icon) to each
+  // permission from the shared requiredPermissions() list, so which
+  // permissions are required lives in one place (permissions_config.dart)
+  // and can't drift out of sync with the quick check the login/session-check
+  // flows use to decide whether to skip this screen entirely
+  _RequiredPermission _withDisplayInfo(Permission permission) {
+    switch (permission) {
+      case Permission.locationWhenInUse:
+        return const _RequiredPermission(
+          permission: Permission.locationWhenInUse,
+          title: 'Location',
+          rationale: 'Used to get your speed with an accurate location.',
+          icon: Icons.location_on_outlined,
+        );
+      case Permission.locationAlways:
+        return const _RequiredPermission(
+          permission: Permission.locationAlways,
+          title: 'Background location',
+          rationale:
+              'Lets us keep tracking your speed when the app is closed or '
+              'your screen is off.',
+          icon: Icons.location_history_outlined,
+        );
+      case Permission.camera:
+        return const _RequiredPermission(
+          permission: Permission.camera,
+          title: 'Camera',
+          rationale: 'Used for computer vision and recording drives.',
+          icon: Icons.camera_alt_outlined,
+        );
+      case Permission.storage:
+      case Permission.manageExternalStorage:
+        return _RequiredPermission(
+          permission: permission,
+          title: 'Storage',
+          rationale:
+              "Used to save and load recordings anywhere on your device's "
+              'storage.',
+          icon: Icons.folder_outlined,
+        );
+      case Permission.ignoreBatteryOptimizations:
+        return const _RequiredPermission(
           permission: Permission.ignoreBatteryOptimizations,
           title: 'Unrestricted battery usage',
           rationale:
-              'Keeps the app running in the background instead of being paused '
-              'to save battery.',
+              'Keeps the app running in the background instead of being '
+              'paused to save battery.',
           icon: Icons.battery_charging_full_outlined,
-        ),
-    ];
+        );
+      default:
+        throw ArgumentError.value(
+          permission,
+          'permission',
+          'No display info configured for this permission',
+        );
+    }
   }
 
   @override
@@ -132,11 +139,16 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   bool get _locationIsPrecise =>
       _accuracyStatus == LocationAccuracyStatus.precise;
 
-  bool get _allGranted {
+  bool get _allGranted => _computeAllGranted(_statuses, _accuracyStatus);
+
+  bool _computeAllGranted(
+    Map<Permission, PermissionStatus> statuses,
+    LocationAccuracyStatus? accuracy,
+  ) {
     final permissionsOk = _requiredPermissions.every(
-      (p) => _statuses[p.permission]?.isGranted ?? false,
+      (p) => statuses[p.permission]?.isGranted ?? false,
     );
-    return permissionsOk && _locationIsPrecise;
+    return permissionsOk && accuracy == LocationAccuracyStatus.precise;
   }
 
   bool get _anyPermanentlyDenied => _requiredPermissions.any(
@@ -174,15 +186,20 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
 
     if (!mounted) return;
 
+    if (proceedIfGranted && _computeAllGranted(statuses, accuracy)) {
+      // Everything is already granted so store the data but deliberately
+      // skip the setState that would flip `_isChecking` to false to avoid showing UI
+      _statuses = statuses;
+      _accuracyStatus = accuracy;
+      _proceedToHome();
+      return;
+    }
+
     setState(() {
       _statuses = statuses;
       _accuracyStatus = accuracy;
       _isChecking = false;
     });
-
-    if (proceedIfGranted && _allGranted) {
-      _proceedToHome();
-    }
   }
 
   Future<void> _requestAll() async {
@@ -224,7 +241,7 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
     var accuracy = await _checkAccuracyIfLocationGranted(results);
     if (accuracy != null && accuracy != LocationAccuracyStatus.precise) {
       accuracy = await Geolocator.requestTemporaryFullAccuracy(
-        purposeKey: _preciseLocationPurposeKey,
+        purposeKey: kPreciseLocationPurposeKey,
       );
     }
 
@@ -243,6 +260,8 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   }
 
   Future<void> _proceedToHome() async {
+    final enabled = await Geolocator.isLocationServiceEnabled();
+    debugPrint("Location Service Enabled = $enabled");
     await BackgroundLocationService.start();
 
     if (!mounted) return;
