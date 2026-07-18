@@ -26,10 +26,17 @@ class Settings(BaseSettings):
     password_reset_code_expire_minutes: int = 15  # Code validity window
     password_reset_max_attempts: int = 5          # Wrong tries allowed before a new code is required
 
-    # Resending emails 
+    # Resending emails
     resend_api_key: str = ""                    # Resend API key
     from_email: str = ""
     api_base_url: str = ""
+
+    # PostGIS connection for speed-limit data (separate DB from the MySQL above)
+    pg_host: str = "localhost"
+    pg_port: int = 5432
+    pg_name: str = "speedlimits"
+    pg_user: str = "sdg6"
+    pg_password: str = ""
 
     @property
     def database_url(self) -> str:
@@ -38,6 +45,14 @@ class Settings(BaseSettings):
         return (
             f"mysql+pymysql://{self.db_user}:{pwd}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
+
+    @property
+    def postgis_url(self) -> str:
+        pwd = quote_plus(self.pg_password)
+        return (
+            f"postgresql+psycopg://{self.pg_user}:{pwd}"
+            f"@{self.pg_host}:{self.pg_port}/{self.pg_name}"
         )
 
 settings = Settings()

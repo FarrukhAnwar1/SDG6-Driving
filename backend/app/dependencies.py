@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from . import models
-from .database import SessionLocal
+from .database import PgSessionLocal, SessionLocal
 from .security import decode_access_token
 
 def get_db():
@@ -17,6 +17,15 @@ def get_db():
         db.close()
 
 DbSession = Annotated[Session, Depends(get_db)]
+
+def get_pg_db():
+    db = PgSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+PgSession = Annotated[Session, Depends(get_pg_db)]
 
 bearer_scheme = HTTPBearer()
 
