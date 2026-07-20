@@ -51,3 +51,9 @@ class ChangePasswordRequest(BaseModel):
         if current_password is not None and new_password == current_password:
             raise ValueError("New password must be different from the current password.")
         return new_password
+
+class SpeedLimitOut(BaseModel):
+   # what GET / speed-limit returns, speed_limit_mph is null when no tagged road is found within search radius
+   speed_limit_mph: Optional[float] = Field(serialization_alias="speedLimitMph")
+   road_name: Optional[str] = Field(default=None, serialization_alias="roadName")
+   distance_meters: Optional[float] = Field(default=None, serialization_alias="distanceMeters")
