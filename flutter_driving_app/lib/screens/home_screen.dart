@@ -88,8 +88,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _startTrip() async {
-    // TODO: Once the Driving Report screen is created, navigate there
-    // instead and pass `summary` along
+    // TODO: Update redirection to Driving Report screen
     final summary = await Navigator.of(context).push<TripSummary>(
       MaterialPageRoute(builder: (_) => const LiveDashboardScreen()),
     );
