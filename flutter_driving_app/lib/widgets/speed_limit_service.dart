@@ -1,28 +1,52 @@
-// Placeholder for the backend Speed Limit API
+// Speed Limit API call service
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:http/http.dart' as http;
+import 'api_config.dart';
+
 class SpeedLimitService {
   SpeedLimitService._();
 
-  static const List<double> _placeholderLimitsMph = [40];
-
-  // Returns the posted speed limit (MPH) near the given coordinates.
-  // TODO: Replace function body with a real Speed Limits API call,
-  // such as by doing:
+  // Returns the posted speed limit (MPH) near the given coordinates, or
+  // null if none was found / the request failed
   //
-  //   final response = await http.get(
-  //     Uri.parse(
-  //       '${ApiConfig.baseUrl}/speed-limit?lat=$latitude&lng=$longitude',
-  //     ),
-  //     headers: {'Authorization': 'Bearer $token'},
-  //   );
-  //   final data = jsonDecode(response.body);
-  //   return (data['speedLimitMph'] as num?)?.toDouble();
+  // Backend contract (see speed_limits.py):
+  //   GET {baseUrl}/speed-limit?lat=<lat>&lng=<lng>
+  //   -> { "speedLimitMph": number | null,
+  //        "roadName": string | null,
+  //        "distanceMeters": number | null }
   static Future<double?> fetchPostedSpeedLimitMph({
     required double latitude,
     required double longitude,
+    required String token,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 250));
+    debugPrint(
+      'SpeedLimitService: fetching speed limit for '
+      'lat=$latitude, lng=$longitude',
+    );
+    final uri = Uri.parse(
+      '${ApiConfig.baseUrl}/speed-limit',
+    ).replace(queryParameters: {'lat': '$latitude', 'lng': '$longitude'});
 
-    final bucket = (latitude * 1000).round() ^ (longitude * 1000).round();
-    return _placeholderLimitsMph[bucket.abs() % _placeholderLimitsMph.length];
+    try {
+      final response = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 2));
+
+      debugPrint(
+        'SpeedLimitService: GET $uri -> '
+        '${response.statusCode} ${response.body}',
+      );
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return (data['speedLimitMph'] as num?)?.toDouble();
+    } catch (e, st) {
+      debugPrint('SpeedLimitService: request failed: $e\n$st');
+      return null;
+    }
   }
 }
