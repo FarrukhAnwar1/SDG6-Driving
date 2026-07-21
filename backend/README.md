@@ -31,6 +31,18 @@ DB_PASSWORD=...    # Password
 
 `.env` is git-ignored — it never gets committed.
 
+## Configure the speed limits database (PostGIS)
+
+Speed limit data lives in a separate self hosted PostGIS database, loaded from OpenStreetMap road data via 'osm2pgsql'. Add these to the same '.env':
+
+```
+PG_HOST=...        # Host / IP
+PG_PORT=5432       # Port
+PG_NAME=...        # Database name 
+PG_USER=...        # Username
+PG_PASSWORD=...    # Password
+```
+
 ## Run
 
 ```bash
@@ -60,8 +72,20 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     can't log in at all. `new_password` must be at least 8 characters and
     different from `current_password`. `401` if `current_password` doesn't
     match the account's stored password.
+  - `GET /speed-limit?lat=...&lng=...` (requires a valid access token,
+    `Authorization: Bearer <token>`) → `{"speedLimitMph": 45.0, "roadName": "...", "distanceMeters": 5.9}`.
+    Looks up the nearest tagged road segment to the given GPS point in the
+    PostGIS `speedlimits` database, within a 75m search radius. Returns
+    `{"speedLimitMph": null, "roadName": null, "distanceMeters": null}` if no
+    tagged road is found nearby (e.g. off-road, out of the OSM extract's
+    coverage area, or the nearest road has no `maxspeed` tag).
 
 ## Notes
 
 - `app/models.py` mirrors the users table: `id, username, email, password_hash, created_at, email_verified,
   verification_token, verification_token_expires_at`.
+- Speed limit lookups query `planet_osm_line` directly (no ORM model — raw
+  SQL via SQLAlchemy's `text()`), since the geometry column needs PostGIS
+  functions (`ST_Transform`, `ST_DWithin`) rather than plain ORM queries.
+  Road geometry is stored in SRID 3857 (meters); incoming lat/lng (SRID 4326)
+  is transformed before distance comparisons.

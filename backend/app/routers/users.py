@@ -41,7 +41,7 @@ def add_user(user: schemas.UserCreate, db: DbSession):
     row.verification_token = token
     db.commit()
     send_verification_email(row.email, token)
-    
+
     return row
 
 @router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)

@@ -8,4 +8,5 @@ pydantic-settings>=2.3    # loads settings from .env
 bcrypt>=4.1              # password hashing for POST /users
 pyjwt>=2.8                # signs/verifies JWT email verification tokens
 resend>=2.0               # sends verification emails
+psycopg[binary]>=3.1     # PostgreSQL/PostGIS driver for speed-limit data
 pytest>=8.0               # lightweight backend regression tests
