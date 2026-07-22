@@ -94,9 +94,13 @@ class _HomePageState extends State<HomePage> {
     );
     if (summary == null || !mounted) return;
     debugPrint(
-      'TRIP SUMMARY: ${summary.milesDriven.toStringAsFixed(1)} mi, '
+      'TRIP SUMMARY: ${summary.startTime} -> ${summary.endTime}, '
+      'elapsed ${formatElapsed(summary.elapsed)}, '
+      '${summary.milesDriven.toStringAsFixed(1)} mi, '
       'overall ${summary.overallGrade.toStringAsFixed(0)}, '
-      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}',
+      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
+      'speeding offenses ${summary.speedingOffenseCount} '
+      '(${formatElapsed(summary.totalSpeedingDuration)} total)',
     );
   }
 

@@ -9,6 +9,8 @@ class TripSummary {
   final double milesDriven;
   final double overallGrade;
   final double properSpeedGrade;
+  final int speedingOffenseCount;
+  final Duration totalSpeedingDuration;
 
   const TripSummary({
     required this.startTime,
@@ -17,5 +19,7 @@ class TripSummary {
     required this.milesDriven,
     required this.overallGrade,
     required this.properSpeedGrade,
+    required this.speedingOffenseCount,
+    required this.totalSpeedingDuration,
   });
 }

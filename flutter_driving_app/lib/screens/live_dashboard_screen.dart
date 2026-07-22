@@ -10,6 +10,14 @@ import '../widgets/speed_limit_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
 
+String formatElapsed(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = twoDigits(d.inHours);
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}
+
 class LiveDashboardScreen extends StatefulWidget {
   const LiveDashboardScreen({super.key});
 
@@ -225,6 +233,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   void _stopTrip() {
     final now = DateTime.now();
+    // Close out a streak still in progress (driver was speeding right up
+    // until Stop Trip was pressed) so it's counted below.
+    _properSpeedGrading.finalizeTrip();
     // TODO: Overall grade should be weighted average of all grades
     // For now, we just use the proper speed grade as a placeholder for overall grade
     final summary = TripSummary(
@@ -234,18 +245,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       milesDriven: _milesDriven,
       overallGrade: _properSpeedGrading.grade,
       properSpeedGrade: _properSpeedGrading.grade,
+      speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
+      totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
     );
 
     // TODO: Navigate to the Driving Report screen (passing the summary)
     Navigator.of(context).pop(summary);
-  }
-
-  String _formatElapsed(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(d.inHours);
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 
   double? get _speedDifference {
@@ -294,7 +299,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                       child: _buildStat(
                         context,
                         'Time Elapsed',
-                        _formatElapsed(_elapsed),
+                        formatElapsed(_elapsed),
                       ),
                     ),
                     Expanded(
