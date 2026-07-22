@@ -1,4 +1,5 @@
 // Speed Limit API call service
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
@@ -44,8 +45,14 @@ class SpeedLimitService {
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       return (data['speedLimitMph'] as num?)?.toDouble();
+    } on TimeoutException {
+      debugPrint(
+        'SpeedLimitService: Request timed out after 2 seconds '
+        '(lat=$latitude, lng=$longitude)',
+      );
+      return null;
     } catch (e, st) {
-      debugPrint('SpeedLimitService: request failed: $e\n$st');
+      debugPrint('SpeedLimitService: Request failed: $e\n$st');
       return null;
     }
   }
