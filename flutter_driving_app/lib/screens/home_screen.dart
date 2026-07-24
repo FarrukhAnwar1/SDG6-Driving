@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openChangePassword() async {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => ChangePasswordPage(baseUrl: ApiConfig.baseUrl),
+        builder: (_) => ChangePasswordPage(),
       ),
     );
 
