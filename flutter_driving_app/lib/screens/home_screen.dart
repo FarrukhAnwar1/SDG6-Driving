@@ -5,11 +5,9 @@ import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
-import 'driving_report_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
-import '../widgets/trip_summary.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -89,36 +87,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _startTrip() async {
-    // TODO: Update redirection to Driving Report screen
-    final summary = await Navigator.of(context).push<TripSummary>(
-      MaterialPageRoute(builder: (_) => const LiveDashboardScreen()),
-    );
-    if (summary == null || !mounted) return;
-    debugPrint(
-      'TRIP SUMMARY: ${summary.startTime} -> ${summary.endTime}, '
-      'elapsed ${formatElapsed(summary.elapsed)}, '
-      '${summary.milesDriven.toStringAsFixed(1)} mi, '
-      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
-      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
-      'speeding offenses ${summary.speedingOffenseCount} '
-      '(${formatElapsed(summary.totalSpeedingDuration)} total)',
-    );
-
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => DrivingReportScreen(
-          summary: summary,
-        ),
-      ),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LiveDashboardScreen()));
   }
 
   Future<void> _openChangePassword() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ChangePasswordPage(),
-      ),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => ChangePasswordPage()));
 
     if (changed == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

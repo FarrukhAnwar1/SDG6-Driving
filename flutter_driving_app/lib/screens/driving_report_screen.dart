@@ -1,6 +1,6 @@
+// Post driving report screen displaying results and feedback
 import 'package:flutter/material.dart';
 import '../widgets/trip_summary.dart';
-import 'package:flutter/widget_previews.dart';
 import 'home_screen.dart';
 
 class DrivingReportScreen extends StatelessWidget {
