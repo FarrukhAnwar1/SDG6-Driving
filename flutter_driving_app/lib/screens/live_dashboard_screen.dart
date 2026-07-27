@@ -1,6 +1,5 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
 // current speed, the posted speed limit, and live driving grades.
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,13 +8,14 @@ import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
+import 'driving_report_screen.dart';
 
 String formatElapsed(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(d.inHours);
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final hours = twoDigits(d.inHours);
+  final minutes = twoDigits(d.inMinutes.remainder(60));
+  final seconds = twoDigits(d.inSeconds.remainder(60));
+  return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
 }
 
 class LiveDashboardScreen extends StatefulWidget {
@@ -249,8 +249,19 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
     );
 
-    // TODO: Navigate to the Driving Report screen (passing the summary)
-    Navigator.of(context).pop(summary);
+    debugPrint(
+      'TRIP SUMMARY: ${summary.startTime} -> ${summary.endTime}, '
+      'elapsed ${formatElapsed(summary.elapsed)}, '
+      '${summary.milesDriven.toStringAsFixed(1)} mi, '
+      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
+      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
+      'speeding offenses ${summary.speedingOffenseCount} '
+      '(${formatElapsed(summary.totalSpeedingDuration)} total)',
+    );
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => DrivingReportScreen(summary: summary)),
+    );
   }
 
   double? get _speedDifference {
