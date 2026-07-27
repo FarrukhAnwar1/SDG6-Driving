@@ -1,6 +1,7 @@
 // Model of completed trip information, which can be passed to the Driving Report screen
 import 'package:flutter/foundation.dart';
 
+
 @immutable
 class TripSummary {
   final DateTime startTime;

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
+import 'driving_report_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
@@ -101,6 +102,14 @@ class _HomePageState extends State<HomePage> {
       'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
       'speeding offenses ${summary.speedingOffenseCount} '
       '(${formatElapsed(summary.totalSpeedingDuration)} total)',
+    );
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DrivingReportScreen(
+          summary: summary,
+        ),
+      ),
     );
   }
 
