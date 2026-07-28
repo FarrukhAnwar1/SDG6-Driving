@@ -1,6 +1,5 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
 // current speed, the posted speed limit, and live driving grades.
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -8,6 +7,16 @@ import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/trip_summary.dart';
+import '../widgets/auth_storage.dart';
+import 'driving_report_screen.dart';
+
+String formatElapsed(Duration d) {
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final hours = twoDigits(d.inHours);
+  final minutes = twoDigits(d.inMinutes.remainder(60));
+  final seconds = twoDigits(d.inSeconds.remainder(60));
+  return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+}
 
 class LiveDashboardScreen extends StatefulWidget {
   const LiveDashboardScreen({super.key});
@@ -21,7 +30,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   static const double _metersPerSecondToMph = 2.23694;
 
   // Controls how often speed limit is fetched
-  static const Duration _speedLimitRefreshInterval = Duration(seconds: 15);
+  static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
 
   // Below this speed, we don't count distance driven to avoid GPS jitter
   static const double _minSpeedForDistanceMph = 3.0;
@@ -181,21 +190,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         (reportedSpeedMph - calculatedSpeedMph).abs() <=
         _maxSpeedDisagreementMph;
 
-    debugPrint(
-      'RESOLVING SPEED: reported=${reportedSpeedMph.toStringAsFixed(1)} mph '
-      '(speedAccuracy=${position.speedAccuracy} m/s, '
-      'isMocked=${position.isMocked}), '
-      'calculated=${calculatedSpeedMph.toStringAsFixed(1)} mph, '
-      'trusted=$speedAccuracyTrusted, agree=$speedsAgree',
-    );
-
     if (speedAccuracyTrusted && speedsAgree) {
       return reportedSpeedMph;
     }
     return calculatedSpeedMph;
   }
 
-  void _maybeRefreshSpeedLimit(Position position) {
+  Future<void> _maybeRefreshSpeedLimit(Position position) async {
     final now = DateTime.now();
     final dueForRefresh =
         _lastSpeedLimitFetchTime == null ||
@@ -203,30 +204,40 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
     if (_isFetchingSpeedLimit || !dueForRefresh) return;
 
+    // Set these before the await below so a second position update landing
+    // while we're still reading the token doesn't slip past the guard above
     _isFetchingSpeedLimit = true;
     _lastSpeedLimitFetchTime = now;
 
-    SpeedLimitService.fetchPostedSpeedLimitMph(
-          latitude: position.latitude,
-          longitude: position.longitude,
-        )
-        .then((limit) {
-          if (!mounted) return;
-          setState(() => _postedSpeedLimitMph = limit);
-        })
-        .catchError((Object e) {
-          debugPrint('SPEED LIMIT FETCH ERROR: $e');
-        })
-        .whenComplete(() {
-          _isFetchingSpeedLimit = false;
-        });
+    try {
+      final token = await AuthStorage.readToken();
+      if (token == null) {
+        debugPrint('SPEED LIMIT FETCH SKIPPED: no auth token');
+        return;
+      }
+
+      final limit = await SpeedLimitService.fetchPostedSpeedLimitMph(
+        latitude: position.latitude,
+        longitude: position.longitude,
+        token: token,
+      );
+
+      if (!mounted) return;
+      setState(() => _postedSpeedLimitMph = limit);
+    } catch (e) {
+      debugPrint('SPEED LIMIT FETCH ERROR: $e');
+    } finally {
+      _isFetchingSpeedLimit = false;
+    }
   }
 
   void _stopTrip() {
     final now = DateTime.now();
-    // TODO: Overall grade currently just mirrors Proper Speed.
-    // Once more grading categories exist, overall grade should
-    // become a weighted average of all of them instead.
+    // Close out a streak still in progress (driver was speeding right up
+    // until Stop Trip was pressed) so it's counted below.
+    _properSpeedGrading.finalizeTrip();
+    // TODO: Overall grade should be weighted average of all grades
+    // For now, we just use the proper speed grade as a placeholder for overall grade
     final summary = TripSummary(
       startTime: _tripStartTime,
       endTime: now,
@@ -234,19 +245,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       milesDriven: _milesDriven,
       overallGrade: _properSpeedGrading.grade,
       properSpeedGrade: _properSpeedGrading.grade,
+      speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
+      totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
     );
 
-    // TODO: Once the Driving Report screen is created, "Stop Trip" should
-    // instead navigate there (passing the TripSummary)
-    Navigator.of(context).pop(summary);
-  }
+    debugPrint(
+      'TRIP SUMMARY: ${summary.startTime} -> ${summary.endTime}, '
+      'elapsed ${formatElapsed(summary.elapsed)}, '
+      '${summary.milesDriven.toStringAsFixed(1)} mi, '
+      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
+      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
+      'speeding offenses ${summary.speedingOffenseCount} '
+      '(${formatElapsed(summary.totalSpeedingDuration)} total)',
+    );
 
-  String _formatElapsed(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(d.inHours);
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => DrivingReportScreen(summary: summary)),
+    );
   }
 
   double? get _speedDifference {
@@ -295,7 +310,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                       child: _buildStat(
                         context,
                         'Time Elapsed',
-                        _formatElapsed(_elapsed),
+                        formatElapsed(_elapsed),
                       ),
                     ),
                     Expanded(

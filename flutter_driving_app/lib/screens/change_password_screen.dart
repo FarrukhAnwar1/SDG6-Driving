@@ -3,11 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/auth_storage.dart';
+import '../widgets/api_config.dart';
 
 class ChangePasswordPage extends StatefulWidget {
-  const ChangePasswordPage({super.key, required this.baseUrl});
-
-  final String baseUrl;
+  const ChangePasswordPage({super.key});
 
   @override
   State<ChangePasswordPage> createState() => _ChangePasswordPageState();
@@ -62,7 +61,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('${widget.baseUrl}/change-password'),
+        Uri.parse('${ApiConfig.baseUrl}/change-password'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

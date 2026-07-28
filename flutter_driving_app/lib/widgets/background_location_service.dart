@@ -165,11 +165,6 @@ class BackgroundLocationService {
   }
 
   static void _handlePosition(Position position) {
-    debugPrint(
-      'LOCATION UPDATE: ${position.latitude}, ${position.longitude} '
-      '(+/-${position.accuracy}m)',
-    );
-
     _everReceivedPosition = true;
     _fallbackWatchdog?.cancel();
 

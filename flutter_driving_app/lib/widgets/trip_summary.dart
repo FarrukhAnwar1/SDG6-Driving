@@ -1,6 +1,7 @@
 // Model of completed trip information, which can be passed to the Driving Report screen
 import 'package:flutter/foundation.dart';
 
+
 @immutable
 class TripSummary {
   final DateTime startTime;
@@ -9,6 +10,8 @@ class TripSummary {
   final double milesDriven;
   final double overallGrade;
   final double properSpeedGrade;
+  final int speedingOffenseCount;
+  final Duration totalSpeedingDuration;
 
   const TripSummary({
     required this.startTime,
@@ -17,5 +20,7 @@ class TripSummary {
     required this.milesDriven,
     required this.overallGrade,
     required this.properSpeedGrade,
+    required this.speedingOffenseCount,
+    required this.totalSpeedingDuration,
   });
 }

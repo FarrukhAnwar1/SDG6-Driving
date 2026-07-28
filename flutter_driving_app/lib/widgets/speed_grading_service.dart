@@ -32,7 +32,21 @@ class SpeedGradingService {
   DateTime? _lastPenalizedThrough;
   DateTime? _lastSampleTime;
 
+  // Timestamp of the most recent sample where the driver was speeding,
+  // i.e. the end of the current streak if it were to stop right now.
+  DateTime? _lastSpeedingTimestamp;
+
+  // A "speeding offense" is one continuous streak that was sustained past
+  // graceDuration (i.e. one that actually cost grade points). Streaks that
+  // never clear the grace window are jitter/brief excursions, not offenses.
+  // totalSpeedingDuration only counts time past the grace period (the part
+  // that was actually penalized), not the grace period itself.
+  int _offenseCount = 0;
+  Duration _totalSpeedingDuration = Duration.zero;
+
   double get grade => _grade;
+  int get speedingOffenseCount => _offenseCount;
+  Duration get totalSpeedingDuration => _totalSpeedingDuration;
 
   // Called once per position update to feed the current speed and posted limit into the grading
   void addSample({
@@ -46,7 +60,7 @@ class SpeedGradingService {
 
     if (speedLimitMph == null) {
       _regenerate(elapsedSeconds);
-      _violationStartTime = null;
+      _endCurrentStreak();
       _lastPenalizedThrough = null;
       _lastSampleTime = timestamp;
       return;
@@ -56,13 +70,14 @@ class SpeedGradingService {
 
     if (!isSpeeding) {
       _regenerate(elapsedSeconds);
-      _violationStartTime = null;
+      _endCurrentStreak();
       _lastPenalizedThrough = null;
       _lastSampleTime = timestamp;
       return;
     }
 
     _violationStartTime ??= timestamp;
+    _lastSpeedingTimestamp = timestamp;
     final elapsedInViolation = timestamp.difference(_violationStartTime!);
 
     if (elapsedInViolation < graceDuration) {
@@ -99,10 +114,38 @@ class SpeedGradingService {
     _grade = newGrade > 100 ? 100 : newGrade;
   }
 
+  // Closes out the in-progress streak (if any), tallying it as an offense
+  // when it was sustained past graceDuration, then clears streak state.
+  // Tallied duration excludes the grace period itself, i.e. it's the same
+  // span that was actually penalized against the grade.
+  void _endCurrentStreak() {
+    if (_violationStartTime != null && _lastSpeedingTimestamp != null) {
+      final fullDuration = _lastSpeedingTimestamp!.difference(
+        _violationStartTime!,
+      );
+      if (fullDuration >= graceDuration) {
+        _offenseCount++;
+        _totalSpeedingDuration += fullDuration - graceDuration;
+      }
+    }
+    _violationStartTime = null;
+    _lastSpeedingTimestamp = null;
+  }
+
+  // Call once when the trip ends, so a streak still in progress at that
+  // moment (driver was speeding right up until Stop Trip was pressed) still
+  // gets tallied instead of being silently dropped.
+  void finalizeTrip() {
+    _endCurrentStreak();
+  }
+
   void reset() {
     _grade = 100;
     _violationStartTime = null;
     _lastPenalizedThrough = null;
     _lastSampleTime = null;
+    _lastSpeedingTimestamp = null;
+    _offenseCount = 0;
+    _totalSpeedingDuration = Duration.zero;
   }
 }
