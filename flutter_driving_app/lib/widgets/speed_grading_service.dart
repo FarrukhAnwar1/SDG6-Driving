@@ -14,8 +14,6 @@
 // of clean driving (capped at 100). Sitting inside the grace window (over
 // the limit, but not yet sustained for 5s) is treated as neutral.
 
-// TODO: Potentially introduce hysteresis band or a rolling-window average for
-// more accurate grading
 class SpeedGradingService {
   // Penalize only if the driver is this many MPH over the posted limit
   static const double speedingThresholdMph = 5;

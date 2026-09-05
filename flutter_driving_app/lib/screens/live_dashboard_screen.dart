@@ -1,11 +1,15 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
 // current speed, the posted speed limit, and live driving grades.
+// Also sets up and calls live grading services, and passes completed
+// trip information to the Driving Report screen.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
+import '../widgets/smoothness_grading_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
 import 'driving_report_screen.dart';
@@ -28,6 +32,7 @@ class LiveDashboardScreen extends StatefulWidget {
 class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
+  static const double _gravityMetersPerSecondSquared = 9.80665;
 
   // Controls how often speed limit is fetched
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
@@ -60,8 +65,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   final DateTime _tripStartTime = DateTime.now();
   final SpeedGradingService _properSpeedGrading = SpeedGradingService();
+  final SmoothnessGradingService _smoothnessGrading =
+      SmoothnessGradingService();
 
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _accelerometerSubscription;
   Timer? _elapsedTimer;
 
   Duration _elapsed = Duration.zero;
@@ -76,6 +84,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   bool _receivedFirstPosition = false;
 
+  double _currentForwardG = 0.0;
+  double _currentLateralG = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +95,67 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       setState(() => _elapsed = DateTime.now().difference(_tripStartTime));
     });
     _startListening();
+    _startAccelerometer();
+  }
+
+  void _startAccelerometer() {
+    _accelerometerSubscription = userAccelerometerEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_handleAccelerometerEvent);
+  }
+
+  // This smoothness grading assumes the phone is mounted upright (portrait), standing
+  // roughly vertical (the typical vent-clip or windshield/dash-suction mount),
+  // not laid flat on the dash, with the back of the phone facing the
+  // front of the car and the screen facing back toward the driver.
+  //
+  // Under that mounting condition: the device's Z axis (straight out of the screen,
+  // toward the driver) lines up with the vehicle's forward/backward axis,
+  // and the screen points backward, so the back of the phone points forward,
+  // meaning "accelerating forward" reads as negative Z and "braking" reads
+  // as positive Z. The device's Y axis (top-to-bottom of the screen) ends
+  // up roughly vertical in this mount rather than forward/backward. The
+  // device's X axis (left-to-right of the screen) lines up with the
+  // vehicle's left/right axis regardless of how upright vs. reclined the
+  // mount is, as long as it's portrait and not rolled sideways.
+  //
+  // A mount that reclines the phone back significantly (propped flatish
+  // against the dash/windshield rather than held near-vertical) would shift
+  // the forward signal from Z toward Y, so this reading degrades the more
+  // the mount leans away from vertical. A phone mounted some other way
+  // entirely (landscape, upside down, flat in a cupholder) will read
+  // rotated values here and throw off which category a hard event gets
+  // counted under. A more robust version would derive the rotation from
+  // the device's fused orientation, or from the offset between the
+  // device's compass heading and the GPS course, instead of assuming a
+  // fixed mount.
+  void _handleAccelerometerEvent(UserAccelerometerEvent event) {
+    final position = _lastPosition;
+    // Wait for a GPS fix before grading so violations can be tagged with
+    // real coordinates.
+    if (position == null) return;
+
+    // Only grade smoothness while the vehicle is actually moving, so
+    // handling noise (picking the phone up, bumping the mount at a red
+    // light) doesn't get counted as harsh braking/accelerating/turning.
+    final isMoving = _currentSpeedMph >= _minSpeedMph;
+    final forwardG = isMoving ? -event.z / _gravityMetersPerSecondSquared : 0.0;
+    final lateralG = isMoving ? event.x / _gravityMetersPerSecondSquared : 0.0;
+
+    _smoothnessGrading.addSample(
+      forwardG: forwardG,
+      lateralG: lateralG,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      timestamp: event.timestamp,
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentForwardG = forwardG;
+        _currentLateralG = lateralG;
+      });
+    }
   }
 
   Future<void> _startListening() async {
@@ -103,6 +175,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   void dispose() {
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
+    _accelerometerSubscription?.cancel();
     // Drop back to the longer idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
     super.dispose();
@@ -236,27 +309,29 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     // Close out a streak still in progress (driver was speeding right up
     // until Stop Trip was pressed) so it's counted below.
     _properSpeedGrading.finalizeTrip();
-    // TODO: Overall grade should be weighted average of all grades
-    // For now, we just use the proper speed grade as a placeholder for overall grade
+    _smoothnessGrading.finalizeTrip();
+
     final summary = TripSummary(
       startTime: _tripStartTime,
       endTime: now,
       elapsed: now.difference(_tripStartTime),
       milesDriven: _milesDriven,
-      overallGrade: _properSpeedGrading.grade,
+      overallGrade: _overallGrade,
       properSpeedGrade: _properSpeedGrading.grade,
       speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
       totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
-    );
-
-    debugPrint(
-      'TRIP SUMMARY: ${summary.startTime} -> ${summary.endTime}, '
-      'elapsed ${formatElapsed(summary.elapsed)}, '
-      '${summary.milesDriven.toStringAsFixed(1)} mi, '
-      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
-      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}, '
-      'speeding offenses ${summary.speedingOffenseCount} '
-      '(${formatElapsed(summary.totalSpeedingDuration)} total)',
+      brakingGrade: _smoothnessGrading.brakingGrade,
+      acceleratingGrade: _smoothnessGrading.acceleratingGrade,
+      turningGrade: _smoothnessGrading.turningGrade,
+      brakingViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.braking,
+      ),
+      acceleratingViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.accelerating,
+      ),
+      turningViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.turning,
+      ),
     );
 
     Navigator.of(context).pushReplacement(
@@ -279,9 +354,20 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         difference < _speedingThresholdMph;
   }
 
+  // Overall Grade is the average of every currently graded category
+  double get _overallGrade {
+    final grades = [
+      _properSpeedGrading.grade,
+      _smoothnessGrading.brakingGrade,
+      _smoothnessGrading.acceleratingGrade,
+      _smoothnessGrading.turningGrade,
+    ];
+    return grades.reduce((a, b) => a + b) / grades.length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final overallGrade = _properSpeedGrading.grade;
+    final overallGrade = _overallGrade;
 
     return PopScope(
       canPop: false,
@@ -302,6 +388,31 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                   context,
                   'Proper Speed',
                   _properSpeedGrading.grade,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSmoothnessGradeTile(
+                        context,
+                        SmoothnessCategory.braking,
+                      ),
+                    ),
+                    const SizedBox(width: 1),
+                    Expanded(
+                      child: _buildSmoothnessGradeTile(
+                        context,
+                        SmoothnessCategory.accelerating,
+                      ),
+                    ),
+                    const SizedBox(width: 1),
+                    Expanded(
+                      child: _buildSmoothnessGradeTile(
+                        context,
+                        SmoothnessCategory.turning,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -348,6 +459,25 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildStat(
+                        context,
+                        'Forward G',
+                        _currentForwardG.toStringAsFixed(1),
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildStat(
+                        context,
+                        'Lateral G',
+                        _currentLateralG.toStringAsFixed(1),
+                      ),
+                    ),
+                  ],
+                ),
                 const Spacer(),
                 FilledButton.icon(
                   onPressed: _stopTrip,
@@ -382,6 +512,47 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                 color: color,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmoothnessGradeTile(
+    BuildContext context,
+    SmoothnessCategory category,
+  ) {
+    final grade = _smoothnessGrading.gradeFor(category);
+    final violationCount = _smoothnessGrading.violationCountFor(category);
+    final color = grade >= 90
+        ? Colors.green
+        : grade >= 70
+        ? Colors.orange
+        : Colors.red;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        child: Column(
+          children: [
+            Text(
+              category.label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              grade.toStringAsFixed(0),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              violationCount == 1 ? '1 event' : '$violationCount events',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
