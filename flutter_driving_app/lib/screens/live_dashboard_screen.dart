@@ -7,7 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
-import '../widgets/trip_summary.dart';
+import 'trip_summary.dart';
+import 'driving_report_screen.dart';
 
 class LiveDashboardScreen extends StatefulWidget {
   const LiveDashboardScreen({super.key});
@@ -222,24 +223,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         });
   }
 
-  void _stopTrip() {
-    final now = DateTime.now();
-    // TODO: Overall grade currently just mirrors Proper Speed.
-    // Once more grading categories exist, overall grade should
-    // become a weighted average of all of them instead.
-    final summary = TripSummary(
-      startTime: _tripStartTime,
-      endTime: now,
-      elapsed: now.difference(_tripStartTime),
-      milesDriven: _milesDriven,
-      overallGrade: _properSpeedGrading.grade,
-      properSpeedGrade: _properSpeedGrading.grade,
-    );
+void _stopTrip() {
+  final now = DateTime.now();
 
-    // TODO: Once the Driving Report screen is created, "Stop Trip" should
-    // instead navigate there (passing the TripSummary)
-    Navigator.of(context).pop(summary);
-  }
+  final summary = TripSummary(
+    startTime: _tripStartTime,
+    endTime: now,
+    elapsed: now.difference(_tripStartTime),
+    milesDriven: _milesDriven,
+    overallGrade: _properSpeedGrading.grade,
+    properSpeedGrade: _properSpeedGrading.grade,
+  );
+
+  Navigator.of(context).pushReplacement(
+    MaterialPageRoute(
+      builder: (context) => DrivingReportScreen(summary: summary),
+    ),
+  );
+}
 
   String _formatElapsed(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');

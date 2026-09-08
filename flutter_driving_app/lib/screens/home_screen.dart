@@ -8,7 +8,7 @@ import 'live_dashboard_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
-import '../widgets/trip_summary.dart';
+import 'trip_summary.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
