@@ -425,103 +425,114 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildGradeCard(context, 'Overall Grade', overallGrade),
-                const SizedBox(height: 12),
-                _buildGradeCard(
-                  context,
-                  'Proper Speed',
-                  _properSpeedGrading.grade,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSmoothnessGradeTile(
-                        context,
-                        SmoothnessCategory.braking,
-                      ),
+                // Stats scroll on short screens instead of overflowing.
+                // The Stop Trip button below stays pinned to the bottom.
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildGradeCard(context, 'Overall Grade', overallGrade),
+                        const SizedBox(height: 12),
+                        _buildGradeCard(
+                          context,
+                          'Proper Speed',
+                          _properSpeedGrading.grade,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.braking,
+                              ),
+                            ),
+                            const SizedBox(width: 1),
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.accelerating,
+                              ),
+                            ),
+                            const SizedBox(width: 1),
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.turning,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Time Elapsed',
+                                formatElapsed(_elapsed),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Miles Driven',
+                                _milesDriven.toStringAsFixed(1),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Current Speed',
+                                '${_currentSpeedMph.toStringAsFixed(0)} MPH',
+                                valueColor: _isSpeeding
+                                    ? Colors.red
+                                    : _isCloseToSpeeding
+                                    ? Colors.orange
+                                    : null,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Speed Limit',
+                                _postedSpeedLimitMph == null
+                                    ? '—'
+                                    : '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH',
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Forward G',
+                                _formatGForce(_currentForwardG),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Lateral G',
+                                _formatGForce(_currentLateralG),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 1),
-                    Expanded(
-                      child: _buildSmoothnessGradeTile(
-                        context,
-                        SmoothnessCategory.accelerating,
-                      ),
-                    ),
-                    const SizedBox(width: 1),
-                    Expanded(
-                      child: _buildSmoothnessGradeTile(
-                        context,
-                        SmoothnessCategory.turning,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Time Elapsed',
-                        formatElapsed(_elapsed),
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Miles Driven',
-                        _milesDriven.toStringAsFixed(1),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Current Speed',
-                        '${_currentSpeedMph.toStringAsFixed(0)} MPH',
-                        valueColor: _isSpeeding
-                            ? Colors.red
-                            : _isCloseToSpeeding
-                            ? Colors.orange
-                            : null,
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Speed Limit',
-                        _postedSpeedLimitMph == null
-                            ? '—'
-                            : '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Forward G',
-                        _formatGForce(_currentForwardG),
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Lateral G',
-                        _formatGForce(_currentLateralG),
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
                 FilledButton.icon(
                   onPressed: _stopTrip,
                   style: FilledButton.styleFrom(backgroundColor: Colors.red),

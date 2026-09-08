@@ -186,7 +186,18 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: SafeArea(child: Center(child: _buildBody(context))),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(child: Center(child: _buildBody(context))),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

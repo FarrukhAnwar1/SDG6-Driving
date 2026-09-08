@@ -205,12 +205,14 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   Future<void> _requestAll() async {
     setState(() => _isRequesting = true);
 
+    // Request permissions one at a time, awaiting the result of each
+    // dialog before requesting the next.
     // "Always" location must be requested only after "when in use" is
     // granted. MANAGE_EXTERNAL_STORAGE shows no in-app dialog at all,
     // requesting it sends the user straight to a system Settings screen,
     // so, like locationAlways, it's requested on its own rather than
-    // batched with the permissions that show a normal in-app dialog.
-    final batchPermissions = _requiredPermissions
+    // alongside the permissions that show a normal in-app dialog.
+    final sequentialPermissions = _requiredPermissions
         .map((p) => p.permission)
         .where(
           (p) =>
@@ -219,7 +221,10 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
         )
         .toList();
 
-    var results = await batchPermissions.request();
+    final results = <Permission, PermissionStatus>{};
+    for (final permission in sequentialPermissions) {
+      results[permission] = await permission.request();
+    }
 
     final PermissionStatus alwaysStatus;
     if (results[Permission.locationWhenInUse]?.isGranted ?? false) {
@@ -227,15 +232,11 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
     } else {
       alwaysStatus = await Permission.locationAlways.status;
     }
-    results = {...results, Permission.locationAlways: alwaysStatus};
+    results[Permission.locationAlways] = alwaysStatus;
 
     if (_usesManageExternalStorage) {
-      final manageStorageStatus = await Permission.manageExternalStorage
-          .request();
-      results = {
-        ...results,
-        Permission.manageExternalStorage: manageStorageStatus,
-      };
+      results[Permission.manageExternalStorage] =
+          await Permission.manageExternalStorage.request();
     }
 
     var accuracy = await _checkAccuracyIfLocationGranted(results);
