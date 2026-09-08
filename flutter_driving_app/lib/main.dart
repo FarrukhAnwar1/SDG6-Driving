@@ -1,9 +1,16 @@
 // App Root
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'widgets/auth_gate.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]).then((_) {
+    runApp(const MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {
