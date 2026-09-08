@@ -2,10 +2,17 @@
 // (0-100, starting at 100) using accelerometer samples.
 
 // GRADING RULE:
-// Acceloratory g-force spike >= [violationThresholdG] triggers penalization.
-// Flat cost [basePenaltyPerViolation] for a violation happening at all, plus a per-g-over-threshold
-// [penaltyPerGOverThreshold] and per-second-of-duration cost [penaltyPerSecond],
-// so a harder or longer event costs more.
+// A g-force event must stay at or above [violationThresholdG] continuously for
+// at least [violationConfirmationDuration] before it becomes a violation.
+// This confirmation window rejects short impulses such as potholes, road seams,
+// and quick mount shakes that can create a large instantaneous sensor spike but
+// do not represent sustained harsh driving.
+//
+// Once confirmed, the violation is timed from when the sustained spike actually
+// began (not from the end of the confirmation window). A flat
+// [basePenaltyPerViolation] is charged for the event, plus a per-g-over-threshold
+// [penaltyPerGOverThreshold] and per-second-of-duration [penaltyPerSecond], so a
+// harder or longer event costs more.
 
 // COOLDOWN RULE:
 // If a new spike in the same category starts within [violationCooldown] of
@@ -70,9 +77,37 @@ class _OpenViolation {
   double peakGForce;
 }
 
+
+// A threshold crossing that has not lasted long enough to count yet.
+// Keeping this separate from _OpenViolation is what prevents one-sample
+// potholes / mount jolts from immediately affecting the grade.
+class _ViolationCandidate {
+  _ViolationCandidate({
+    required this.startTime,
+    required this.latitude,
+    required this.longitude,
+    required this.peakGForce,
+  });
+
+  final DateTime startTime;
+  final double latitude;
+  final double longitude;
+  double peakGForce;
+}
+
 class SmoothnessGradingService {
-  // A sustained g-force at or above this level counts as a violation
+  // A sustained g-force at or above this level can count as a violation.
   static const double violationThresholdG = 0.5;
+
+  // The signal must remain above violationThresholdG for at least this long
+  // before it is promoted from a candidate to a real violation.
+  //
+  // 350 ms is intentionally long enough to reject most pothole / road-seam /
+  // mount-jolt impulses, while still being short relative to genuine harsh
+  // braking, acceleration, or cornering events, which normally persist for
+  // substantially longer than a few tenths of a second.
+  static const Duration violationConfirmationDuration =
+      Duration(milliseconds: 350);
 
   // See COOLDOWN RULE above
   static const Duration violationCooldown = Duration(seconds: 5);
@@ -95,6 +130,12 @@ class SmoothnessGradingService {
   };
 
   final Map<SmoothnessCategory, _OpenViolation?> _openViolations = {
+    for (final category in SmoothnessCategory.values) category: null,
+  };
+
+  // Threshold crossings that have not yet survived the confirmation window.
+  // These never affect grades, counts, or violation lists unless promoted.
+  final Map<SmoothnessCategory, _ViolationCandidate?> _candidates = {
     for (final category in SmoothnessCategory.values) category: null,
   };
 
@@ -164,38 +205,86 @@ class SmoothnessGradingService {
     final open = _openViolations[category];
 
     if (smoothed >= violationThresholdG) {
-      if (open == null) {
-        final lastClosed = _lastClosedViolation[category];
-        final withinCooldown =
-            lastClosed != null &&
-            timestamp.difference(lastClosed.endTime) <= violationCooldown;
-
-        if (withinCooldown) {
-          // Still in the cooldown window since the last violation in this
-          // category ended, so reopen it instead of starting a new one, so
-          // it extends through this spike rather than being counted twice.
-          _violations[category]!.removeLast();
-          _openViolations[category] = _OpenViolation(
-            startTime: lastClosed.startTime,
-            latitude: lastClosed.latitude,
-            longitude: lastClosed.longitude,
-            peakGForce: math.max(lastClosed.peakGForce, smoothed),
-          );
-        } else {
-          _openViolations[category] = _OpenViolation(
-            startTime: timestamp,
-            latitude: latitude,
-            longitude: longitude,
-            peakGForce: smoothed,
-          );
-        }
-      } else {
+      // Once an event is confirmed, keep tracking it exactly as before.
+      if (open != null) {
         open.peakGForce = math.max(open.peakGForce, smoothed);
+        return;
       }
-    } else if (open != null) {
+
+      final candidate = _candidates[category];
+      if (candidate == null) {
+        // First sample above threshold: remember it, but do not penalize yet.
+        _candidates[category] = _ViolationCandidate(
+          startTime: timestamp,
+          latitude: latitude,
+          longitude: longitude,
+          peakGForce: smoothed,
+        );
+        return;
+      }
+
+      candidate.peakGForce = math.max(candidate.peakGForce, smoothed);
+
+      final candidateAge = timestamp.difference(candidate.startTime);
+      if (candidateAge.isNegative) {
+        // Out-of-order timestamps should not be able to confirm an event.
+        _candidates[category] = _ViolationCandidate(
+          startTime: timestamp,
+          latitude: latitude,
+          longitude: longitude,
+          peakGForce: smoothed,
+        );
+        return;
+      }
+
+      if (candidateAge >= violationConfirmationDuration) {
+        _promoteCandidate(category, candidate);
+        _candidates[category] = null;
+      }
+      return;
+    }
+
+    // Falling below threshold before confirmation means it was only a short
+    // impulse. Discard it completely: no grade penalty and no event count.
+    _candidates[category] = null;
+
+    if (open != null) {
       _closeViolation(category, open, timestamp);
       _openViolations[category] = null;
     }
+  }
+
+  void _promoteCandidate(
+    SmoothnessCategory category,
+    _ViolationCandidate candidate,
+  ) {
+    final lastClosed = _lastClosedViolation[category];
+    final withinCooldown =
+        lastClosed != null &&
+        candidate.startTime.difference(lastClosed.endTime) <=
+            violationCooldown &&
+        !candidate.startTime.isBefore(lastClosed.endTime);
+
+    if (withinCooldown) {
+      // The new sustained event is close enough to the previous confirmed
+      // violation to be the same driving maneuver. Reopen the old one only
+      // AFTER this new spike has itself survived the confirmation window.
+      _violations[category]!.removeLast();
+      _openViolations[category] = _OpenViolation(
+        startTime: lastClosed.startTime,
+        latitude: lastClosed.latitude,
+        longitude: lastClosed.longitude,
+        peakGForce: math.max(lastClosed.peakGForce, candidate.peakGForce),
+      );
+      return;
+    }
+
+    _openViolations[category] = _OpenViolation(
+      startTime: candidate.startTime,
+      latitude: candidate.latitude,
+      longitude: candidate.longitude,
+      peakGForce: candidate.peakGForce,
+    );
   }
 
   void _closeViolation(
@@ -215,12 +304,14 @@ class SmoothnessGradingService {
     _lastClosedViolation[category] = violation;
   }
 
-  // Called when the trip ends to close out any violation still in progress
-  // (i.e. driver was still braking hard right as Stop Trip was pressed) so it's
-  // counted in the final grade and violation list.
+  // Called when the trip ends to close out any CONFIRMED violation still in
+  // progress. An unconfirmed candidate is intentionally discarded: if it did
+  // not survive the confirmation window, it should not count just because the
+  // driver happened to press Stop Trip during a pothole / brief jolt.
   void finalizeTrip() {
     final now = _lastSampleTime ?? DateTime.now();
     for (final category in SmoothnessCategory.values) {
+      _candidates[category] = null;
       final open = _openViolations[category];
       if (open != null) {
         _closeViolation(category, open, now);
@@ -229,10 +320,9 @@ class SmoothnessGradingService {
     }
   }
 
-  // Live 0-100 grade for category. Includes whatever violation is
-  // currently in progress, provisionally scored as if it ended right now,
-  // so the number visibly drops the moment a hard event starts instead of
-  // waiting for it to finish.
+  // Live 0-100 grade for category. A threshold crossing does not affect the
+  // grade during its confirmation window. Once confirmed, the event is scored
+  // from its true original start time and remains live until it ends.
   double gradeFor(SmoothnessCategory category) {
     double penalty = 0;
     for (final violation in _violations[category]!) {

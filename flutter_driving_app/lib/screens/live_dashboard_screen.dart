@@ -10,6 +10,7 @@ import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/smoothness_grading_service.dart';
+import '../widgets/orientation_calibration_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
 import 'driving_report_screen.dart';
@@ -32,7 +33,6 @@ class LiveDashboardScreen extends StatefulWidget {
 class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
-  static const double _gravityMetersPerSecondSquared = 9.80665;
 
   // Controls how often speed limit is fetched
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
@@ -67,9 +67,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   final SpeedGradingService _properSpeedGrading = SpeedGradingService();
   final SmoothnessGradingService _smoothnessGrading =
       SmoothnessGradingService();
+  final OrientationCalibrationService _orientationCalibration =
+      OrientationCalibrationService();
 
   StreamSubscription<Position>? _positionSubscription;
-  StreamSubscription<UserAccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
   Timer? _elapsedTimer;
 
   Duration _elapsed = Duration.zero;
@@ -87,6 +90,17 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   double _currentForwardG = 0.0;
   double _currentLateralG = 0.0;
 
+  // Adds a "+" sign to positive g-force values for display.
+  // Negative values are left as-is, since they already have a "-" sign.
+  // Catches noisy values that round to negative zero and makes them positive.
+  String _formatGForce(double gForce) {
+    String formatted = gForce.toStringAsFixed(1);
+    if (formatted == '-0.0') {
+      formatted = '0.0';
+    }
+    return formatted.startsWith('-') ? formatted : '+$formatted';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -96,51 +110,62 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     });
     _startListening();
     _startAccelerometer();
+    _startGyroscope();
   }
 
   void _startAccelerometer() {
-    _accelerometerSubscription = userAccelerometerEventStream(
+    // Use raw (gravity-included) stream rather than the pre-filtered
+    // user-accelerometer stream, because OrientationCalibrationService
+    // needs the gravity component itself to figure out how the phone is
+    // sitting in its mount.
+    _accelerometerSubscription = accelerometerEventStream(
       samplingPeriod: SensorInterval.gameInterval,
     ).listen(_handleAccelerometerEvent);
   }
 
-  // This smoothness grading assumes the phone is mounted upright (portrait), standing
-  // roughly vertical (the typical vent-clip or windshield/dash-suction mount),
-  // not laid flat on the dash, with the back of the phone facing the
-  // front of the car and the screen facing back toward the driver.
-  //
-  // Under that mounting condition: the device's Z axis (straight out of the screen,
-  // toward the driver) lines up with the vehicle's forward/backward axis,
-  // and the screen points backward, so the back of the phone points forward,
-  // meaning "accelerating forward" reads as negative Z and "braking" reads
-  // as positive Z. The device's Y axis (top-to-bottom of the screen) ends
-  // up roughly vertical in this mount rather than forward/backward. The
-  // device's X axis (left-to-right of the screen) lines up with the
-  // vehicle's left/right axis regardless of how upright vs. reclined the
-  // mount is, as long as it's portrait and not rolled sideways.
-  //
-  // A mount that reclines the phone back significantly (propped flatish
-  // against the dash/windshield rather than held near-vertical) would shift
-  // the forward signal from Z toward Y, so this reading degrades the more
-  // the mount leans away from vertical. A phone mounted some other way
-  // entirely (landscape, upside down, flat in a cupholder) will read
-  // rotated values here and throw off which category a hard event gets
-  // counted under. A more robust version would derive the rotation from
-  // the device's fused orientation, or from the offset between the
-  // device's compass heading and the GPS course, instead of assuming a
-  // fixed mount.
-  void _handleAccelerometerEvent(UserAccelerometerEvent event) {
+  void _startGyroscope() {
+    // Feeds OrientationCalibrationService's lateral (turning) G estimate.
+    // See the comment on _handleAccelerometerEvent for why this replaced
+    // a GPS-only rotation fit for that half.
+    _gyroscopeSubscription = gyroscopeEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_orientationCalibration.addGyroscopeSample);
+  }
+
+  // Smoothness grading needs forward (braking/accelerating) and lateral
+  // (turning) G-force, but the accelerometer only reports acceleration
+  // along the phone's own X/Y/Z axes, whatever those happen to line up
+  // with for however the phone is mounted. Rather than assuming a fixed
+  // mount (portrait, screen toward the driver, held upright), the reading
+  // is derived from OrientationCalibrationService, which figures out that
+  // mapping from the sensors themselves:
+  //  - gravity/tilt comes from a gyro-aided accelerometer estimate: the
+  //    gyroscope follows fast pitch/roll (important on vibrating vertical
+  //    mounts) while the accelerometer slowly corrects long-term drift.
+  //  - before forward-axis calibration, gyro yaw rate provides a temporary
+  //    lateral estimate and turn gate. After calibration, lateral G comes
+  //    directly from the gravity-corrected accelerometer on the horizontal
+  //    axis perpendicular to forward, avoiding speed-amplified mount wobble.
+  //  - forward (braking/accelerating) G comes from projecting the
+  //    gravity-corrected accelerometer vector onto a calibrated vehicle-
+  //    forward axis. GPS speed trend is used only to label clean buffered
+  //    calibration intervals; once calibrated, live magnitude and sign both
+  //    come directly from the accelerometer projection at sensor rate.
+  // See orientation_calibration_service.dart for the full explanation.
+  void _handleAccelerometerEvent(AccelerometerEvent event) {
     final position = _lastPosition;
     // Wait for a GPS fix before grading so violations can be tagged with
     // real coordinates.
     if (position == null) return;
 
+    _orientationCalibration.addAccelerometerSample(event);
+
     // Only grade smoothness while the vehicle is actually moving, so
     // handling noise (picking the phone up, bumping the mount at a red
     // light) doesn't get counted as harsh braking/accelerating/turning.
     final isMoving = _currentSpeedMph >= _minSpeedMph;
-    final forwardG = isMoving ? -event.z / _gravityMetersPerSecondSquared : 0.0;
-    final lateralG = isMoving ? event.x / _gravityMetersPerSecondSquared : 0.0;
+    final forwardG = isMoving ? _orientationCalibration.forwardG : 0.0;
+    final lateralG = isMoving ? _orientationCalibration.lateralG : 0.0;
 
     _smoothnessGrading.addSample(
       forwardG: forwardG,
@@ -176,6 +201,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
     _accelerometerSubscription?.cancel();
+    _gyroscopeSubscription?.cancel();
     // Drop back to the longer idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
     super.dispose();
@@ -199,6 +225,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
     final rawSpeedMph = _resolveSpeedMph(position, previous);
     final speedMph = rawSpeedMph < _minSpeedMph ? 0.0 : rawSpeedMph;
+
+    // Ground truth for orientation calibration: GPS speed trend labels the
+    // buffered accelerometer samples from the interval that just ended so
+    // the service can learn/refine the fixed vehicle-forward axis. It is NOT
+    // applied directly as the live forward-G sign. GPS heading change is also
+    // compared against the gyroscope's integrated turning to slowly correct
+    // yaw-rate bias (see addGpsSample). headingAccuracy is
+    // passed straight through; Position follows the standard convention
+    // (matching CLLocation) where a non-positive value means "not
+    // actually known" rather than "perfectly accurate", which
+    // OrientationCalibrationService already accounts for.
+    _orientationCalibration.addGpsSample(
+      speedMps: rawSpeedMph / _metersPerSecondToMph,
+      headingDegrees: position.heading,
+      timestamp: position.timestamp,
+      headingAccuracyDegrees: position.headingAccuracy,
+    );
 
     double addedMiles = 0;
     if (speedMph >= _minSpeedForDistanceMph) {
@@ -466,14 +509,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                       child: _buildStat(
                         context,
                         'Forward G',
-                        _currentForwardG.toStringAsFixed(1),
+                        _formatGForce(_currentForwardG),
                       ),
                     ),
                     Expanded(
                       child: _buildStat(
                         context,
                         'Lateral G',
-                        _currentLateralG.toStringAsFixed(1),
+                        _formatGForce(_currentLateralG),
                       ),
                     ),
                   ],
@@ -572,9 +615,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(color: valueColor),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: valueColor,
+            // This forces all numbers to take up the exact same horizontal space
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ],
     );
