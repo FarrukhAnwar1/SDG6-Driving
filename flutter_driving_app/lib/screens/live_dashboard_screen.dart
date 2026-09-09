@@ -10,6 +10,7 @@ import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/smoothness_grading_service.dart';
+import '../widgets/focused_driving_grading_service.dart';
 import '../widgets/orientation_calibration_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
@@ -30,7 +31,8 @@ class LiveDashboardScreen extends StatefulWidget {
   State<LiveDashboardScreen> createState() => _LiveDashboardScreenState();
 }
 
-class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
+class _LiveDashboardScreenState extends State<LiveDashboardScreen>
+    with WidgetsBindingObserver {
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
 
@@ -69,6 +71,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       SmoothnessGradingService();
   final OrientationCalibrationService _orientationCalibration =
       OrientationCalibrationService();
+  final FocusedDrivingGradingService _focusedDrivingGrading =
+      FocusedDrivingGradingService();
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
@@ -104,6 +108,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _elapsed = DateTime.now().difference(_tripStartTime));
@@ -111,6 +116,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     _startListening();
     _startAccelerometer();
     _startGyroscope();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+    // Coming back to "resumed" may have just closed out a violation and
+    // changed the grade, so refresh the displayed numbers.
+    if (mounted) setState(() {});
   }
 
   void _startAccelerometer() {
@@ -198,6 +212,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
     _accelerometerSubscription?.cancel();
@@ -265,6 +280,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       speedMph: _smoothedSpeedMph,
       speedLimitMph: _postedSpeedLimitMph,
       timestamp: position.timestamp,
+    );
+
+    // Keep this fresh regardless of "mounted" below, so a background period
+    // that started (or that's about to start) always has an up-to-date
+    // speed/location to attribute to it, even while the app isn't visible.
+    _focusedDrivingGrading.updateLiveState(
+      speedMph: _smoothedSpeedMph,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
 
     if (!mounted) return;
@@ -353,6 +377,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     // until Stop Trip was pressed) so it's counted below.
     _properSpeedGrading.finalizeTrip();
     _smoothnessGrading.finalizeTrip();
+    _focusedDrivingGrading.finalizeTrip();
 
     final summary = TripSummary(
       startTime: _tripStartTime,
@@ -375,6 +400,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       turningViolations: _smoothnessGrading.violationsFor(
         SmoothnessCategory.turning,
       ),
+      focusedDrivingGrade: _focusedDrivingGrading.grade,
+      focusedDrivingViolations: _focusedDrivingGrading.violations,
     );
 
     Navigator.of(context).pushReplacement(
@@ -397,6 +424,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         difference < _speedingThresholdMph;
   }
 
+  String get _speedingCountLabel {
+    final count = _properSpeedGrading.speedingOffenseCount;
+    return count == 1 ? '1 time speeding' : '$count times speeding';
+  }
+
+  String get _focusedDrivingCountLabel {
+    final count = _focusedDrivingGrading.violationCount;
+    return count == 1 ? '1 time off app' : '$count times off app';
+  }
+
   // Overall Grade is the average of every currently graded category
   double get _overallGrade {
     final grades = [
@@ -404,6 +441,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       _smoothnessGrading.brakingGrade,
       _smoothnessGrading.acceleratingGrade,
       _smoothnessGrading.turningGrade,
+      _focusedDrivingGrading.grade,
     ];
     return grades.reduce((a, b) => a + b) / grades.length;
   }
@@ -438,6 +476,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                           context,
                           'Proper Speed',
                           _properSpeedGrading.grade,
+                          subtitle: _speedingCountLabel,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildGradeCard(
+                          context,
+                          'Focused Driving',
+                          _focusedDrivingGrading.grade,
+                          subtitle: _focusedDrivingCountLabel,
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -547,7 +593,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     );
   }
 
-  Widget _buildGradeCard(BuildContext context, String label, double grade) {
+  // `subtitle` is optional so this still works for cards like Overall Grade
+  // that don't have a per-category count to show underneath the label.
+  Widget _buildGradeCard(
+    BuildContext context,
+    String label,
+    double grade, {
+    String? subtitle,
+  }) {
     final color = grade >= 90
         ? Colors.green
         : grade >= 70
@@ -559,7 +612,21 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            subtitle == null
+                ? Text(label, style: Theme.of(context).textTheme.titleMedium)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
