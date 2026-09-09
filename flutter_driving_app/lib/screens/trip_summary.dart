@@ -1,7 +1,7 @@
 // Model of completed trip information, which can be passed to the Driving Report screen
 import 'package:flutter/foundation.dart';
 
-import 'smoothness_grading_service.dart';
+import '../widgets/smoothness_grading_service.dart';
 
 @immutable
 class TripSummary {
@@ -14,9 +14,6 @@ class TripSummary {
   final int speedingOffenseCount;
   final Duration totalSpeedingDuration;
 
-  // Smooth Braking / Smooth Accelerating / Smooth Turning grades, alongside
-  // the speed grading above. Each violations list holds one entry per violation, 
-  // with its start/end time, peak g-force, and coordinates where it began
   final double brakingGrade;
   final double acceleratingGrade;
   final double turningGrade;
