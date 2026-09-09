@@ -1,6 +1,6 @@
 /*
 Shown after a trip ends. Displays the trip summary and sends
-the driving report to the backend.
+the driving report to the backend
 */
 import 'package:flutter/material.dart';
 import '../widgets/driving_report_api.dart';
