@@ -1,10 +1,9 @@
-/*
-Shown after a trip ends. Displays the trip summary and sends
-the driving report to the backend
-*/
+// Post driving report screen displaying results and feedback,
+// and sending the report to the backend.
 import 'package:flutter/material.dart';
 import '../widgets/driving_report_api.dart';
 import 'trip_summary.dart';
+import 'home_screen.dart';
 
 class DrivingReportScreen extends StatefulWidget {
   final TripSummary summary;
@@ -47,45 +46,67 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
     });
   }
 
-  String _formatElapsed(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(d.inHours);
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  String _letterGrade(double grade) {
+    return switch (grade) {
+      >= 90 => 'A',
+      >= 80 => 'B',
+      >= 70 => 'C',
+      >= 60 => 'D',
+      _ => 'F',
+    };
+  }
+
+  String formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+
+    if (hours > 0) {
+      return '$hours hr $minutes min';
+    }
+
+    return '$minutes min $seconds sec';
+  }
+
+  Color gradeColor(double grade) {
+    if (grade >= 90) {
+      return const Color.fromARGB(255, 104, 209, 72);
+    } else if (grade >= 80) {
+      return const Color.fromARGB(255, 127, 190, 68);
+    } else if (grade >= 70) {
+      return const Color.fromARGB(255, 249, 230, 57);
+    } else if (grade >= 60) {
+      return Colors.orange;
+    } else {
+      return Colors.red;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final summary = widget.summary;
+    final letterGrade = _letterGrade(summary.overallGrade);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Driving Report'),
-        automaticallyImplyLeading: false,
+        title: const Text('Your Driving Report'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Send status banner
               if (_isSending) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 const Center(child: CircularProgressIndicator()),
                 const SizedBox(height: 8),
                 const Center(child: Text('Sending report...')),
-              ] else if (_sentSuccessfully) ...[
                 const SizedBox(height: 16),
-                const Center(
-                  child: Icon(Icons.check_circle, color: Colors.green, size: 48),
-                ),
+              ] else if (!_sentSuccessfully) ...[
                 const SizedBox(height: 8),
-                const Center(child: Text('Report sent successfully')),
-              ] else ...[
-                const SizedBox(height: 16),
                 const Center(
-                  child: Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  child: Icon(Icons.error_outline, color: Colors.red, size: 40),
                 ),
                 const SizedBox(height: 8),
                 Center(
@@ -95,7 +116,7 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Center(
                   child: TextButton(
                     onPressed: () {
@@ -105,36 +126,73 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
                     child: const Text('Retry'),
                   ),
                 ),
+                const SizedBox(height: 8),
               ],
-              const SizedBox(height: 32),
-              _buildGradeCard(context, 'Overall Grade', summary.overallGrade),
-              const SizedBox(height: 12),
-              _buildGradeCard(context, 'Proper Speed', summary.properSpeedGrade),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStat(
-                      context,
-                      'Time Elapsed',
-                      _formatElapsed(summary.elapsed),
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildStat(
-                      context,
-                      'Miles Driven',
-                      summary.milesDriven.toStringAsFixed(1),
-                    ),
-                  ),
-                ],
+
+              Text(
+                'Trip Complete!',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const Spacer(),
-              FilledButton(
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                child: const Text('Back to Home'),
+              const SizedBox(height: 24),
+
+              // Color coded circle with letter grade
+              CircleAvatar(
+                radius: 65,
+                backgroundColor: gradeColor(summary.overallGrade),
+                child: Text(
+                  letterGrade,
+                  style: const TextStyle(
+                    fontSize: 65,
+                    fontWeight: FontWeight.bold,
+                    color: Color.fromARGB(255, 0, 0, 0),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Text(
+                'Overall Score: ${summary.overallGrade.toStringAsFixed(0)}%',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Display trip summary information
+              _ReportItem(
+                icon: Icons.speed,
+                title: 'Speed Limit Score',
+                value: '${summary.properSpeedGrade.toStringAsFixed(0)}%',
+              ),
+
+              _ReportItem(
+                icon: Icons.drive_eta,
+                title: 'Distance Driven',
+                value: '${summary.milesDriven.toStringAsFixed(1)} miles',
+              ),
+
+              _ReportItem(
+                icon: Icons.access_time_rounded,
+                title: 'Trip Duration',
+                value: formatDuration(summary.elapsed),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Go home button
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const HomePage()),
+                      (route) => false,
+                    );
+                  },
+                  child: const Text('Return Home'),
+                ),
               ),
             ],
           ),
@@ -142,40 +200,28 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       ),
     );
   }
+}
 
-  Widget _buildGradeCard(BuildContext context, String label, double grade) {
-    final color = grade >= 90
-        ? Colors.green
-        : grade >= 70
-        ? Colors.orange
-        : Colors.red;
+class _ReportItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const _ReportItem({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
-            Text(
-              grade.toStringAsFixed(0),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: Icon(icon),
+        title: Text(title),
+        trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
-    );
-  }
-
-  Widget _buildStat(BuildContext context, String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 4),
-        Text(value, style: Theme.of(context).textTheme.titleLarge),
-      ],
     );
   }
 }

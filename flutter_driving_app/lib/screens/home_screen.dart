@@ -8,7 +8,6 @@ import 'live_dashboard_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
-import 'trip_summary.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -88,25 +87,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _startTrip() async {
-    // TODO: Once the Driving Report screen is created, navigate there
-    // instead and pass `summary` along
-    final summary = await Navigator.of(context).push<TripSummary>(
-      MaterialPageRoute(builder: (_) => const LiveDashboardScreen()),
-    );
-    if (summary == null || !mounted) return;
-    debugPrint(
-      'TRIP SUMMARY: ${summary.milesDriven.toStringAsFixed(1)} mi, '
-      'overall ${summary.overallGrade.toStringAsFixed(0)}, '
-      'proper speed ${summary.properSpeedGrade.toStringAsFixed(0)}',
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const LiveDashboardScreen()));
   }
 
   Future<void> _openChangePassword() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ChangePasswordPage(baseUrl: ApiConfig.baseUrl),
-      ),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => ChangePasswordPage()));
 
     if (changed == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,7 +186,18 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: SafeArea(child: Center(child: _buildBody(context))),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(child: Center(child: _buildBody(context))),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

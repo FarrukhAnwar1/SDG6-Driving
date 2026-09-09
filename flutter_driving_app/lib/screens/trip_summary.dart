@@ -1,6 +1,8 @@
 // Model of completed trip information, which can be passed to the Driving Report screen
 import 'package:flutter/foundation.dart';
 
+import '../widgets/smoothness_grading_service.dart';
+
 @immutable
 class TripSummary {
   final DateTime startTime;
@@ -9,6 +11,15 @@ class TripSummary {
   final double milesDriven;
   final double overallGrade;
   final double properSpeedGrade;
+  final int speedingOffenseCount;
+  final Duration totalSpeedingDuration;
+
+  final double brakingGrade;
+  final double acceleratingGrade;
+  final double turningGrade;
+  final List<SmoothnessViolation> brakingViolations;
+  final List<SmoothnessViolation> acceleratingViolations;
+  final List<SmoothnessViolation> turningViolations;
 
   const TripSummary({
     required this.startTime,
@@ -17,5 +28,13 @@ class TripSummary {
     required this.milesDriven,
     required this.overallGrade,
     required this.properSpeedGrade,
+    required this.speedingOffenseCount,
+    required this.totalSpeedingDuration,
+    required this.brakingGrade,
+    required this.acceleratingGrade,
+    required this.turningGrade,
+    required this.brakingViolations,
+    required this.acceleratingViolations,
+    required this.turningViolations,
   });
 }
