@@ -2,7 +2,7 @@
 // and sending the report to the backend.
 import 'package:flutter/material.dart';
 import '../widgets/driving_report_api.dart';
-import 'trip_summary.dart';
+import '../widgets/trip_summary.dart';
 import 'home_screen.dart';
 
 class DrivingReportScreen extends StatefulWidget {
