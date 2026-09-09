@@ -76,6 +76,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _userAccelerometerSubscription;
   StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
   Timer? _elapsedTimer;
 
@@ -115,6 +116,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     });
     _startListening();
     _startAccelerometer();
+    _startUserAccelerometer();
     _startGyroscope();
   }
 
@@ -128,19 +130,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   void _startAccelerometer() {
-    // Use raw (gravity-included) stream rather than the pre-filtered
-    // user-accelerometer stream, because OrientationCalibrationService
-    // needs the gravity component itself to figure out how the phone is
-    // sitting in its mount.
+    // Raw acceleration is used ONLY to maintain the gravity/up direction.
+    // Live driving G comes from the separate gravity-removed stream below.
     _accelerometerSubscription = accelerometerEventStream(
       samplingPeriod: SensorInterval.gameInterval,
-    ).listen(_handleAccelerometerEvent);
+    ).listen(_orientationCalibration.addAccelerometerSample);
+  }
+
+  void _startUserAccelerometer() {
+    // Authoritative gravity-removed vehicle acceleration. Android keeps these
+    // sensor axes fixed to the physical device's natural coordinate system so
+    // they are unaffected by the app's portrait/landscape UI rotation.
+    _userAccelerometerSubscription = userAccelerometerEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_handleUserAccelerometerEvent);
   }
 
   void _startGyroscope() {
     // Feeds OrientationCalibrationService's lateral (turning) G estimate.
-    // See the comment on _handleAccelerometerEvent for why this replaced
-    // a GPS-only rotation fit for that half.
     _gyroscopeSubscription = gyroscopeEventStream(
       samplingPeriod: SensorInterval.gameInterval,
     ).listen(_orientationCalibration.addGyroscopeSample);
@@ -153,26 +160,27 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   // mount (portrait, screen toward the driver, held upright), the reading
   // is derived from OrientationCalibrationService, which figures out that
   // mapping from the sensors themselves:
-  //  - gravity/tilt comes from a gyro-aided accelerometer estimate: the
-  //    gyroscope follows fast pitch/roll (important on vibrating vertical
-  //    mounts) while the accelerometer slowly corrects long-term drift.
-  //  - before forward-axis calibration, gyro yaw rate provides a temporary
-  //    lateral estimate and turn gate. After calibration, lateral G comes
-  //    directly from the gravity-corrected accelerometer on the horizontal
-  //    axis perpendicular to forward, avoiding speed-amplified mount wobble.
-  //  - forward (braking/accelerating) G comes from projecting the
-  //    gravity-corrected accelerometer vector onto a calibrated vehicle-
-  //    forward axis. GPS speed trend is used only to label clean buffered
-  //    calibration intervals; once calibrated, live magnitude and sign both
-  //    come directly from the accelerometer projection at sensor rate.
+  //  - Raw accelerometer + gyro estimate which way is UP, defining the
+  //    vehicle's horizontal plane.
+  //  - Live/calibration vehicle acceleration comes from the platform's
+  //    automatically gravity-removed UserAccelerometerEvent.
+  //  - Before forward-axis calibration, gyro yaw rate provides a temporary
+  //    lateral estimate and turn gate. After calibration, forward/lateral G
+  //    are direct projections of that gravity-removed acceleration vector.
+  //  - GPS speed trend is used only to label clean buffered calibration
+  //    intervals. Once calibrated, live magnitude and sign come from sensor
+  //    data at full rate.
   // See orientation_calibration_service.dart for the full explanation.
-  void _handleAccelerometerEvent(AccelerometerEvent event) {
+  void _handleUserAccelerometerEvent(UserAccelerometerEvent event) {
+    // Always feed the orientation service, even before the first usable GPS
+    // fix. GPS is needed only to label calibration intervals, not to obtain the
+    // gravity-removed linear acceleration itself.
+    _orientationCalibration.addUserAccelerometerSample(event);
+
     final position = _lastPosition;
     // Wait for a GPS fix before grading so violations can be tagged with
     // real coordinates.
     if (position == null) return;
-
-    _orientationCalibration.addAccelerometerSample(event);
 
     // Only grade smoothness while the vehicle is actually moving, so
     // handling noise (picking the phone up, bumping the mount at a red
@@ -216,6 +224,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
     _accelerometerSubscription?.cancel();
+    _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
     // Drop back to the longer idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
@@ -593,7 +602,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // `subtitle` is optional so this still works for cards like Overall Grade
+  // "subtitle" is optional so this still works for cards like Overall Grade
   // that don't have a per-category count to show underneath the label.
   Widget _buildGradeCard(
     BuildContext context,
