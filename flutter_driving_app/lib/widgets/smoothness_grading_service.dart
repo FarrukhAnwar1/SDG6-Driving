@@ -1,5 +1,5 @@
 // Computes the Smooth Braking / Smooth Accelerating / Smooth Turning grades
-// (0-100, starting at 100) using accelerometer samples.
+// (0-100, starting at 100) using accelerometer samples and provides violations lists.
 
 // GRADING RULE:
 // A g-force event must stay at or above [violationThresholdG] continuously for
@@ -18,8 +18,8 @@
 // If a new spike in the same category starts within [violationCooldown] of
 // the previous one ending, it's merged into that same violation (extending
 // its end time and taking the higher of the two peaks) instead of being
-// counted as a second violation. For example, this can keep a few short 
-// taps on the brakes during one panic stop, from being counted and penalized 
+// counted as a second violation. For example, this can keep a few short
+// taps on the brakes during one panic stop, from being counted and penalized
 // as several separate events.
 import 'dart:math' as math;
 
@@ -77,7 +77,6 @@ class _OpenViolation {
   double peakGForce;
 }
 
-
 // A threshold crossing that has not lasted long enough to count yet.
 // Keeping this separate from _OpenViolation is what prevents one-sample
 // potholes / mount jolts from immediately affecting the grade.
@@ -106,8 +105,9 @@ class SmoothnessGradingService {
   // mount-jolt impulses, while still being short relative to genuine harsh
   // braking, acceleration, or cornering events, which normally persist for
   // substantially longer than a few tenths of a second.
-  static const Duration violationConfirmationDuration =
-      Duration(milliseconds: 350);
+  static const Duration violationConfirmationDuration = Duration(
+    milliseconds: 350,
+  );
 
   // See COOLDOWN RULE above
   static const Duration violationCooldown = Duration(seconds: 5);
