@@ -10,6 +10,7 @@ import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/smoothness_grading_service.dart';
+import '../widgets/focused_driving_grading_service.dart';
 import '../widgets/orientation_calibration_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
@@ -30,7 +31,8 @@ class LiveDashboardScreen extends StatefulWidget {
   State<LiveDashboardScreen> createState() => _LiveDashboardScreenState();
 }
 
-class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
+class _LiveDashboardScreenState extends State<LiveDashboardScreen>
+    with WidgetsBindingObserver {
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
 
@@ -69,9 +71,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       SmoothnessGradingService();
   final OrientationCalibrationService _orientationCalibration =
       OrientationCalibrationService();
+  final FocusedDrivingGradingService _focusedDrivingGrading =
+      FocusedDrivingGradingService();
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _userAccelerometerSubscription;
   StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
   Timer? _elapsedTimer;
 
@@ -104,29 +109,45 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _elapsed = DateTime.now().difference(_tripStartTime));
     });
     _startListening();
     _startAccelerometer();
+    _startUserAccelerometer();
     _startGyroscope();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+    // Coming back to "resumed" may have just closed out a violation and
+    // changed the grade, so refresh the displayed numbers.
+    if (mounted) setState(() {});
+  }
+
   void _startAccelerometer() {
-    // Use raw (gravity-included) stream rather than the pre-filtered
-    // user-accelerometer stream, because OrientationCalibrationService
-    // needs the gravity component itself to figure out how the phone is
-    // sitting in its mount.
+    // Raw acceleration is used ONLY to maintain the gravity/up direction.
+    // Live driving G comes from the separate gravity-removed stream below.
     _accelerometerSubscription = accelerometerEventStream(
       samplingPeriod: SensorInterval.gameInterval,
-    ).listen(_handleAccelerometerEvent);
+    ).listen(_orientationCalibration.addAccelerometerSample);
+  }
+
+  void _startUserAccelerometer() {
+    // Authoritative gravity-removed vehicle acceleration. Android keeps these
+    // sensor axes fixed to the physical device's natural coordinate system so
+    // they are unaffected by the app's portrait/landscape UI rotation.
+    _userAccelerometerSubscription = userAccelerometerEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_handleUserAccelerometerEvent);
   }
 
   void _startGyroscope() {
     // Feeds OrientationCalibrationService's lateral (turning) G estimate.
-    // See the comment on _handleAccelerometerEvent for why this replaced
-    // a GPS-only rotation fit for that half.
     _gyroscopeSubscription = gyroscopeEventStream(
       samplingPeriod: SensorInterval.gameInterval,
     ).listen(_orientationCalibration.addGyroscopeSample);
@@ -139,26 +160,27 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
   // mount (portrait, screen toward the driver, held upright), the reading
   // is derived from OrientationCalibrationService, which figures out that
   // mapping from the sensors themselves:
-  //  - gravity/tilt comes from a gyro-aided accelerometer estimate: the
-  //    gyroscope follows fast pitch/roll (important on vibrating vertical
-  //    mounts) while the accelerometer slowly corrects long-term drift.
-  //  - before forward-axis calibration, gyro yaw rate provides a temporary
-  //    lateral estimate and turn gate. After calibration, lateral G comes
-  //    directly from the gravity-corrected accelerometer on the horizontal
-  //    axis perpendicular to forward, avoiding speed-amplified mount wobble.
-  //  - forward (braking/accelerating) G comes from projecting the
-  //    gravity-corrected accelerometer vector onto a calibrated vehicle-
-  //    forward axis. GPS speed trend is used only to label clean buffered
-  //    calibration intervals; once calibrated, live magnitude and sign both
-  //    come directly from the accelerometer projection at sensor rate.
+  //  - Raw accelerometer + gyro estimate which way is UP, defining the
+  //    vehicle's horizontal plane.
+  //  - Live/calibration vehicle acceleration comes from the platform's
+  //    automatically gravity-removed UserAccelerometerEvent.
+  //  - Before forward-axis calibration, gyro yaw rate provides a temporary
+  //    lateral estimate and turn gate. After calibration, forward/lateral G
+  //    are direct projections of that gravity-removed acceleration vector.
+  //  - GPS speed trend is used only to label clean buffered calibration
+  //    intervals. Once calibrated, live magnitude and sign come from sensor
+  //    data at full rate.
   // See orientation_calibration_service.dart for the full explanation.
-  void _handleAccelerometerEvent(AccelerometerEvent event) {
+  void _handleUserAccelerometerEvent(UserAccelerometerEvent event) {
+    // Always feed the orientation service, even before the first usable GPS
+    // fix. GPS is needed only to label calibration intervals, not to obtain the
+    // gravity-removed linear acceleration itself.
+    _orientationCalibration.addUserAccelerometerSample(event);
+
     final position = _lastPosition;
     // Wait for a GPS fix before grading so violations can be tagged with
     // real coordinates.
     if (position == null) return;
-
-    _orientationCalibration.addAccelerometerSample(event);
 
     // Only grade smoothness while the vehicle is actually moving, so
     // handling noise (picking the phone up, bumping the mount at a red
@@ -198,9 +220,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
     _accelerometerSubscription?.cancel();
+    _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
     // Drop back to the longer idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
@@ -265,6 +289,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       speedMph: _smoothedSpeedMph,
       speedLimitMph: _postedSpeedLimitMph,
       timestamp: position.timestamp,
+    );
+
+    // Keep this fresh regardless of "mounted" below, so a background period
+    // that started (or that's about to start) always has an up-to-date
+    // speed/location to attribute to it, even while the app isn't visible.
+    _focusedDrivingGrading.updateLiveState(
+      speedMph: _smoothedSpeedMph,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
 
     if (!mounted) return;
@@ -353,6 +386,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     // until Stop Trip was pressed) so it's counted below.
     _properSpeedGrading.finalizeTrip();
     _smoothnessGrading.finalizeTrip();
+    _focusedDrivingGrading.finalizeTrip();
 
     final summary = TripSummary(
       startTime: _tripStartTime,
@@ -375,6 +409,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       turningViolations: _smoothnessGrading.violationsFor(
         SmoothnessCategory.turning,
       ),
+      focusedDrivingGrade: _focusedDrivingGrading.grade,
+      focusedDrivingViolations: _focusedDrivingGrading.violations,
     );
 
     Navigator.of(context).pushReplacement(
@@ -397,6 +433,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         difference < _speedingThresholdMph;
   }
 
+  String get _speedingCountLabel {
+    final count = _properSpeedGrading.speedingOffenseCount;
+    return count == 1 ? '1 time speeding' : '$count times speeding';
+  }
+
+  String get _focusedDrivingCountLabel {
+    final count = _focusedDrivingGrading.violationCount;
+    return count == 1 ? '1 time off app' : '$count times off app';
+  }
+
   // Overall Grade is the average of every currently graded category
   double get _overallGrade {
     final grades = [
@@ -404,6 +450,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       _smoothnessGrading.brakingGrade,
       _smoothnessGrading.acceleratingGrade,
       _smoothnessGrading.turningGrade,
+      _focusedDrivingGrading.grade,
     ];
     return grades.reduce((a, b) => a + b) / grades.length;
   }
@@ -438,6 +485,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
                           context,
                           'Proper Speed',
                           _properSpeedGrading.grade,
+                          subtitle: _speedingCountLabel,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildGradeCard(
+                          context,
+                          'Focused Driving',
+                          _focusedDrivingGrading.grade,
+                          subtitle: _focusedDrivingCountLabel,
                         ),
                         const SizedBox(height: 12),
                         Row(
@@ -547,7 +602,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     );
   }
 
-  Widget _buildGradeCard(BuildContext context, String label, double grade) {
+  // "subtitle" is optional so this still works for cards like Overall Grade
+  // that don't have a per-category count to show underneath the label.
+  Widget _buildGradeCard(
+    BuildContext context,
+    String label,
+    double grade, {
+    String? subtitle,
+  }) {
     final color = grade >= 90
         ? Colors.green
         : grade >= 70
@@ -559,7 +621,21 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            subtitle == null
+                ? Text(label, style: Theme.of(context).textTheme.titleMedium)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
