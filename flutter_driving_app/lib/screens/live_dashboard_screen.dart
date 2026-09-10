@@ -94,6 +94,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   double _currentForwardG = 0.0;
   double _currentLateralG = 0.0;
+  bool _isForwardCalibrated = false;
 
   // Adds a "+" sign to positive g-force values for display.
   // Negative values are left as-is, since they already have a "-" sign.
@@ -186,7 +187,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // handling noise (picking the phone up, bumping the mount at a red
     // light) doesn't get counted as harsh braking/accelerating/turning.
     final isMoving = _currentSpeedMph >= _minSpeedMph;
-    final forwardG = isMoving ? _orientationCalibration.forwardG : 0.0;
+    final isForwardCalibrated = _orientationCalibration.isForwardCalibrated;
+    // Before calibration, forwardG == 0 is only a placeholder. Keep sending
+    // zero into the existing grader (which is neutral), but preserve the
+    // calibration state separately so the UI never presents it as measured G.
+    final forwardG = isMoving && isForwardCalibrated
+        ? _orientationCalibration.forwardG
+        : 0.0;
     final lateralG = isMoving ? _orientationCalibration.lateralG : 0.0;
 
     _smoothnessGrading.addSample(
@@ -201,6 +208,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       setState(() {
         _currentForwardG = forwardG;
         _currentLateralG = lateralG;
+        _isForwardCalibrated = isForwardCalibrated;
       });
     }
   }
@@ -255,16 +263,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // the service can learn/refine the fixed vehicle-forward axis. It is NOT
     // applied directly as the live forward-G sign. GPS heading change is also
     // compared against the gyroscope's integrated turning to slowly correct
-    // yaw-rate bias (see addGpsSample). headingAccuracy is
-    // passed straight through; Position follows the standard convention
-    // (matching CLLocation) where a non-positive value means "not
-    // actually known" rather than "perfectly accurate", which
-    // OrientationCalibrationService already accounts for.
+    // yaw-rate bias (see addGpsSample).
+    //
+    // A reported heading accuracy of 0 degrees is valid, so
+    // only negative or non-finite values are treated as unavailable.
+    final headingDegrees = position.heading.isFinite && position.heading >= 0
+        ? position.heading
+        : null;
+    final headingAccuracyDegrees =
+        position.headingAccuracy.isFinite && position.headingAccuracy >= 0
+        ? position.headingAccuracy
+        : null;
+
     _orientationCalibration.addGpsSample(
       speedMps: rawSpeedMph / _metersPerSecondToMph,
-      headingDegrees: position.heading,
+      headingDegrees: headingDegrees,
       timestamp: position.timestamp,
-      headingAccuracyDegrees: position.headingAccuracy,
+      headingAccuracyDegrees: headingAccuracyDegrees,
     );
 
     double addedMiles = 0;
@@ -571,7 +586,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                               child: _buildStat(
                                 context,
                                 'Forward G',
-                                _formatGForce(_currentForwardG),
+                                _isForwardCalibrated
+                                    ? _formatGForce(_currentForwardG)
+                                    : '—',
                               ),
                             ),
                             Expanded(

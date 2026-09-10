@@ -34,39 +34,54 @@
 // The lateral g-force half is correct
 // essentially immediately (bounded only by gyro bias, which starts at 0
 // and self-corrects against GPS heading: see addGpsSample). The forward
-// half needs a brief calibration window instead (typically the trip's
-// first clear acceleration or braking event) before it reports anything
-// other than 0: see _forwardAxis and _updateForwardAxis.
+// half needs two confident, directionally-consistent calibration intervals
+// before it reports anything other than 0: see _forwardAxis and
+// _updateForwardAxis.
 //
-// The gyro-derived turn estimate still needs current speed before forward
-// calibration and for calibration gating. _estimatedSpeedMps dead-reckons
-// between GPS fixes using forwardG and is resynced at every fix, so that
-// temporary/gating estimate does not use a whole-second-stale speed.
+// Before forward calibration, gyro yaw-rate × the held/dead-reckoned speed is
+// used only for the temporary live lateral display. Forward-axis CALIBRATION
+// does not trust that potentially stale live speed: qualifying accelerometer
+// samples store their contemporaneous gyro yaw rate, and addGpsSample applies
+// the turn gate after the interval closes using the higher of the interval's
+// two actual GPS endpoint speeds.
+//
+//
+// Timestamp requirement:
+//  - UserAccelerometerEvent/GyroscopeEvent timestamps and the GPS timestamp
+//    passed to addGpsSample MUST represent the same DateTime timeline. Interval
+//    partitioning intentionally uses measurement timestamps rather than callback
+//    arrival order. If a different sensor/location provider is substituted,
+//    normalize its timestamps before feeding this service.
 //
 // Known limitations:
 //  - Gyroscope bias/drift is corrected against GPS heading changes (see
-//    addGpsSample). That primarily affects the temporary pre-calibration
-//    lateral estimate and the turn gate. Once the forward axis is calibrated,
+//    addGpsSample). Raw yaw-rate samples are timestamp-buffered and integrated
+//    over the exact GPS measurement interval. Any interval with a >250 ms gyro
+//    gap (including missing coverage near either GPS boundary) is skipped
+//    rather than teaching a false bias. Once the forward axis is calibrated,
 //    live lateral G is accelerometer-derived and no longer depends on yaw-rate
 //    bias or speed.
-//  - forwardG reads 0 until the forward axis has its first confident
-//    calibration sample (see _updateForwardAxis). In practice this is
-//    whatever clean, non-turning acceleration or braking event happens
-//    first, usually within the opening seconds of a trip (e.g. pulling
-//    away from the first stop sign), but a trip that somehow never has
-//    one would never grade forward G at all.
+//  - forwardG reads 0 until the forward axis has two directionally-consistent
+//    confident calibration intervals (see _updateForwardAxis). Requiring a
+//    second interval intentionally trades a little startup time for protection
+//    against a single noisy/lagged GPS speed trend mirroring both forward and
+//    lateral signs for the entire trip.
+//  - Signed forward-axis calibration/refinement is disabled below [minForwardCalibrationSpeedMps].
+//    GPS speed has no forward/reverse direction, so backing out of a driveway
+//    or parking space must not be allowed to teach the service that vehicle
+//    rear is +forward. After calibration has completed at normal road speed,
+//    live forward/lateral G continues to work at any speed, including reverse.
 //  - The forward axis assumes the mount doesn't move mid-trip. If it
 //    does (phone bumped, re-clipped at a different angle), forwardG will
 //    read wrong until enough new confident, correctly-signed intervals
 //    pull the slowly-adapting axis back into alignment.
-//  - The calibration gate compares each accelerometer sample's horizontal
-//    magnitude against the MOST RECENT gyroscope-derived lateral estimate
-//    (see addAccelerometerSample), even though the two streams aren't
-//    timestamp-aligned. At normal sensor rates this is a minor effect as a
-//    turn transition can occasionally pass/fail the gate on the wrong side.
-//    The later interval-level coherence check makes an accidental sample much
-//    less likely to influence the calibrated axis, so a timestamped gyro
-//    history is not currently worth the extra complexity.
+//  - Calibration samples store the MOST RECENT filtered gyro yaw rate, so the
+//    accelerometer and gyro streams still are not perfectly timestamp-aligned.
+//    The speed-dependent turn gate itself is deferred until the GPS interval
+//    closes and uses the higher endpoint GPS speed, eliminating the old stale-
+//    speed underestimation. A very fast turn transition can still pair one
+//    accelerometer sample with a slightly early/late yaw rate; interval
+//    coherence and the two-confirmation polarity logic limit its influence.
 //  - Gravity/tilt uses a lightweight gyro+accelerometer complementary
 //    estimate rather than a platform rotation-vector API. Its job is
 //    to define the horizontal plane and lateral-axis handedness.
@@ -85,10 +100,10 @@ class OrientationCalibrationService {
         0.5, // above ~0.05g residual, trust gyro propagation increasingly more than accelerometer direction
     this._outputFilterTimeConstantSeconds =
         0.12, // suppress mount/road vibration while preserving real braking/turning events
-    this._minMovingSpeedMps =
-        1.34, // about 3 mph. below this, GPS speed trend is too noisy to trust for forward sign
+    this._minForwardCalibrationSpeedMps =
+        5.36448, // 12 mph. below this, do not use GPS speed trend to orient/refine the forward axis because normal reversing/parking speeds are direction-ambiguous
     this._minHeadingSpeedMps =
-        2.68, // about 6 mph. heading is too noisy below this to correct gyro bias against
+        2.68224, // exactly 6 mph. heading is too noisy below this to correct gyro bias against
     this._minForwardSignalMps2 =
         0.3, // ignore GPS speed-trend changes this small when deciding forward sign. likely just noise
     this._gyroBiasLearningRate =
@@ -109,15 +124,35 @@ class OrientationCalibrationService {
     this._minCalibrationCoherence =
         0.75, // reject mixed/oscillating intervals whose qualifying acceleration vectors do not agree on one direction
     this._minInitialCalibrationCoherence =
-        0.85, // the first axis update snaps immediately, so require stronger directional agreement than later EMA refinements
+        0.85, // initial calibration still requires stronger directional agreement than later refinements
+    this._minGpsToLinearAccelCalibrationRatio =
+        0.35, // if GPS dv/dt is tiny compared with the measured longitudinal event, its sign is too weak to orient the axis safely
+    this._forwardAxisAgreementCosine =
+        0.75, // candidates must be within ~41 degrees to count as agreeing on the same axis direction
+    this._initialForwardAxisConfirmationsRequired =
+        2, // never let one GPS interval decide the trip's +forward polarity
+    this._oppositeForwardAxisConfirmationsRequired =
+        2, // two strong, mutually-consistent opposite candidates can correct a 180-degree bad initialization/remount quickly
   });
 
   static const double _gravityMetersPerSecondSquared = 9.80665;
 
+  // Defensive caps. A valid GPS derivative interval is at most 5 seconds, so
+  // these retain far more history than calibration/bias correction can use
+  // while preventing unbounded growth during extended GPS loss.
+  static const int _maxPendingCalibrationSamples = 2048;
+  static const int _maxPendingGyroSamples = 4096;
+
+  // Bias correction requires effectively continuous gyro coverage. At game
+  // sensor rate normal sample gaps are far smaller than this; a larger gap
+  // means we skip that GPS interval instead of interpreting missed rotation as
+  // gyroscope bias.
+  static const Duration _maxGyroGapForBias = Duration(milliseconds: 250);
+
   final double _gravityAccelCorrectionTimeConstantSeconds;
   final double _gravityMotionGateReferenceMps2;
   final double _outputFilterTimeConstantSeconds;
-  final double _minMovingSpeedMps;
+  final double _minForwardCalibrationSpeedMps;
   final double _minHeadingSpeedMps;
   final double _minForwardSignalMps2;
   final double _gyroBiasLearningRate;
@@ -129,6 +164,10 @@ class OrientationCalibrationService {
   final Duration _minCalibrationDuration;
   final double _minCalibrationCoherence;
   final double _minInitialCalibrationCoherence;
+  final double _minGpsToLinearAccelCalibrationRatio;
+  final double _forwardAxisAgreementCosine;
+  final int _initialForwardAxisConfirmationsRequired;
+  final int _oppositeForwardAxisConfirmationsRequired;
 
   // Estimated gravity-specific-force vector in DEVICE coordinates. At rest
   // an accelerometer reports the support force opposite physical gravity, so
@@ -141,17 +180,16 @@ class OrientationCalibrationService {
   DateTime? _lastGravityAccelCorrectionTimestamp;
 
   // Persistent gyroscope yaw-rate bias, in rad/s, in the SAME sign
-  // convention as yLateral (positive = turning right): see
+  // convention as lateralG (positive = turning right): see
   // addGyroscopeSample. Starts at 0 and is slowly corrected against GPS
   // heading changes in addGpsSample.
   double _yawBiasRadPerSec = 0.0;
 
-  // Accumulates the (bias-UNcorrected) signed yaw rate, integrated over
-  // time, between GPS fixes, i.e. "how much heading change the raw gyro
-  // thinks happened," so addGpsSample can compare it against the actual
-  // GPS-reported heading change over that same interval to refine
-  // _yawBiasRadPerSec.
-  double _pendingYawIntegralRad = 0.0;
+  // Raw signed yaw-rate samples are buffered with SENSOR timestamps.
+  // addGpsSample integrates only samples belonging to the GPS measurement
+  // interval being compared, so callback latency cannot shift the gyro window
+  // relative to the GPS heading window.
+  final List<_GyroSample> _pendingGyroSamples = [];
   DateTime? _lastGyroTimestamp;
 
   double? _lastGpsSpeedMps;
@@ -173,6 +211,21 @@ class OrientationCalibrationService {
   // turns. Together with the fused up axis it also defines lateral.
   List<double>? _forwardAxis;
 
+  // The vehicle-forward LINE can be learned from accelerometer direction, but
+  // its + / - polarity comes from GPS speed trend. One noisy/lagged GPS interval
+  // must not be allowed to mirror the whole vehicle basis, because reversing
+  // forward also reverses lateral = forward x up.
+  List<double>? _pendingInitialForwardAxis;
+  int _pendingInitialForwardAxisConfirmations = 0;
+
+  // Once calibrated, repeated strong candidates that point almost exactly
+  // opposite the current axis are treated as evidence that the polarity was
+  // initialized incorrectly (or the phone was remounted ~180 degrees). Requiring
+  // multiple mutually-consistent intervals prevents one bad GPS derivative from
+  // flipping the live signs.
+  List<double>? _pendingOppositeForwardAxis;
+  int _pendingOppositeForwardAxisConfirmations = 0;
+
   // Dead-reckoned current speed (see addGpsSample and
   // _advanceEstimatedSpeed), used in place of the last raw GPS speed for
   // lateralAccel = speed * yawRate so a speed change between GPS fixes
@@ -186,8 +239,9 @@ class OrientationCalibrationService {
   // measured directly from the gravity-corrected accelerometer.
   double _lateralAccelMps2 = 0.0;
 
-  // Separate gyro-derived lateral estimate used for the calibration turn gate
-  // even after live lateral output has switched to accelerometer projection.
+  // Gyro-derived temporary lateral estimate used only before the calibrated
+  // accelerometer basis is available. Calibration itself stores yaw rate with
+  // each sample and applies the speed-dependent turn gate at GPS interval close.
   double _gyroLateralAccelMps2 = 0.0;
 
   double _forwardG = 0.0;
@@ -200,6 +254,11 @@ class OrientationCalibrationService {
   // Positive = accelerating forward, negative = braking (matches the
   // sign convention smoothness grading already expects).
   double get forwardG => _forwardG;
+
+  // False means forwardG == 0 is a calibration placeholder, not necessarily a
+  // physical zero. Callers that display or score forward acceleration can use
+  // this to distinguish startup calibration from steady-speed driving.
+  bool get isForwardCalibrated => _forwardAxis != null;
 
   // Current filtered lateral G. After forward-axis calibration this is
   // accelerometer-derived. Before calibration it temporarily uses gyro yaw.
@@ -308,21 +367,14 @@ class OrientationCalibrationService {
     final horizontalMagSquared =
         horizX * horizX + horizY * horizY + horizZ * horizZ;
 
-    // Accumulate this sample into the current GPS interval's forward-axis
-    // calibration candidate, if it's clean enough to trust (strong
-    // enough signal, not much turning mixed in). The SIGN for this
-    // interval isn't decided here, it isn't known until the interval's
-    // GPS fix arrives (see addGpsSample), so only raw, un-signed
-    // vectors get buffered. They're labeled against the correct interval
-    // later, not against whatever sign happened to be current when each
-    // sample arrived.
-    final lateralMagSquared = _gyroLateralAccelMps2 * _gyroLateralAccelMps2;
+    // Buffer strong horizontal samples for the current GPS interval. Do NOT
+    // perform the speed-dependent turn gate here: before forward calibration,
+    // _estimatedSpeedMps may legitimately still be the last GPS speed. Instead
+    // store the contemporaneous filtered gyro yaw rate with the sample. When
+    // the interval closes, addGpsSample knows both endpoint GPS speeds and can
+    // conservatively apply lateral ~= speed * yawRate using the higher one.
     if (horizontalMagSquared >=
-            _minCalibrationHorizontalMps2 * _minCalibrationHorizontalMps2 &&
-        lateralMagSquared <=
-            _maxCalibrationLateralFraction *
-                _maxCalibrationLateralFraction *
-                horizontalMagSquared) {
+        _minCalibrationHorizontalMps2 * _minCalibrationHorizontalMps2) {
       final lastGpsTimestamp = _lastGpsTimestamp;
       // Before the first GPS fix there is no interval to label. Once a
       // baseline exists, retain the timestamp so delayed GPS callbacks can
@@ -336,8 +388,15 @@ class OrientationCalibrationService {
             y: horizY,
             z: horizZ,
             magnitude: math.sqrt(horizontalMagSquared),
+            absYawRateRadPerSec: _filteredYawRateRadPerSec.abs(),
           ),
         );
+        if (_pendingCalibrationSamples.length > _maxPendingCalibrationSamples) {
+          _pendingCalibrationSamples.removeRange(
+            0,
+            _pendingCalibrationSamples.length - _maxPendingCalibrationSamples,
+          );
+        }
       }
     }
 
@@ -475,19 +534,125 @@ class OrientationCalibrationService {
     double candidateY,
     double candidateZ,
   ) {
+    var candidateNorm = math.sqrt(
+      candidateX * candidateX +
+          candidateY * candidateY +
+          candidateZ * candidateZ,
+    );
+    if (candidateNorm < 1e-6) return;
+
+    candidateX /= candidateNorm;
+    candidateY /= candidateNorm;
+    candidateZ /= candidateNorm;
+
     final existing = _forwardAxis;
     if (existing == null) {
-      // First confident calibration so snap directly, the same idea as
-      // the gravity estimate snapping to its first real reading, so the
-      // trip doesn't spend its opening events slowly drifting toward a
-      // usable axis from an arbitrary placeholder.
-      _forwardAxis = [candidateX, candidateY, candidateZ];
+      // Do NOT let one GPS interval choose the sign of the entire vehicle
+      // basis. A single delayed/noisy speed trend can be wrong even when the
+      // accelerometer event itself is clean. Require two independent,
+      // directionally-consistent intervals before publishing +forward.
+      final pending = _pendingInitialForwardAxis;
+      if (pending == null) {
+        _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
+        _pendingInitialForwardAxisConfirmations = 1;
+        return;
+      }
+
+      final agreement =
+          pending[0] * candidateX +
+          pending[1] * candidateY +
+          pending[2] * candidateZ;
+
+      if (agreement < _forwardAxisAgreementCosine) {
+        // Conflicting evidence. Start confirmation again from the newest
+        // candidate instead of averaging opposite directions into nonsense.
+        _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
+        _pendingInitialForwardAxisConfirmations = 1;
+        return;
+      }
+
+      var fx = pending[0] + candidateX;
+      var fy = pending[1] + candidateY;
+      var fz = pending[2] + candidateZ;
+      final norm = math.sqrt(fx * fx + fy * fy + fz * fz);
+      if (norm < 1e-6) {
+        _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
+        _pendingInitialForwardAxisConfirmations = 1;
+        return;
+      }
+
+      fx /= norm;
+      fy /= norm;
+      fz /= norm;
+      _pendingInitialForwardAxis = [fx, fy, fz];
+      _pendingInitialForwardAxisConfirmations++;
+
+      if (_pendingInitialForwardAxisConfirmations >=
+          _initialForwardAxisConfirmationsRequired) {
+        _forwardAxis = [fx, fy, fz];
+        _pendingInitialForwardAxis = null;
+        _pendingInitialForwardAxisConfirmations = 0;
+      }
       return;
     }
 
-    // Already calibrated: nudge slowly toward this interval's candidate
-    // rather than re-fitting from scratch, so one noisy or borderline
-    // interval can't yank the forward axis around.
+    final existingDotCandidate =
+        existing[0] * candidateX +
+        existing[1] * candidateY +
+        existing[2] * candidateZ;
+
+    if (existingDotCandidate <= -_forwardAxisAgreementCosine) {
+      // A 180-degree polarity error reverses BOTH forward and lateral signs.
+      // Never EMA directly toward an opposite vector: that can leave the axis
+      // wrong for a long time. Instead require repeated opposite evidence, then
+      // snap to the newly-confirmed polarity.
+      final pendingOpposite = _pendingOppositeForwardAxis;
+      if (pendingOpposite == null) {
+        _pendingOppositeForwardAxis = [candidateX, candidateY, candidateZ];
+        _pendingOppositeForwardAxisConfirmations = 1;
+        return;
+      }
+
+      final oppositeAgreement =
+          pendingOpposite[0] * candidateX +
+          pendingOpposite[1] * candidateY +
+          pendingOpposite[2] * candidateZ;
+
+      if (oppositeAgreement < _forwardAxisAgreementCosine) {
+        _pendingOppositeForwardAxis = [candidateX, candidateY, candidateZ];
+        _pendingOppositeForwardAxisConfirmations = 1;
+        return;
+      }
+
+      var fx = pendingOpposite[0] + candidateX;
+      var fy = pendingOpposite[1] + candidateY;
+      var fz = pendingOpposite[2] + candidateZ;
+      final norm = math.sqrt(fx * fx + fy * fy + fz * fz);
+      if (norm < 1e-6) return;
+
+      fx /= norm;
+      fy /= norm;
+      fz /= norm;
+      _pendingOppositeForwardAxis = [fx, fy, fz];
+      _pendingOppositeForwardAxisConfirmations++;
+
+      if (_pendingOppositeForwardAxisConfirmations >=
+          _oppositeForwardAxisConfirmationsRequired) {
+        _forwardAxis = [fx, fy, fz];
+        _pendingOppositeForwardAxis = null;
+        _pendingOppositeForwardAxisConfirmations = 0;
+      }
+      return;
+    }
+
+    // Any candidate that is not strongly opposite breaks an opposite-polarity
+    // streak. Ordinary remount angles (i.e. portrait -> landscape ~90 degrees)
+    // continue through the normal EMA adaptation below.
+    _pendingOppositeForwardAxis = null;
+    _pendingOppositeForwardAxisConfirmations = 0;
+
+    // Already calibrated: nudge slowly toward this interval's candidate so
+    // ordinary mount-angle changes refine smoothly.
     var fx =
         existing[0] + _forwardAxisLearningRate * (candidateX - existing[0]);
     var fy =
@@ -551,7 +716,7 @@ class OrientationCalibrationService {
     // gyroscope's own (standard right-hand-rule) sign convention.
     final rawUpAxisRateRadPerSec = event.x * dx + event.y * dy + event.z * dz;
 
-    // Flip sign to match yLateral's convention (positive = turning
+    // Flip sign to match lateralG's convention (positive = turning
     // right): standard GPS heading increases CLOCKWISE as seen from
     // above, which is a NEGATIVE rotation about the up axis by the
     // right-hand rule the gyroscope itself follows (unlike the
@@ -562,14 +727,20 @@ class OrientationCalibrationService {
     // which for the "up" axis means a bird's-eye view from above, the
     // same viewpoint compass heading is defined from). So a right turn
     // reads as a NEGATIVE raw projection here, and needs negating to
-    // read positive, matching yLateral.
+    // read positive, matching lateralG.
     final signedYawRateRaw = -rawUpAxisRateRadPerSec;
 
-    // Use the sensor-provided timestamp for both gravity propagation and
-    // yaw integration. This avoids callback scheduling jitter contaminating
-    // the complementary filter or the GPS heading-bias comparison.
-    if (gyroDtSeconds != null) {
-      _pendingYawIntegralRad += signedYawRateRaw * gyroDtSeconds;
+    // Keep the RAW signed yaw rate. GPS bias correction later integrates
+    // these timestamped samples over the exact GPS measurement interval rather
+    // than whatever callback-to-callback window happened to occur.
+    _pendingGyroSamples.add(
+      _GyroSample(timestamp: now, signedYawRateRaw: signedYawRateRaw),
+    );
+    if (_pendingGyroSamples.length > _maxPendingGyroSamples) {
+      _pendingGyroSamples.removeRange(
+        0,
+        _pendingGyroSamples.length - _maxPendingGyroSamples,
+      );
     }
 
     final signedYawRateRadPerSec = signedYawRateRaw - _yawBiasRadPerSec;
@@ -594,6 +765,76 @@ class OrientationCalibrationService {
     }
   }
 
+  // Integrates raw signed gyro yaw rate over exactly [startTime, endTime].
+  // Small boundary gaps are filled with the nearest sample's rate; any missing
+  // coverage or internal gap larger than _maxGyroGapForBias rejects the whole
+  // interval so a sensor dropout cannot masquerade as gyro bias.
+  double? _integratedRawYawForGpsInterval(
+    DateTime startTime,
+    DateTime endTime,
+  ) {
+    final samples = <_GyroSample>[];
+    for (final sample in _pendingGyroSamples) {
+      if (!sample.timestamp.isBefore(startTime) &&
+          !sample.timestamp.isAfter(endTime)) {
+        samples.add(sample);
+      }
+    }
+    if (samples.length < 2) return null;
+
+    final first = samples.first;
+    final last = samples.last;
+    final startGap = first.timestamp.difference(startTime);
+    final endGap = endTime.difference(last.timestamp);
+    if (startGap.isNegative ||
+        endGap.isNegative ||
+        startGap > _maxGyroGapForBias ||
+        endGap > _maxGyroGapForBias) {
+      return null;
+    }
+
+    var integral = first.signedYawRateRaw * (startGap.inMicroseconds / 1e6);
+
+    for (var i = 1; i < samples.length; i++) {
+      final previous = samples[i - 1];
+      final current = samples[i];
+      final dt = current.timestamp.difference(previous.timestamp);
+      if (dt.isNegative || dt == Duration.zero || dt > _maxGyroGapForBias) {
+        return null;
+      }
+      final dtSeconds = dt.inMicroseconds / 1e6;
+      integral +=
+          0.5 *
+          (previous.signedYawRateRaw + current.signedYawRateRaw) *
+          dtSeconds;
+    }
+
+    integral += last.signedYawRateRaw * (endGap.inMicroseconds / 1e6);
+    return integral;
+  }
+
+  // Establishes a fresh GPS measurement-time baseline: used both for the very
+  // first accepted fix and whenever a gap is too long to trust a derivative
+  // across it (see addGpsSample). Either way there is no valid prior interval,
+  // so any buffered sensor evidence from before this timestamp is discarded
+  // rather than risk labeling it against the wrong interval.
+  void _resetGpsBaseline(
+    double speedMps,
+    double? headingDegrees,
+    DateTime timestamp,
+  ) {
+    _lastGpsSpeedMps = speedMps;
+    _lastGpsHeadingDegrees = headingDegrees;
+    _lastGpsTimestamp = timestamp;
+    _estimatedSpeedMps = speedMps;
+    _pendingCalibrationSamples.removeWhere(
+      (sample) => !sample.timestamp.isAfter(timestamp),
+    );
+    _pendingGyroSamples.removeWhere(
+      (sample) => !sample.timestamp.isAfter(timestamp),
+    );
+  }
+
   // Feed one GPS fix. This is used only for (a) labeling the
   // forward-axis calibration candidate accumulated since the last fix
   // (see addAccelerometerSample), (b) resyncing the dead-reckoned speed
@@ -614,19 +855,15 @@ class OrientationCalibrationService {
     // First accepted fix establishes the measurement-time baseline. There is
     // no previous GPS interval to calibrate or bias-correct yet.
     if (previousSpeed == null || previousTimestamp == null) {
-      _lastGpsSpeedMps = speedMps;
-      _lastGpsHeadingDegrees = headingDegrees;
-      _lastGpsTimestamp = timestamp;
-      _estimatedSpeedMps = speedMps;
-      _pendingYawIntegralRad = 0.0;
-      _pendingCalibrationSamples.removeWhere(
-        (sample) => !sample.timestamp.isAfter(timestamp),
-      );
+      _resetGpsBaseline(speedMps, headingDegrees, timestamp);
       return;
     }
 
+    // Use microseconds here too, matching the sensor paths. GPS itself is
+    // coarse, but keeping one dt convention avoids needless quantization and
+    // makes interval math consistent throughout the service.
     final dtSeconds =
-        timestamp.difference(previousTimestamp).inMilliseconds / 1000.0;
+        timestamp.difference(previousTimestamp).inMicroseconds / 1e6;
 
     // Truly ignore duplicate/out-of-order fixes
     if (dtSeconds <= 0.1) return;
@@ -635,34 +872,45 @@ class OrientationCalibrationService {
     // fresh baseline, resync speed, and discard stale interval evidence rather
     // than trying to bridge the gap.
     if (dtSeconds > 5.0) {
-      _lastGpsSpeedMps = speedMps;
-      _lastGpsHeadingDegrees = headingDegrees;
-      _lastGpsTimestamp = timestamp;
-      _estimatedSpeedMps = speedMps;
-      _pendingYawIntegralRad = 0.0;
-      _pendingCalibrationSamples.removeWhere(
-        (sample) => !sample.timestamp.isAfter(timestamp),
-      );
+      _resetGpsBaseline(speedMps, headingDegrees, timestamp);
       return;
     }
 
-    final yawIntegralSinceLastFix = _pendingYawIntegralRad;
-    _pendingYawIntegralRad = 0.0;
+    // Integrate gyro over the SAME GPS measurement interval used below for
+    // heading delta. null means coverage had a dropout/boundary hole, in which
+    // case bias correction for this interval is deliberately skipped.
+    final yawIntegralSinceLastFix = _integratedRawYawForGpsInterval(
+      previousTimestamp,
+      timestamp,
+    );
 
     // Select calibration samples by SENSOR timestamp, not by callback order.
     // GPS delivery can be delayed. An accelerometer sample that arrives before
     // this callback may actually belong to the NEXT GPS interval.
     final intervalCalibrationSamples = <_CalibrationSample>[];
+    final calibrationGateSpeedMps = math.max(previousSpeed, speedMps);
     for (final sample in _pendingCalibrationSamples) {
       if (sample.timestamp.isAfter(previousTimestamp) &&
           !sample.timestamp.isAfter(timestamp)) {
-        intervalCalibrationSamples.add(sample);
+        // Use the higher GPS endpoint speed so acceleration during this interval
+        // cannot make the lateral turn component look artificially small merely
+        // because the previous GPS speed was stale. During braking this is also
+        // conservative because previousSpeed is normally the larger endpoint.
+        final lateralAtGateSpeedMps2 =
+            calibrationGateSpeedMps * sample.absYawRateRadPerSec;
+        if (lateralAtGateSpeedMps2.abs() <=
+            _maxCalibrationLateralFraction * sample.magnitude) {
+          intervalCalibrationSamples.add(sample);
+        }
       }
     }
     // Everything at/before this GPS measurement time has now either been
     // consumed or deliberately rejected with this interval. Keep only newer
     // samples for the next fix.
     _pendingCalibrationSamples.removeWhere(
+      (sample) => !sample.timestamp.isAfter(timestamp),
+    );
+    _pendingGyroSamples.removeWhere(
       (sample) => !sample.timestamp.isAfter(timestamp),
     );
 
@@ -676,10 +924,10 @@ class OrientationCalibrationService {
     final averageSpeed = (previousSpeed + speedMps) / 2;
 
     // Forward-axis calibration:
-    // Below minMovingSpeedMps, or when the change is too small, GPS
-    // speed-trend noise dominates any real signal. Skip calibrating
-    // this interval rather than risk a mislabeled sample.
-    if (averageSpeed >= _minMovingSpeedMps) {
+    // Below _minForwardCalibrationSpeedMps, or when the speed change is too
+    // small, GPS direction ambiguity/noise dominates. Skip the interval rather
+    // than risk a mislabeled polarity sample.
+    if (averageSpeed >= _minForwardCalibrationSpeedMps) {
       final yForward = (speedMps - previousSpeed) / dtSeconds;
       if (yForward.abs() >= _minForwardSignalMps2 &&
           intervalCalibrationSamples.length >= _minCalibrationSampleCount) {
@@ -732,16 +980,24 @@ class OrientationCalibrationService {
           if (avgMagSquared >=
               _minCalibrationHorizontalMps2 * _minCalibrationHorizontalMps2) {
             final avgMag = math.sqrt(avgMagSquared);
-            // Orient by this interval's sign: during braking the raw
-            // horizontal vector points backward relative to the car, so
-            // flipping by sign gives a consistently-oriented vehicle-forward
-            // estimate whether this interval accelerated or braked.
-            final sign = yForward.sign;
-            _updateForwardAxis(
-              (avgX / avgMag) * sign,
-              (avgY / avgMag) * sign,
-              (avgZ / avgMag) * sign,
-            );
+
+            // GPS contributes only the + / - LABEL. If its measured dv/dt is
+            // tiny compared with this strong, coherent linear-acceleration
+            // event, that label is vulnerable to GPS noise/lag and is safer to
+            // discard than to mirror the whole vehicle basis.
+            final gpsToLinearAccelRatio = yForward.abs() / avgMag;
+            if (gpsToLinearAccelRatio >= _minGpsToLinearAccelCalibrationRatio) {
+              // UserAccelerometerEvent follows actual device acceleration:
+              // accelerating points forward and braking points backward.
+              // Multiplying by GPS's interval sign therefore yields a
+              // consistently +forward candidate in either case.
+              final sign = yForward.sign;
+              _updateForwardAxis(
+                (avgX / avgMag) * sign,
+                (avgY / avgMag) * sign,
+                (avgZ / avgMag) * sign,
+              );
+            }
           }
         }
       }
@@ -751,14 +1007,20 @@ class OrientationCalibrationService {
     // Only trust this when heading itself would have been trustworthy
     // and when the caller supplies it when reported heading accuracy
     // isn't obviously bad.
+    // null means the platform did not provide heading/course accuracy.
+    // When accuracy IS present, both Android bearingAccuracy and iOS
+    // courseAccuracy define 0 as a valid value; only negative values are
+    // invalid. The dashboard passes null for negative/non-finite legacy
+    // Geolocator values while preserving a legitimate 0-degree accuracy.
     final headingAccuracyOk =
         headingAccuracyDegrees == null ||
-        (headingAccuracyDegrees > 0 &&
+        (headingAccuracyDegrees >= 0 &&
             headingAccuracyDegrees <= _maxTrustedHeadingAccuracyDegrees);
     if (headingDegrees != null &&
         previousHeading != null &&
         averageSpeed >= _minHeadingSpeedMps &&
-        headingAccuracyOk) {
+        headingAccuracyOk &&
+        yawIntegralSinceLastFix != null) {
       var headingDeltaDegrees = headingDegrees - previousHeading;
       // Normalize to [-180, 180] so crossing the 0/360 boundary doesn't
       // look like a near-instant U-turn.
@@ -779,6 +1041,13 @@ class OrientationCalibrationService {
   }
 }
 
+class _GyroSample {
+  const _GyroSample({required this.timestamp, required this.signedYawRateRaw});
+
+  final DateTime timestamp;
+  final double signedYawRateRaw;
+}
+
 class _CalibrationSample {
   const _CalibrationSample({
     required this.timestamp,
@@ -786,9 +1055,15 @@ class _CalibrationSample {
     required this.y,
     required this.z,
     required this.magnitude,
+    required this.absYawRateRadPerSec,
   });
 
   final DateTime timestamp;
   final double x, y, z;
   final double magnitude;
+
+  // Most recent filtered gyro yaw magnitude when this acceleration sample was
+  // received. Speed is deliberately NOT baked in here; addGpsSample applies the
+  // interval's actual endpoint speed after the interval closes.
+  final double absYawRateRadPerSec;
 }
