@@ -31,10 +31,13 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
     final result = await DrivingReportApi.sendReport(
       startTime: summary.startTime,
       endTime: summary.endTime,
-      elapsed: summary.elapsed,
       milesDriven: summary.milesDriven,
       overallGrade: summary.overallGrade,
       properSpeedGrade: summary.properSpeedGrade,
+      brakingGrade: summary.brakingGrade,
+      acceleratingGrade: summary.acceleratingGrade,
+      turningGrade: summary.turningGrade,
+      focusedDrivingGrade: summary.focusedDrivingGrade,
     );
 
     if (!mounted) return;
