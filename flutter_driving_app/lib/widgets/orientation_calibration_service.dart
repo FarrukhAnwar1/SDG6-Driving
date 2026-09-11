@@ -71,12 +71,13 @@
 //    or parking space must not be allowed to teach the service that vehicle
 //    rear is +forward. After calibration has completed at normal road speed,
 //    live forward/lateral G continues to work at any speed, including reverse.
-//  - Mid-trip pitch/roll remounts are handled more robustly by retaining both
-//    calibrated horizontal basis references. If one reference becomes nearly
-//    vertical after the phone is moved, the better-conditioned perpendicular
-//    reference reconstructs the vehicle basis. A pure yaw remount (rotation
-//    around gravity, where UP does not change) still relies on later confident
-//    GPS-labelled intervals to refine the stored device-frame basis.
+//  - A physical phone remount invalidates the old device-frame vehicle basis
+//    instead of trying to morph it into the new one. Large pitch/roll remounts
+//    are detected from the UP-frame change; large yaw-only remounts are detected
+//    from gyro-vs-GPS heading disagreement when heading is trustworthy. A strong
+//    calibration candidate >~41° away from the current forward axis is a final
+//    backstop. After invalidation, forwardG returns to the uncalibrated state
+//    until two clean GPS-labelled intervals establish the new mounting.
 //  - Calibration samples store the MOST RECENT filtered gyro yaw rate, so the
 //    accelerometer and gyro streams still are not perfectly timestamp-aligned.
 //    The speed-dependent turn gate itself is deferred until the GPS interval
@@ -133,8 +134,10 @@ class OrientationCalibrationService {
         0.75, // candidates must be within ~41 degrees to count as agreeing on the same axis direction
     this._initialForwardAxisConfirmationsRequired =
         2, // never let one GPS interval decide the trip's +forward polarity
-    this._oppositeForwardAxisConfirmationsRequired =
-        2, // two strong, mutually-consistent opposite candidates can correct a 180-degree bad initialization/remount quickly
+    this._remountUpAgreementCosine =
+        0.7071067811865476, // cos(45°): a larger gravity/up-frame change is treated as a physical phone remount, not ordinary vehicle pitch/roll
+    this._remountYawDisagreementRadians =
+        0.7853981633974483, // 45°: large gyro-vs-GPS heading disagreement strongly indicates the phone rotated around gravity relative to the car
   });
 
   static const double _gravityMetersPerSecondSquared = 9.80665;
@@ -169,7 +172,8 @@ class OrientationCalibrationService {
   final double _minGpsToLinearAccelCalibrationRatio;
   final double _forwardAxisAgreementCosine;
   final int _initialForwardAxisConfirmationsRequired;
-  final int _oppositeForwardAxisConfirmationsRequired;
+  final double _remountUpAgreementCosine;
+  final double _remountYawDisagreementRadians;
 
   // Estimated gravity-specific-force vector in DEVICE coordinates. At rest
   // an accelerometer reports the support force opposite physical gravity, so
@@ -208,18 +212,10 @@ class OrientationCalibrationService {
 
   // Calibrated "vehicle forward" direction, in device coordinates
   // (unit vector, or null before the first confident calibration sample:
-  // see _updateForwardAxis).
+  // see _updateForwardAxis). Because the phone is rigidly mounted, this
+  // direction is fixed relative to the device only while the phone mounting
+  // is unchanged. Vehicle turns do not change it; physical phone remounts do.
   List<double>? _forwardAxis;
-
-  // A second calibrated horizontal reference, using the same handedness as
-  // live lateralG: lateral = forward x up. Keeping BOTH horizontal references
-  // avoids a singularity during remounts. Example: in a portrait vertical
-  // mount, vehicle-forward can be close to the phone Z axis. Laying that same
-  // phone flat makes Z become UP, so projecting only the old forward reference
-  // onto the new horizontal plane leaves almost zero information. The old
-  // lateral reference remains well-conditioned in that 90-degree pitch, so we
-  // can reconstruct forward as up x lateral instead.
-  List<double>? _lateralAxisReference;
 
   // The vehicle-forward LINE can be learned from accelerometer direction, but
   // its + / - polarity comes from GPS speed trend. One noisy/lagged GPS interval
@@ -228,13 +224,10 @@ class OrientationCalibrationService {
   List<double>? _pendingInitialForwardAxis;
   int _pendingInitialForwardAxisConfirmations = 0;
 
-  // Once calibrated, repeated strong candidates that point almost exactly
-  // opposite the current axis are treated as evidence that the polarity was
-  // initialized incorrectly (or the phone was remounted ~180 degrees). Requiring
-  // multiple mutually-consistent intervals prevents one bad GPS derivative from
-  // flipping the live signs.
-  List<double>? _pendingOppositeForwardAxis;
-  int _pendingOppositeForwardAxisConfirmations = 0;
+  // UP direction in device coordinates when the current forward calibration
+  // became valid. This is intentionally NOT updated by ordinary EMA refinement:
+  // it is a mount-frame reference used to detect large pitch/roll remounts.
+  List<double>? _calibratedMountUpAxis;
 
   // Dead-reckoned current speed (see addGpsSample and
   // _advanceEstimatedSpeed), used in place of the last raw GPS speed for
@@ -367,6 +360,22 @@ class OrientationCalibrationService {
     if (axis == null) return; // practically unreachable so hold last known G
     final dx = axis[0], dy = axis[1], dz = axis[2];
 
+    // A calibrated forward vector lives in DEVICE coordinates, so it is only
+    // valid for the mounting that produced it. Large changes in the device's
+    // UP direction are physical remounts (not ordinary road pitch/roll). Drop
+    // the old basis immediately instead of projecting stale axes into the new
+    // phone frame, which is what caused forward/lateral swaps after remounts.
+    final calibratedMountUp = _calibratedMountUpAxis;
+    if (_forwardAxis != null && calibratedMountUp != null) {
+      final upAgreement =
+          calibratedMountUp[0] * dx +
+          calibratedMountUp[1] * dy +
+          calibratedMountUp[2] * dz;
+      if (upAgreement < _remountUpAgreementCosine) {
+        _invalidateForwardCalibration();
+      }
+    }
+
     // UserAccelerometerEvent is already gravity-removed by the platform.
     // Remove any remaining VERTICAL vehicle/mount motion (bumps, suspension)
     // so calibration considers only the horizontal vehicle plane.
@@ -422,129 +431,59 @@ class OrientationCalibrationService {
       return;
     }
 
-    // Build the live horizontal vehicle basis from whichever stored reference
-    // is better-conditioned against CURRENT up. Using only _forwardAxis has a
-    // singularity when a remount rotates that old reference nearly parallel to
-    // gravity (the exact portrait-vertical -> portrait-flat case).
-    //
-    // Project both stored references into the current horizontal plane:
-    //   - if forward has more horizontal information, use it and derive lateral
-    //   - if lateral has more, use it and reconstruct forward = up x lateral
-    //
-    // This preserves handedness and avoids normalizing a near-zero vector.
+    // Re-orthogonalize the calibrated axis against the CURRENT up-axis
+    // estimate before using it, in case gravity/tilt has drifted a little
+    // since the axis was last calibrated. This is a cheap, bounded
+    // per-sample correction on an otherwise-fixed axis.
     final rawFx = forwardAxis[0];
     final rawFy = forwardAxis[1];
     final rawFz = forwardAxis[2];
     final forwardAlongUp = rawFx * dx + rawFy * dy + rawFz * dz;
-    final projectedFx = rawFx - forwardAlongUp * dx;
-    final projectedFy = rawFy - forwardAlongUp * dy;
-    final projectedFz = rawFz - forwardAlongUp * dz;
-    final projectedForwardNorm = math.sqrt(
-      projectedFx * projectedFx +
-          projectedFy * projectedFy +
-          projectedFz * projectedFz,
+    final fx = rawFx - forwardAlongUp * dx;
+    final fy = rawFy - forwardAlongUp * dy;
+    final fz = rawFz - forwardAlongUp * dz;
+    final fNorm = math.sqrt(fx * fx + fy * fy + fz * fz);
+    if (fNorm < 1e-6) return; // practically unreachable so hold last known G
+    final nfx = fx / fNorm;
+    final nfy = fy / fNorm;
+    final nfz = fz / fNorm;
+
+    // _forwardAxis is deliberately oriented so accelerometer projection is
+    // positive during vehicle acceleration. With the accelerometer's proper-
+    // acceleration sign, forward × up points toward the accelerometer-positive
+    // lateral direction (positive for a vehicle right turn).
+    var lateralX = nfy * dz - nfz * dy;
+    var lateralY = nfz * dx - nfx * dz;
+    var lateralZ = nfx * dy - nfy * dx;
+    final lateralNorm = math.sqrt(
+      lateralX * lateralX + lateralY * lateralY + lateralZ * lateralZ,
     );
-
-    final lateralReference = _lateralAxisReference;
-    var projectedLx = 0.0;
-    var projectedLy = 0.0;
-    var projectedLz = 0.0;
-    var projectedLateralNorm = 0.0;
-    if (lateralReference != null) {
-      final rawLx = lateralReference[0];
-      final rawLy = lateralReference[1];
-      final rawLz = lateralReference[2];
-      final lateralAlongUp = rawLx * dx + rawLy * dy + rawLz * dz;
-      projectedLx = rawLx - lateralAlongUp * dx;
-      projectedLy = rawLy - lateralAlongUp * dy;
-      projectedLz = rawLz - lateralAlongUp * dz;
-      projectedLateralNorm = math.sqrt(
-        projectedLx * projectedLx +
-            projectedLy * projectedLy +
-            projectedLz * projectedLz,
-      );
-    }
-
-    double nfx, nfy, nfz;
-    double lateralX, lateralY, lateralZ;
-
-    if (projectedForwardNorm >= projectedLateralNorm &&
-        projectedForwardNorm > 1e-4) {
-      // Forward reference is better conditioned. Normalize it, then rebuild
-      // lateral with the established handedness: lateral = forward x up.
-      nfx = projectedFx / projectedForwardNorm;
-      nfy = projectedFy / projectedForwardNorm;
-      nfz = projectedFz / projectedForwardNorm;
-
-      lateralX = nfy * dz - nfz * dy;
-      lateralY = nfz * dx - nfx * dz;
-      lateralZ = nfx * dy - nfy * dx;
-      final lateralNorm = math.sqrt(
-        lateralX * lateralX + lateralY * lateralY + lateralZ * lateralZ,
-      );
-      if (lateralNorm < 1e-4) return;
+    if (lateralNorm > 1e-6) {
       lateralX /= lateralNorm;
       lateralY /= lateralNorm;
       lateralZ /= lateralNorm;
-    } else if (projectedLateralNorm > 1e-4) {
-      // The old forward reference is near vertical, but the paired lateral
-      // reference still contains the horizontal direction. Normalize lateral
-      // and reconstruct forward with forward = up x lateral.
-      lateralX = projectedLx / projectedLateralNorm;
-      lateralY = projectedLy / projectedLateralNorm;
-      lateralZ = projectedLz / projectedLateralNorm;
+      final rawLateralAccelMps2 =
+          linX * lateralX + linY * lateralY + linZ * lateralZ;
 
-      nfx = dy * lateralZ - dz * lateralY;
-      nfy = dz * lateralX - dx * lateralZ;
-      nfz = dx * lateralY - dy * lateralX;
-      final reconstructedForwardNorm = math.sqrt(
-        nfx * nfx + nfy * nfy + nfz * nfz,
-      );
-      if (reconstructedForwardNorm < 1e-4) return;
-      nfx /= reconstructedForwardNorm;
-      nfy /= reconstructedForwardNorm;
-      nfz /= reconstructedForwardNorm;
-
-      // Rebuild lateral from the reconstructed forward so the final basis is
-      // exactly orthonormal even if the stored reference had accumulated drift.
-      lateralX = nfy * dz - nfz * dy;
-      lateralY = nfz * dx - nfx * dz;
-      lateralZ = nfx * dy - nfy * dx;
-      final rebuiltLateralNorm = math.sqrt(
-        lateralX * lateralX + lateralY * lateralY + lateralZ * lateralZ,
-      );
-      if (rebuiltLateralNorm < 1e-4) return;
-      lateralX /= rebuiltLateralNorm;
-      lateralY /= rebuiltLateralNorm;
-      lateralZ /= rebuiltLateralNorm;
-    } else {
-      // Both stored references being effectively vertical at once would mean
-      // the saved basis is internally inconsistent. Hold the last outputs
-      // rather than normalize sensor noise into an arbitrary vehicle axis.
-      return;
-    }
-
-    final rawLateralAccelMps2 =
-        linX * lateralX + linY * lateralY + linZ * lateralZ;
-
-    final previousLateralFilterTime = _lastLateralFilterTimestamp;
-    _lastLateralFilterTimestamp = event.timestamp;
-    if (previousLateralFilterTime == null) {
-      _lateralAccelMps2 = rawLateralAccelMps2;
-    } else {
-      final lateralDtSeconds =
-          event.timestamp
-                  .difference(previousLateralFilterTime)
-                  .inMicroseconds /
-              1e6;
-      if (lateralDtSeconds > 0 && lateralDtSeconds < 1.0) {
-        final lateralAlpha =
-            1.0 -
-            math.exp(-lateralDtSeconds / _outputFilterTimeConstantSeconds);
-        _lateralAccelMps2 +=
-            lateralAlpha * (rawLateralAccelMps2 - _lateralAccelMps2);
-      } else {
+      final previousLateralFilterTime = _lastLateralFilterTimestamp;
+      _lastLateralFilterTimestamp = event.timestamp;
+      if (previousLateralFilterTime == null) {
         _lateralAccelMps2 = rawLateralAccelMps2;
+      } else {
+        final lateralDtSeconds =
+            event.timestamp
+                .difference(previousLateralFilterTime)
+                .inMicroseconds /
+            1e6;
+        if (lateralDtSeconds > 0 && lateralDtSeconds < 1.0) {
+          final lateralAlpha =
+              1.0 -
+              math.exp(-lateralDtSeconds / _outputFilterTimeConstantSeconds);
+          _lateralAccelMps2 +=
+              lateralAlpha * (rawLateralAccelMps2 - _lateralAccelMps2);
+        } else {
+          _lateralAccelMps2 = rawLateralAccelMps2;
+        }
       }
     }
 
@@ -602,42 +541,34 @@ class OrientationCalibrationService {
     );
   }
 
-  // Stores a calibrated forward reference and, whenever UP is available,
-  // its paired lateral reference. Keeping the pair gives live projection a
-  // well-conditioned fallback when a 90-degree remount makes either one nearly
-  // parallel to gravity.
-  void _commitForwardAxis(double fx, double fy, double fz) {
-    final norm = math.sqrt(fx * fx + fy * fy + fz * fz);
-    if (norm < 1e-6) return;
-
-    final nfx = fx / norm;
-    final nfy = fy / norm;
-    final nfz = fz / norm;
-    _forwardAxis = [nfx, nfy, nfz];
-
-    final up = _currentUpAxis();
-    if (up == null) return;
-
-    final ux = up[0], uy = up[1], uz = up[2];
-    var lx = nfy * uz - nfz * uy;
-    var ly = nfz * ux - nfx * uz;
-    var lz = nfx * uy - nfy * ux;
-    final lateralNorm = math.sqrt(lx * lx + ly * ly + lz * lz);
-    if (lateralNorm < 1e-6) return;
-
-    lx /= lateralNorm;
-    ly /= lateralNorm;
-    lz /= lateralNorm;
-    _lateralAxisReference = [lx, ly, lz];
-  }
-
-  // Snaps (on the first confident calibration) or slowly nudges
-  // (thereafter) the calibrated forward axis toward an already-averaged,
+  // Snaps after two confirmations on a fresh mounting, then only nudges
+  // toward candidates that still agree with that mounting. A large angular
+  // disagreement is treated as a remount and starts fresh calibration.
   // already-signed candidate direction for a GPS interval that just
   // completed: see addGpsSample for how that candidate is assembled
   // (averaged from buffered accelerometer samples) and correctly
   // time-aligned with its sign (the interval's own GPS-derived speed
   // trend, not whatever sign was current when each sample arrived).
+  void _invalidateForwardCalibration({
+    bool clearPendingCalibrationSamples = true,
+  }) {
+    _forwardAxis = null;
+    _calibratedMountUpAxis = null;
+
+    _pendingInitialForwardAxis = null;
+    _pendingInitialForwardAxisConfirmations = 0;
+
+    _forwardG = 0.0;
+    _lateralAccelMps2 = _gyroLateralAccelMps2;
+    _lastForwardFilterTimestamp = null;
+    _lastLateralFilterTimestamp = null;
+    _lastLinearAccelerationTimestamp = null;
+
+    if (clearPendingCalibrationSamples) {
+      _pendingCalibrationSamples.clear();
+    }
+  }
+
   void _updateForwardAxis(
     double candidateX,
     double candidateY,
@@ -656,10 +587,8 @@ class OrientationCalibrationService {
 
     final existing = _forwardAxis;
     if (existing == null) {
-      // Do NOT let one GPS interval choose the sign of the entire vehicle
-      // basis. A single delayed/noisy speed trend can be wrong even when the
-      // accelerometer event itself is clean. Require two independent,
-      // directionally-consistent intervals before publishing +forward.
+      // Fresh mounting: never let one GPS interval choose polarity. Require two
+      // independent, directionally-consistent intervals before publishing.
       final pending = _pendingInitialForwardAxis;
       if (pending == null) {
         _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
@@ -673,8 +602,7 @@ class OrientationCalibrationService {
           pending[2] * candidateZ;
 
       if (agreement < _forwardAxisAgreementCosine) {
-        // Conflicting evidence. Start confirmation again from the newest
-        // candidate instead of averaging opposite directions into nonsense.
+        // Conflicting evidence: restart confirmation from the newest candidate.
         _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
         _pendingInitialForwardAxisConfirmations = 1;
         return;
@@ -698,7 +626,10 @@ class OrientationCalibrationService {
 
       if (_pendingInitialForwardAxisConfirmations >=
           _initialForwardAxisConfirmationsRequired) {
-        _commitForwardAxis(fx, fy, fz);
+        _forwardAxis = [fx, fy, fz];
+        final up = _currentUpAxis();
+        _calibratedMountUpAxis =
+            up == null ? null : [up[0], up[1], up[2]];
         _pendingInitialForwardAxis = null;
         _pendingInitialForwardAxisConfirmations = 0;
       }
@@ -710,58 +641,21 @@ class OrientationCalibrationService {
         existing[1] * candidateY +
         existing[2] * candidateZ;
 
-    if (existingDotCandidate <= -_forwardAxisAgreementCosine) {
-      // A 180-degree polarity error reverses BOTH forward and lateral signs.
-      // Never EMA directly toward an opposite vector: that can leave the axis
-      // wrong for a long time. Instead require repeated opposite evidence, then
-      // snap to the newly-confirmed polarity.
-      final pendingOpposite = _pendingOppositeForwardAxis;
-      if (pendingOpposite == null) {
-        _pendingOppositeForwardAxis = [candidateX, candidateY, candidateZ];
-        _pendingOppositeForwardAxisConfirmations = 1;
-        return;
-      }
-
-      final oppositeAgreement =
-          pendingOpposite[0] * candidateX +
-          pendingOpposite[1] * candidateY +
-          pendingOpposite[2] * candidateZ;
-
-      if (oppositeAgreement < _forwardAxisAgreementCosine) {
-        _pendingOppositeForwardAxis = [candidateX, candidateY, candidateZ];
-        _pendingOppositeForwardAxisConfirmations = 1;
-        return;
-      }
-
-      var fx = pendingOpposite[0] + candidateX;
-      var fy = pendingOpposite[1] + candidateY;
-      var fz = pendingOpposite[2] + candidateZ;
-      final norm = math.sqrt(fx * fx + fy * fy + fz * fz);
-      if (norm < 1e-6) return;
-
-      fx /= norm;
-      fy /= norm;
-      fz /= norm;
-      _pendingOppositeForwardAxis = [fx, fy, fz];
-      _pendingOppositeForwardAxisConfirmations++;
-
-      if (_pendingOppositeForwardAxisConfirmations >=
-          _oppositeForwardAxisConfirmationsRequired) {
-        _commitForwardAxis(fx, fy, fz);
-        _pendingOppositeForwardAxis = null;
-        _pendingOppositeForwardAxisConfirmations = 0;
-      }
+    if (existingDotCandidate < _forwardAxisAgreementCosine) {
+      // A clean candidate more than ~41 degrees away is not an ordinary
+      // refinement. This is the important yaw-remount backstop: flat portrait
+      // -> flat landscape can leave UP unchanged, so gravity alone cannot
+      // detect it. Immediately stop trusting the old basis and use this
+      // candidate as confirmation #1 for the new mounting.
+      _invalidateForwardCalibration(clearPendingCalibrationSamples: false);
+      _pendingInitialForwardAxis = [candidateX, candidateY, candidateZ];
+      _pendingInitialForwardAxisConfirmations = 1;
       return;
     }
 
-    // Any candidate that is not strongly opposite breaks an opposite-polarity
-    // streak. Ordinary remount angles (i.e. portrait -> landscape ~90 degrees)
-    // continue through the normal EMA adaptation below.
-    _pendingOppositeForwardAxis = null;
-    _pendingOppositeForwardAxisConfirmations = 0;
-
-    // Already calibrated: nudge slowly toward this interval's candidate so
-    // ordinary mount-angle changes refine smoothly.
+    // Same mounting: only small agreeing refinements are allowed to nudge the
+    // axis. We deliberately do not update _calibratedMountUpAxis here; it stays
+    // as the mounting reference until an actual recalibration occurs.
     var fx =
         existing[0] + _forwardAxisLearningRate * (candidateX - existing[0]);
     var fy =
@@ -770,7 +664,7 @@ class OrientationCalibrationService {
         existing[2] + _forwardAxisLearningRate * (candidateZ - existing[2]);
     final norm = math.sqrt(fx * fx + fy * fy + fz * fz);
     if (norm > 1e-6) {
-      _commitForwardAxis(fx / norm, fy / norm, fz / norm);
+      _forwardAxis = [fx / norm, fy / norm, fz / norm];
     }
   }
 
@@ -1032,11 +926,44 @@ class OrientationCalibrationService {
 
     final averageSpeed = (previousSpeed + speedMps) / 2;
 
+    final headingAccuracyOk =
+        headingAccuracyDegrees == null ||
+        (headingAccuracyDegrees >= 0 &&
+            headingAccuracyDegrees <= _maxTrustedHeadingAccuracyDegrees);
+
+    double? actualSignedHeadingDeltaRad;
+    var remountDetectedFromYaw = false;
+    if (headingDegrees != null &&
+        previousHeading != null &&
+        averageSpeed >= _minHeadingSpeedMps &&
+        headingAccuracyOk &&
+        yawIntegralSinceLastFix != null) {
+      var headingDeltaDegrees = headingDegrees - previousHeading;
+      headingDeltaDegrees =
+          ((headingDeltaDegrees + 180) % 360 + 360) % 360 - 180;
+      actualSignedHeadingDeltaRad = headingDeltaDegrees * math.pi / 180;
+
+      final phoneVsVehicleYawDisagreement =
+          (yawIntegralSinceLastFix - actualSignedHeadingDeltaRad).abs();
+      if (_forwardAxis != null &&
+          phoneVsVehicleYawDisagreement >=
+              _remountYawDisagreementRadians) {
+        // A car turn rotates phone and vehicle together, so gyro yaw and GPS
+        // heading still agree. A large disagreement means the PHONE itself
+        // rotated around gravity relative to the vehicle. Discard the old
+        // device-frame basis and do not learn from this mixed remount interval.
+        _invalidateForwardCalibration(clearPendingCalibrationSamples: false);
+        remountDetectedFromYaw = true;
+      }
+    }
+
     // Forward-axis calibration:
     // Below _minForwardCalibrationSpeedMps, or when the speed change is too
-    // small, GPS direction ambiguity/noise dominates. Skip the interval rather
-    // than risk a mislabeled polarity sample.
-    if (averageSpeed >= _minForwardCalibrationSpeedMps) {
+    // small, GPS direction ambiguity/noise dominates. Also skip the exact
+    // interval that detected a yaw remount because its acceleration samples can
+    // span both the old and new phone frames.
+    if (!remountDetectedFromYaw &&
+        averageSpeed >= _minForwardCalibrationSpeedMps) {
       final yForward = (speedMps - previousSpeed) / dtSeconds;
       if (yForward.abs() >= _minForwardSignalMps2 &&
           intervalCalibrationSamples.length >= _minCalibrationSampleCount) {
@@ -1113,40 +1040,17 @@ class OrientationCalibrationService {
     }
 
     // Gyro bias correction:
-    // Only trust this when heading itself would have been trustworthy
-    // and when the caller supplies it when reported heading accuracy
-    // isn't obviously bad.
-    // null means the platform did not provide heading/course accuracy.
-    // When accuracy IS present, both Android bearingAccuracy and iOS
-    // courseAccuracy define 0 as a valid value; only negative values are
-    // invalid. The dashboard passes null for negative/non-finite legacy
-    // Geolocator values while preserving a legitimate 0-degree accuracy.
-    final headingAccuracyOk =
-        headingAccuracyDegrees == null ||
-        (headingAccuracyDegrees >= 0 &&
-            headingAccuracyDegrees <= _maxTrustedHeadingAccuracyDegrees);
-    if (headingDegrees != null &&
-        previousHeading != null &&
-        averageSpeed >= _minHeadingSpeedMps &&
-        headingAccuracyOk &&
+    // Do not bias-learn from an interval that looked like a phone remount:
+    // the extra phone-relative rotation is real, not gyroscope bias.
+    if (!remountDetectedFromYaw &&
+        actualSignedHeadingDeltaRad != null &&
         yawIntegralSinceLastFix != null) {
-      var headingDeltaDegrees = headingDegrees - previousHeading;
-      // Normalize to [-180, 180] so crossing the 0/360 boundary doesn't
-      // look like a near-instant U-turn.
-      headingDeltaDegrees =
-          ((headingDeltaDegrees + 180) % 360 + 360) % 360 - 180;
-      final actualSignedHeadingDeltaRad = headingDeltaDegrees * math.pi / 180;
-
-      // How much the raw (uncorrected) gyro over or under-reported
-      // turning during this interval, spread over its duration. A long
-      // straight, steady-speed stretch is actually the ideal condition
-      // for this. A true heading change is ~0, so any nonzero average
-      // reading directly is the bias.
       final observedBias =
           (yawIntegralSinceLastFix - actualSignedHeadingDeltaRad) / dtSeconds;
       _yawBiasRadPerSec +=
           _gyroBiasLearningRate * (observedBias - _yawBiasRadPerSec);
     }
+
   }
 }
 
