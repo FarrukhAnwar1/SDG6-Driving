@@ -1,7 +1,5 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
 // current speed, the posted speed limit, and live driving grades.
-// Also sets up and calls live grading services, and passes completed
-// trip information to the Driving Report screen.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,12 +14,27 @@ import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
 import 'driving_report_screen.dart';
 
+// Formats a duration as mm:ss, or hh:mm:ss if over an hour
 String formatElapsed(Duration d) {
   String twoDigits(int n) => n.toString().padLeft(2, '0');
   final hours = twoDigits(d.inHours);
   final minutes = twoDigits(d.inMinutes.remainder(60));
   final seconds = twoDigits(d.inSeconds.remainder(60));
-  return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  if (d.inHours > 0) {
+    return '$hours:$minutes:$seconds';
+  }
+  return '$minutes:$seconds';
+}
+
+// Color for a grade: green if good, orange if ok, red if bad
+Color gradeColor(double grade) {
+  if (grade >= 90) {
+    return Colors.green;
+  }
+  if (grade >= 70) {
+    return Colors.orange;
+  }
+  return Colors.red;
 }
 
 class LiveDashboardScreen extends StatefulWidget {
@@ -36,33 +49,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
 
-  // Controls how often speed limit is fetched
+  // How often to refresh the posted speed limit
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
 
-  // Below this speed, we don't count distance driven to avoid GPS jitter
+  // Below this speed, ignore distance/movement to avoid GPS jitter
   static const double _minSpeedForDistanceMph = 3.0;
-
-  // Below this speed, we considered the vehicle stopped to avoid GPS jitter
   static const double _minSpeedMph = 3.0;
 
-  // Ignore speed updates with a speedAccuracy worse than this
-  static const double _maxTrustedSpeedAccuracyMps = 1.5; // about 3.4 mph
-
-  // Ignore reported speed updates that disagree with the
-  // manually calculated speed by more than this
+  // Ignore speed updates with worse accuracy than this
+  static const double _maxTrustedSpeedAccuracyMps = 1.5;
   static const double _maxSpeedDisagreementMph = 10.0;
-
-  // Ignore speed updates with a horizontal accuracy worse than this
   static const double _maxTrustedHorizontalAccuracyMeters = 25.0;
 
-  // Current speed is flagged red once it exceeds the posted limit by this much
+  // Flag speed red once it's this much over the limit
   static const double _speedingThresholdMph = 5.0;
 
-  // Exponential moving average factor applied to the resolved speed, to cut
-  // frame-to-frame jitter the way a real speed display does.
-  // Lower = smoother but laggier/more inaccurate, higher = more jittery but more responsive/accurate.
-  // 0 = Never update so output stays at the previous smoothed value forever.
-  // 1 = Never smooth so output equals the current measurement every update.
+  // Smoothing factor for displayed speed. 0 = never update, 1 = no smoothing.
   static const double _speedSmoothingAlpha = 1;
 
   final DateTime _tripStartTime = DateTime.now();
@@ -96,15 +98,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   double _currentLateralG = 0.0;
   bool _isForwardCalibrated = false;
 
-  // Adds a "+" sign to positive g-force values for display.
-  // Negative values are left as-is, since they already have a "-" sign.
-  // Catches noisy values that round to negative zero and makes them positive.
+  // Formats g-force with a leading sign, avoiding "-0.0"
   String _formatGForce(double gForce) {
     String formatted = gForce.toStringAsFixed(1);
     if (formatted == '-0.0') {
       formatted = '0.0';
     }
-    return formatted.startsWith('-') ? formatted : '+$formatted';
+    if (formatted.startsWith('-')) {
+      return formatted;
+    }
+    return '+$formatted';
   }
 
   @override
@@ -155,12 +158,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   // Smoothness grading needs forward (braking/accelerating) and lateral
-  // (turning) G-force, but the accelerometer only reports acceleration
-  // along the phone's own X/Y/Z axes, whatever those happen to line up
-  // with for however the phone is mounted. Rather than assuming a fixed
-  // mount (portrait, screen toward the driver, held upright), the reading
-  // is derived from OrientationCalibrationService, which figures out that
-  // mapping from the sensors themselves:
+  // (turning) G-force, derived from OrientationCalibrationService:
   //  - Raw accelerometer + gyro estimate which way is UP, defining the
   //    vehicle's horizontal plane.
   //  - Live/calibration vehicle acceleration comes from the platform's
@@ -174,13 +172,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   // See orientation_calibration_service.dart for the full explanation.
   void _handleUserAccelerometerEvent(UserAccelerometerEvent event) {
     // Always feed the orientation service, even before the first usable GPS
-    // fix. GPS is needed only to label calibration intervals, not to obtain the
-    // gravity-removed linear acceleration itself.
+    // fix. GPS is needed only to label calibration intervals, not to obtain
+    // the gravity-removed linear acceleration itself.
     _orientationCalibration.addUserAccelerometerSample(event);
 
     final position = _lastPosition;
-    // Wait for a GPS fix before grading so violations can be tagged with
-    // real coordinates.
+    // Wait for a GPS fix so violations can be tagged with coordinates
     if (position == null) return;
 
     // Only grade smoothness while the vehicle is actually moving, so
@@ -214,10 +211,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   Future<void> _startListening() async {
-    // Bump the underlying GPS stream to its 1-second trip-active interval
+    // Bump GPS to its faster trip-active interval
     await BackgroundLocationService.enterTripMode();
 
-    // Restart tracking just in case
     if (!BackgroundLocationService.isTracking) {
       await BackgroundLocationService.start();
     }
@@ -234,7 +230,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _accelerometerSubscription?.cancel();
     _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
-    // Drop back to the longer idle GPS interval now that the trip is over
+    // Drop back to the idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
     super.dispose();
   }
@@ -247,7 +243,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       return;
     }
 
-    // Skip updates GPS itself flags as unreliable
+    // Skip updates GPS flags as unreliable
     if (position.accuracy > _maxTrustedHorizontalAccuracyMeters) {
       return;
     }
@@ -256,14 +252,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     if (previous == null) return;
 
     final rawSpeedMph = _resolveSpeedMph(position, previous);
-    final speedMph = rawSpeedMph < _minSpeedMph ? 0.0 : rawSpeedMph;
+    double speedMph = rawSpeedMph;
+    if (rawSpeedMph < _minSpeedMph) {
+      speedMph = 0.0;
+    }
 
     // Ground truth for orientation calibration: GPS speed trend labels the
     // buffered accelerometer samples from the interval that just ended so
-    // the service can learn/refine the fixed vehicle-forward axis. It is NOT
-    // applied directly as the live forward-G sign. GPS heading change is also
-    // compared against the gyroscope's integrated turning to slowly correct
-    // yaw-rate bias (see addGpsSample).
+    // the service can learn/refine the fixed vehicle-forward axis. GPS
+    // heading change is also compared against the gyroscope's integrated
+    // turning to slowly correct yaw-rate bias (see addGpsSample).
     //
     // A reported heading accuracy of 0 degrees is valid, so
     // only negative or non-finite values are treated as unavailable.
@@ -293,12 +291,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       addedMiles = meters * _metersToMiles;
     }
 
-    // Snap straight to 0 instead of decaying, so coming to a stop reads
-    // immediately rather than trailing off. Otherwise, smooth with alpha.
-    _smoothedSpeedMph = speedMph == 0
-        ? 0
-        : (_speedSmoothingAlpha * speedMph) +
-              ((1 - _speedSmoothingAlpha) * _smoothedSpeedMph);
+    // Snap to 0 immediately when stopped, otherwise smooth with alpha
+    if (speedMph == 0) {
+      _smoothedSpeedMph = 0;
+    } else {
+      _smoothedSpeedMph = (_speedSmoothingAlpha * speedMph) +
+          ((1 - _speedSmoothingAlpha) * _smoothedSpeedMph);
+    }
 
     _properSpeedGrading.addSample(
       speedMph: _smoothedSpeedMph,
@@ -325,24 +324,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _maybeRefreshSpeedLimit(position);
   }
 
-  // Prefers the platform-reported speed, but only when it's flagged
-  // as confident, so high speedAccuracy, not from a mock provider, AND corroborated
-  // by manual speed calculation. Otherwise, returns manual speed calculation based on
-  // displacement and time between updates.
+  // Uses platform-reported speed only when trusted and it agrees with the
+  // manually calculated speed. Otherwise falls back to manual calculation.
   double _resolveSpeedMph(Position position, Position previous) {
     final dtSeconds =
         position.timestamp.difference(previous.timestamp).inMilliseconds /
         1000.0;
-    final calculatedSpeedMph = dtSeconds > 0
-        ? (Geolocator.distanceBetween(
-                    previous.latitude,
-                    previous.longitude,
-                    position.latitude,
-                    position.longitude,
-                  ) /
-                  dtSeconds) *
-              _metersPerSecondToMph
-        : 0.0;
+
+    double calculatedSpeedMph = 0.0;
+    if (dtSeconds > 0) {
+      final meters = Geolocator.distanceBetween(
+        previous.latitude,
+        previous.longitude,
+        position.latitude,
+        position.longitude,
+      );
+      calculatedSpeedMph = (meters / dtSeconds) * _metersPerSecondToMph;
+    }
 
     final reportedSpeedMph = position.speed * _metersPerSecondToMph;
     final speedAccuracyTrusted =
@@ -368,8 +366,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
     if (_isFetchingSpeedLimit || !dueForRefresh) return;
 
-    // Set these before the await below so a second position update landing
-    // while we're still reading the token doesn't slip past the guard above
+    // Set before the await so a second update can't slip past the guard
     _isFetchingSpeedLimit = true;
     _lastSpeedLimitFetchTime = now;
 
@@ -397,8 +394,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   void _stopTrip() {
     final now = DateTime.now();
-    // Close out a streak still in progress (driver was speeding right up
-    // until Stop Trip was pressed) so it's counted below.
+    // Close out any in-progress streak so it's counted below
     _properSpeedGrading.finalizeTrip();
     _smoothnessGrading.finalizeTrip();
     _focusedDrivingGrading.finalizeTrip();
@@ -435,7 +431,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   double? get _speedDifference {
     final limit = _postedSpeedLimitMph;
-    return limit == null ? null : _currentSpeedMph - limit;
+    if (limit == null) {
+      return null;
+    }
+    return _currentSpeedMph - limit;
   }
 
   bool get _isSpeeding =>
@@ -474,6 +473,18 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   Widget build(BuildContext context) {
     final overallGrade = _overallGrade;
 
+    Color? speedColor;
+    if (_isSpeeding) {
+      speedColor = Colors.red;
+    } else if (_isCloseToSpeeding) {
+      speedColor = Colors.orange;
+    }
+
+    String speedLimitText = '—';
+    if (_postedSpeedLimitMph != null) {
+      speedLimitText = '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH';
+    }
+
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -487,8 +498,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Stats scroll on short screens instead of overflowing.
-                // The Stop Trip button below stays pinned to the bottom.
+                // Stats scroll on short screens; Stop Trip stays pinned below
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
@@ -561,20 +571,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                                 context,
                                 'Current Speed',
                                 '${_currentSpeedMph.toStringAsFixed(0)} MPH',
-                                valueColor: _isSpeeding
-                                    ? Colors.red
-                                    : _isCloseToSpeeding
-                                    ? Colors.orange
-                                    : null,
+                                valueColor: speedColor,
                               ),
                             ),
                             Expanded(
                               child: _buildStat(
                                 context,
                                 'Speed Limit',
-                                _postedSpeedLimitMph == null
-                                    ? '—'
-                                    : '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH',
+                                speedLimitText,
                               ),
                             ),
                           ],
@@ -627,11 +631,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     double grade, {
     String? subtitle,
   }) {
-    final color = grade >= 90
-        ? Colors.green
-        : grade >= 70
-        ? Colors.orange
-        : Colors.red;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -656,7 +655,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: color,
+                color: gradeColor(grade),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -672,11 +671,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   ) {
     final grade = _smoothnessGrading.gradeFor(category);
     final violationCount = _smoothnessGrading.violationCountFor(category);
-    final color = grade >= 90
-        ? Colors.green
-        : grade >= 70
-        ? Colors.orange
-        : Colors.red;
+
+    String eventsText = '$violationCount events';
+    if (violationCount == 1) {
+      eventsText = '1 event';
+    }
 
     return Card(
       child: Padding(
@@ -692,15 +691,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: color,
+                color: gradeColor(grade),
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 2),
-            Text(
-              violationCount == 1 ? '1 event' : '$violationCount events',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            Text(eventsText, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
@@ -721,7 +717,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
           value,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: valueColor,
-            // This forces all numbers to take up the exact same horizontal space
+            // Keeps numbers the same width so they don't shift around
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
