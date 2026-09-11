@@ -18,10 +18,13 @@ class DrivingReportApi {
   static Future<DrivingReportResult> sendReport({
     required DateTime startTime,
     required DateTime endTime,
-    required Duration elapsed,
     required double milesDriven,
     required double overallGrade,
     required double properSpeedGrade,
+    required double brakingGrade,
+    required double acceleratingGrade,
+    required double turningGrade,
+    required double focusedDrivingGrade,
   }) async {
     final token = await AuthStorage.readToken();
 
@@ -31,18 +34,21 @@ class DrivingReportApi {
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/reports'),
+        Uri.parse('${ApiConfig.baseUrl}/driving-reports'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'start_time': startTime.toIso8601String(),
-          'end_time': endTime.toIso8601String(),
-          'elapsed_seconds': elapsed.inSeconds,
-          'miles_driven': milesDriven,
-          'overall_grade': overallGrade,
-          'proper_speed_grade': properSpeedGrade,
+          'startedAt': startTime.toUtc().toIso8601String(),
+          'endedAt': endTime.toUtc().toIso8601String(),
+          'tripDistanceMiles': milesDriven,
+          'overallGrade': overallGrade,
+          'speedGrade': properSpeedGrade,
+          'brakingGrade': brakingGrade,
+          'accelerationGrade': acceleratingGrade,
+          'turningGrade': turningGrade,
+          'focusGrade': focusedDrivingGrade,
         }),
       );
 
