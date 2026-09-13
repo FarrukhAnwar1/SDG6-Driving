@@ -1,6 +1,7 @@
 // Model of completed trip information, which can be passed to the Driving Report screen
 // and subsequently be uploaded to the database via the Driving Report Upload API endpoint
 import 'package:flutter/foundation.dart';
+import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
 
@@ -15,12 +16,10 @@ class TripSummary {
   // Average of all other grades
   final double overallGrade;
 
-  // Proper Speed grade and related information
-  // TODO: remove speedingOffenseCount and totalSpeedingDuration and instead replace with violations list.
-  // This list can have similar structure to violation lists below, but tailored toward speeding instead.
+  // Proper Speed grade. Each violation holds its start/end time, the posted
+  // limit and peak speed of the streak, and coordinates where it began.
   final double properSpeedGrade;
-  final int speedingOffenseCount;
-  final Duration totalSpeedingDuration;
+  final List<SpeedingViolation> speedingViolations;
 
   // Smooth Braking / Smooth Accelerating / Smooth Turning grades.
   // Each violations list holds one entry per violation,
@@ -44,8 +43,7 @@ class TripSummary {
     required this.milesDriven,
     required this.overallGrade,
     required this.properSpeedGrade,
-    required this.speedingOffenseCount,
-    required this.totalSpeedingDuration,
+    required this.speedingViolations,
     required this.brakingGrade,
     required this.acceleratingGrade,
     required this.turningGrade,
