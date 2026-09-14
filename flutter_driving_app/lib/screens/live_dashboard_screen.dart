@@ -315,6 +315,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       speedMph: _smoothedSpeedMph,
       speedLimitMph: _postedSpeedLimitMph,
       timestamp: position.timestamp,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
 
     // Keep this fresh regardless of "mounted" below, so a background period
@@ -418,8 +420,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       milesDriven: _milesDriven,
       overallGrade: _overallGrade,
       properSpeedGrade: _properSpeedGrading.grade,
-      speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
-      totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
+      speedingViolations: _properSpeedGrading.violations,
       brakingGrade: _smoothnessGrading.brakingGrade,
       acceleratingGrade: _smoothnessGrading.acceleratingGrade,
       turningGrade: _smoothnessGrading.turningGrade,
@@ -460,7 +461,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   String get _speedingCountLabel {
-    final count = _properSpeedGrading.speedingOffenseCount;
+    final count = _properSpeedGrading.violationCount;
     return count == 1 ? '1 time speeding' : '$count times speeding';
   }
 
