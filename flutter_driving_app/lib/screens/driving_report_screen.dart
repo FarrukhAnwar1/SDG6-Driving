@@ -71,6 +71,47 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
     return '$minutes min $seconds sec';
   }
 
+  ({String category, double score}) _getLowestScore(TripSummary summary) {
+    final scores = {
+      'speed': summary.properSpeedGrade,
+      //'braking': summary.brakingGrade,
+      //'acceleration': summary.acceleratingGrade,
+      //'turning': summary.turningGrade,
+      //'focusedDriving': summary.focusedDrivingGrade,
+    };
+
+    final lowest =
+        scores.entries.reduce((a, b) => a.value < b.value ? a : b);
+
+    return (category: lowest.key, score: lowest.value);
+  }
+
+  String _getSuggestion(String category, double score) {
+    switch (category) {
+      case 'speed':
+        if (score >= 90) {
+          return 'Great job Staying within the speed limit!';
+        } else if (score >= 80) {
+          return 'Nice speed control, make sure to stay consistent.';
+        } else if (score >= 70) {
+          return 'Looks like you could improve your speed control, try to remember posted speed limits.';
+        } else if (score >= 60) {
+          return 'Try to reduce how often you go over the posted speed limit.';
+        } else {
+          return 'Focus on staying within the speed limit, speeding is extremely dangerous!';
+        }
+
+      default:
+        return 'Keep practicing safe driving habits.';
+
+      // For future implementation of other categories
+      // case 'braking':
+      // case 'acceleration':
+      // case 'turning':
+      // case 'focusedDriving':
+    }
+  }
+
   Color gradeColor(double grade) {
     if (grade >= 90) {
       return const Color.fromARGB(255, 104, 209, 72);
@@ -89,6 +130,8 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
   Widget build(BuildContext context) {
     final summary = widget.summary;
     final letterGrade = _letterGrade(summary.overallGrade);
+    final lowestScore = _getLowestScore(summary);
+    final suggestion = _getSuggestion(lowestScore.category, lowestScore.score);
 
     return Scaffold(
       appBar: AppBar(
@@ -131,7 +174,6 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
                 ),
                 const SizedBox(height: 8),
               ],
-
               Text(
                 'Trip Complete!',
                 style: Theme.of(context).textTheme.headlineSmall,
@@ -180,6 +222,36 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
                 icon: Icons.access_time_rounded,
                 title: 'Trip Duration',
                 value: formatDuration(summary.elapsed),
+              ),
+
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.lightbulb_outline_rounded),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Helpful Tip!',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              suggestion,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
 
               const SizedBox(height: 24),

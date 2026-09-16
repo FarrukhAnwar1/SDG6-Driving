@@ -5,6 +5,7 @@ import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
 
+
 @immutable
 class TripSummary {
   // Basic trip information
