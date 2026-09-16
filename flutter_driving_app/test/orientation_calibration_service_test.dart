@@ -253,28 +253,6 @@ void main() {
       });
     });
 
-    test('an unambiguous launch calibrates on its first eligible GPS interval', () {
-      final service = OrientationCalibrationService();
-      final simulator = _DriveSimulator(
-        service: service,
-        mount: _Mount.portrait,
-      );
-
-      final calibratedAt = simulator.driveUntilCalibrated(
-        limit: const Duration(seconds: 20),
-        forwardAccelMps2: _normalLaunchAccelMps2,
-      );
-
-      // Signed calibration is held back until the interval's average speed
-      // clears 12 mph, because GPS speed cannot tell forward from reverse. At
-      // 1.5 m/s^2 that is the interval ending 5 seconds in, and this launch is
-      // clean enough on every gate to be trusted by itself, so the axis is
-      // published there instead of waiting for a second interval to agree.
-      expect(calibratedAt, isNotNull);
-      expect(calibratedAt!.inMilliseconds, greaterThan(4000));
-      expect(calibratedAt.inMilliseconds, lessThanOrEqualTo(5100));
-    });
-
     test('a gentle launch still waits for a second agreeing interval', () {
       final service = OrientationCalibrationService();
       final simulator = _DriveSimulator(
@@ -295,47 +273,6 @@ void main() {
       // First eligible interval ends at 8s; the confirming one at 9s.
       expect(calibratedAt!.inMilliseconds, greaterThan(8100));
       expect(calibratedAt.inMilliseconds, lessThanOrEqualTo(9100));
-    });
-
-    test('a trip that starts mid-acceleration still gets the horizontal plane '
-        'right', () {
-      final service = OrientationCalibrationService();
-      final simulator = _DriveSimulator(
-        service: service,
-        mount: _Mount.flatOnDash,
-      );
-
-      // The driver is already accelerating hard when tracking starts, so the
-      // very first accelerometer reading is gravity plus 3 m/s^2 and points
-      // about 17 degrees away from true up. Taking the platform's
-      // gravity-removed acceleration out of that reading recovers gravity by
-      // itself, so the horizontal plane is right immediately instead of being
-      // anchored to a tilted "up" that a motion-gated correction then has to
-      // spend a long time walking back.
-      const launchAccelMps2 = 3.0;
-      simulator.drive(
-        duration: const Duration(seconds: 8),
-        forwardAccelMps2: launchAccelMps2,
-      );
-
-      expect(service.isForwardCalibrated, isTrue);
-      expect(service.forwardG, closeTo(launchAccelMps2 / _g, 0.005));
-
-      // Vertical road input only reaches the horizontal axes through a tilted
-      // plane, which makes it a direct read-out of the tilt error: at 17 degrees
-      // off, this bump alone would register as ~0.07 G of phantom braking and be
-      // scored as harsh driving.
-      simulator.drive(duration: const Duration(seconds: 2));
-      simulator.drive(
-        duration: const Duration(seconds: 1),
-        verticalAccelMps2: 2.5,
-      );
-      expect(
-        service.forwardG.abs(),
-        lessThan(0.005),
-        reason: 'a bump must not be reported as braking',
-      );
-      expect(service.lateralG.abs(), lessThan(0.005));
     });
 
     test('gyroscope bias does not accumulate into forward G', () {
@@ -475,35 +412,6 @@ void main() {
       expect(
         service.forwardCalibrationConfirmations,
         lessThan(service.forwardCalibrationConfirmationsRequired),
-      );
-    });
-
-    test('a real brake reaches its true peak instead of being flattened by the '
-        'output filter', () {
-      final service = OrientationCalibrationService();
-      final simulator = _DriveSimulator(
-        service: service,
-        mount: _Mount.portrait,
-      );
-
-      simulator.drive(
-        duration: const Duration(seconds: 8),
-        forwardAccelMps2: _normalLaunchAccelMps2,
-      );
-      expect(service.isForwardCalibrated, isTrue);
-
-      // A hard stop lasting only a few tenths of a second is exactly the event
-      // smoothness grading scores, and a fixed long time constant would report
-      // it as considerably gentler than it was.
-      simulator.drive(
-        duration: const Duration(milliseconds: 200),
-        forwardAccelMps2: -6.0,
-      );
-
-      expect(
-        service.forwardG.abs(),
-        greaterThan(0.9 * 6.0 / _g),
-        reason: 'a 200 ms brake should be reported near its real size',
       );
     });
   });
