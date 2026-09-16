@@ -1,25 +1,63 @@
+// Post driving report screen displaying results and feedback,
+// and sending the report to the backend.
 import 'package:flutter/material.dart';
+import '../widgets/driving_report_api.dart';
 import '../widgets/trip_summary.dart';
-import 'package:flutter/widget_previews.dart';
 import 'home_screen.dart';
 
-class DrivingReportScreen extends StatelessWidget {
+class DrivingReportScreen extends StatefulWidget {
   final TripSummary summary;
 
-  const DrivingReportScreen({
-    super.key,
-    required this.summary,
-  });
+  const DrivingReportScreen({super.key, required this.summary});
+
+  @override
+  State<DrivingReportScreen> createState() => _DrivingReportScreenState();
+}
+
+class _DrivingReportScreenState extends State<DrivingReportScreen> {
+  bool _isSending = true;
+  bool _sentSuccessfully = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _sendReport();
+  }
+
+  Future<void> _sendReport() async {
+    final summary = widget.summary;
+
+    final result = await DrivingReportApi.sendReport(
+      startTime: summary.startTime,
+      endTime: summary.endTime,
+      milesDriven: summary.milesDriven,
+      overallGrade: summary.overallGrade,
+      properSpeedGrade: summary.properSpeedGrade,
+      brakingGrade: summary.brakingGrade,
+      acceleratingGrade: summary.acceleratingGrade,
+      turningGrade: summary.turningGrade,
+      focusedDrivingGrade: summary.focusedDrivingGrade,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _isSending = false;
+      _sentSuccessfully = result.success;
+      _errorMessage = result.errorMessage;
+    });
+  }
 
   String _letterGrade(double grade) {
-  return switch (grade) {
-    >= 90 => 'A',
-    >= 80 => 'B',
-    >= 70 => 'C',
-    >= 60 => 'D',
-    _ => 'F',
-  };
-}
+    return switch (grade) {
+      >= 90 => 'A',
+      >= 80 => 'B',
+      >= 70 => 'C',
+      >= 60 => 'D',
+      _ => 'F',
+    };
+  }
 
   String formatDuration(Duration duration) {
     final hours = duration.inHours;
@@ -33,53 +71,46 @@ class DrivingReportScreen extends StatelessWidget {
     return '$minutes min $seconds sec';
   }
 
+  ({String category, double score}) _getLowestScore(TripSummary summary) {
+    final scores = {
+      'speed': summary.properSpeedGrade,
+      //'braking': summary.brakingGrade,
+      //'acceleration': summary.acceleratingGrade,
+      //'turning': summary.turningGrade,
+      //'focusedDriving': summary.focusedDrivingGrade,
+    };
 
-//Gets the lowest scoring catagory to provide suggestions/tips to the user,
-//should be future proofed to include other catagories.
-({String category, double score}) _getLowestScore(TripSummary summary) {
-  final scores = {
-    'speed': summary.properSpeedGrade,
-    //'braking': summary.brakingGrade,
-    //'acceleration': summary.acceleratingGrade,
-    //'turning': summary.turningGrade,
-    //'focusedDriving': summary.focusedDrivingGrade,
-  };
+    final lowest =
+        scores.entries.reduce((a, b) => a.value < b.value ? a : b);
 
-  final lowest =
-      scores.entries.reduce((a, b) => a.value < b.value ? a : b);
-
-  return (
-    category: lowest.key,
-    score: lowest.value,
-  );
-}
-
-  //Suggerstion/Tips based on catagory score
-  String _getSuggestion(String category, double score) {
-  switch (category) {
-    case 'speed':
-      if (score >= 90) {
-        return 'Great job Staying within the speed limit!';
-      } else if (score >= 80) {
-        return 'Nice speed control, make sure to stay consistent.';
-      } else if (score >= 70) {
-        return 'Looks like you could improve your speed control, try to remember posted speed limits.';
-      } else if (score >= 60) {
-        return 'Try to reduce how often you go over the posted speed limit.';
-      } else {
-        return 'Focus on staying within the speed limit, speeding is extremely dangerous!';
-      }
-
-    default:
-      return 'Keep practicing safe driving habits.';
-
-    //For future implementation of other categories  
-    //case 'braking':
-    //case 'acceleration':
-    //case 'turning':
-    //case 'focusedDriving': 
+    return (category: lowest.key, score: lowest.value);
   }
-}
+
+  String _getSuggestion(String category, double score) {
+    switch (category) {
+      case 'speed':
+        if (score >= 90) {
+          return 'Great job Staying within the speed limit!';
+        } else if (score >= 80) {
+          return 'Nice speed control, make sure to stay consistent.';
+        } else if (score >= 70) {
+          return 'Looks like you could improve your speed control, try to remember posted speed limits.';
+        } else if (score >= 60) {
+          return 'Try to reduce how often you go over the posted speed limit.';
+        } else {
+          return 'Focus on staying within the speed limit, speeding is extremely dangerous!';
+        }
+
+      default:
+        return 'Keep practicing safe driving habits.';
+
+      // For future implementation of other categories
+      // case 'braking':
+      // case 'acceleration':
+      // case 'turning':
+      // case 'focusedDriving':
+    }
+  }
 
   Color gradeColor(double grade) {
     if (grade >= 90) {
@@ -97,6 +128,7 @@ class DrivingReportScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final summary = widget.summary;
     final letterGrade = _letterGrade(summary.overallGrade);
     final lowestScore = _getLowestScore(summary);
     final suggestion = _getSuggestion(lowestScore.category, lowestScore.score);
@@ -110,14 +142,45 @@ class DrivingReportScreen extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
+              // Send status banner
+              if (_isSending) ...[
+                const SizedBox(height: 8),
+                const Center(child: CircularProgressIndicator()),
+                const SizedBox(height: 8),
+                const Center(child: Text('Sending report...')),
+                const SizedBox(height: 16),
+              ] else if (!_sentSuccessfully) ...[
+                const SizedBox(height: 8),
+                const Center(
+                  child: Icon(Icons.error_outline, color: Colors.red, size: 40),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    _errorMessage ?? 'Failed to send report.',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton(
+                    onPressed: () {
+                      setState(() => _isSending = true);
+                      _sendReport();
+                    },
+                    child: const Text('Retry'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               Text(
                 'Trip Complete!',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 24),
 
-
-              //color coded circle with letter grade
+              // Color coded circle with letter grade
               CircleAvatar(
                 radius: 65,
                 backgroundColor: gradeColor(summary.overallGrade),
@@ -135,20 +198,18 @@ class DrivingReportScreen extends StatelessWidget {
 
               Text(
                 'Overall Score: ${summary.overallGrade.toStringAsFixed(0)}%',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
 
               const SizedBox(height: 32),
-
 
               // Display trip summary information
               _ReportItem(
                 icon: Icons.speed,
                 title: 'Speed Limit Score',
                 value: '${summary.properSpeedGrade.toStringAsFixed(0)}%',
-
               ),
 
               _ReportItem(
@@ -163,8 +224,6 @@ class DrivingReportScreen extends StatelessWidget {
                 value: formatDuration(summary.elapsed),
               ),
 
-
-              //suggestiom/tip box
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -179,12 +238,14 @@ class DrivingReportScreen extends StatelessWidget {
                           children: [
                             Text(
                               'Helpful Tip!',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 5),
-                            Text(suggestion, style: const TextStyle(fontSize: 16)),
+                            Text(
+                              suggestion,
+                              style: const TextStyle(fontSize: 16),
+                            ),
                           ],
                         ),
                       ),
@@ -195,15 +256,13 @@ class DrivingReportScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              //Go home button
+              // Go home button
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () {
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (_) => const HomePage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const HomePage()),
                       (route) => false,
                     );
                   },
@@ -236,12 +295,7 @@ class _ReportItem extends StatelessWidget {
       child: ListTile(
         leading: Icon(icon),
         title: Text(title),
-        trailing: Text(
-          value,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        trailing: Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
     );
   }

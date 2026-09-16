@@ -1,10 +1,17 @@
 // App Root
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'widgets/auth_gate.dart';
 //import 'screens/driving_report_screen.dart';
 //import 'widgets/trip_summary.dart';
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]).then((_) {
+    runApp(const MyApp());
+  });
 }
 
 class MyApp extends StatelessWidget {

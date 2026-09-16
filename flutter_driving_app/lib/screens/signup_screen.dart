@@ -20,6 +20,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final passwordController = TextEditingController();
   final veriCode = TextEditingController();
 
+  final _passwordFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+
   // Same email/password rules as the login form, so an account created here
   // always satisfies what login later expects
   static final RegExp _emailRegex = RegExp(r'^[\w\.\-\+]+@[\w\-]+\.[\w\-\.]+$');
@@ -43,7 +46,22 @@ class _SignUpPageState extends State<SignUpPage> {
     return null;
   }
 
+  @override
+  void dispose() {
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    veriCode.dispose();
+    _passwordFocusNode.dispose();
+    _emailFocusNode.dispose();
+    super.dispose();
+  }
+
   Future<void> signUp() async {
+    // Close the keyboard whether signUp() was triggered by tapping the
+    // button or by hitting submit/done on the keyboard
+    FocusScope.of(context).unfocus();
+
     final isValid = _formKey.currentState?.validate() ?? false;
     if (!isValid) return;
 
@@ -86,61 +104,94 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Sign Up")),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: usernameController,
-                decoration: const InputDecoration(labelText: "Username"),
-                validator: _validateUsername,
-              ),
-
-              TextFormField(
-                controller: passwordController,
-                decoration: const InputDecoration(labelText: "Password"),
-                obscureText: true,
-                validator: _validatePassword,
-              ),
-
-              TextFormField(
-                controller: emailController,
-                decoration: const InputDecoration(labelText: "Email"),
-                keyboardType: TextInputType.emailAddress,
-                validator: _validateEmail,
-              ),
-
-              const SizedBox(height: 30),
-
-              ElevatedButton(onPressed: signUp, child: const Text("Sign Up")),
-
-              const SizedBox(height: 16),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Already have an account?"),
-                  TextButton(
-                    onPressed: () {
-                      if (Navigator.of(context).canPop()) {
-                        Navigator.of(context).pop();
-                      } else {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const LoginPage(),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextFormField(
+                          controller: usernameController,
+                          decoration: const InputDecoration(
+                            labelText: "Username",
                           ),
-                        );
-                      }
-                    },
-                    child: const Text("Log in"),
+                          validator: _validateUsername,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            _passwordFocusNode.requestFocus();
+                          },
+                        ),
+
+                        TextFormField(
+                          controller: passwordController,
+                          focusNode: _passwordFocusNode,
+                          decoration: const InputDecoration(
+                            labelText: "Password",
+                          ),
+                          obscureText: true,
+                          validator: _validatePassword,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            _emailFocusNode.requestFocus();
+                          },
+                        ),
+
+                        TextFormField(
+                          controller: emailController,
+                          focusNode: _emailFocusNode,
+                          decoration: const InputDecoration(
+                            labelText: "Email",
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _validateEmail,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) => signUp(),
+                        ),
+
+                        const SizedBox(height: 30),
+
+                        ElevatedButton(
+                          onPressed: signUp,
+                          child: const Text("Sign Up"),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text("Already have an account?"),
+                            TextButton(
+                              onPressed: () {
+                                if (Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                } else {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginPage(),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text("Log in"),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

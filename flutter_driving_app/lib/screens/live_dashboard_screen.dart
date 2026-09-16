@@ -1,21 +1,40 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
 // current speed, the posted speed limit, and live driving grades.
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
+import '../widgets/smoothness_grading_service.dart';
+import '../widgets/focused_driving_grading_service.dart';
+import '../widgets/orientation_calibration_service.dart';
 import '../widgets/trip_summary.dart';
 import '../widgets/auth_storage.dart';
+import 'driving_report_screen.dart';
 
+// Formats a duration as mm:ss, or hh:mm:ss if over an hour
 String formatElapsed(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final hours = twoDigits(d.inHours);
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return d.inHours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  String twoDigits(int n) => n.toString().padLeft(2, '0');
+  final hours = twoDigits(d.inHours);
+  final minutes = twoDigits(d.inMinutes.remainder(60));
+  final seconds = twoDigits(d.inSeconds.remainder(60));
+  if (d.inHours > 0) {
+    return '$hours:$minutes:$seconds';
+  }
+  return '$minutes:$seconds';
+}
+
+// Color for a grade: green if good, orange if ok, red if bad
+Color gradeColor(double grade) {
+  if (grade >= 90) {
+    return Colors.green;
+  }
+  if (grade >= 70) {
+    return Colors.orange;
+  }
+  return Colors.red;
 }
 
 class LiveDashboardScreen extends StatefulWidget {
@@ -25,43 +44,42 @@ class LiveDashboardScreen extends StatefulWidget {
   State<LiveDashboardScreen> createState() => _LiveDashboardScreenState();
 }
 
-class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
+class _LiveDashboardScreenState extends State<LiveDashboardScreen>
+    with WidgetsBindingObserver {
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
 
-  // Controls how often speed limit is fetched
+  // How often to refresh the posted speed limit
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
 
-  // Below this speed, we don't count distance driven to avoid GPS jitter
+  // Below this speed, ignore distance/movement to avoid GPS jitter
   static const double _minSpeedForDistanceMph = 3.0;
-
-  // Below this speed, we considered the vehicle stopped to avoid GPS jitter
   static const double _minSpeedMph = 3.0;
 
-  // Ignore speed updates with a speedAccuracy worse than this
-  static const double _maxTrustedSpeedAccuracyMps = 1.5; // about 3.4 mph
-
-  // Ignore reported speed updates that disagree with the
-  // manually calculated speed by more than this
+  // Ignore speed updates with worse accuracy than this
+  static const double _maxTrustedSpeedAccuracyMps = 1.5;
   static const double _maxSpeedDisagreementMph = 10.0;
-
-  // Ignore speed updates with a horizontal accuracy worse than this
   static const double _maxTrustedHorizontalAccuracyMeters = 25.0;
 
-  // Current speed is flagged red once it exceeds the posted limit by this much
+  // Flag speed red once it's this much over the limit
   static const double _speedingThresholdMph = 5.0;
 
-  // Exponential moving average factor applied to the resolved speed, to cut
-  // frame-to-frame jitter the way a real speed display does.
-  // Lower = smoother but laggier/more inaccurate, higher = more jittery but more responsive/accurate.
-  // 0 = Never update so output stays at the previous smoothed value forever.
-  // 1 = Never smooth so output equals the current measurement every update.
+  // Smoothing factor for displayed speed. 0 = never update, 1 = no smoothing.
   static const double _speedSmoothingAlpha = 1;
 
   final DateTime _tripStartTime = DateTime.now();
   final SpeedGradingService _properSpeedGrading = SpeedGradingService();
+  final SmoothnessGradingService _smoothnessGrading =
+      SmoothnessGradingService();
+  final OrientationCalibrationService _orientationCalibration =
+      OrientationCalibrationService();
+  final FocusedDrivingGradingService _focusedDrivingGrading =
+      FocusedDrivingGradingService();
 
   StreamSubscription<Position>? _positionSubscription;
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _userAccelerometerSubscription;
+  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
   Timer? _elapsedTimer;
 
   Duration _elapsed = Duration.zero;
@@ -76,21 +94,138 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   bool _receivedFirstPosition = false;
 
+  double _currentForwardG = 0.0;
+  double _currentLateralG = 0.0;
+  bool _isForwardCalibrated = false;
+  // Startup calibration progress from OrientationCalibrationService. Showing
+  // 0/2 vs 1/2 makes it obvious whether no candidate has qualified yet or the
+  // service is waiting for one more consistent interval.
+  int _forwardCalibrationConfirmations = 0;
+  int _forwardCalibrationConfirmationsRequired = 2;
+
+  // Formats g-force with a leading sign, avoiding "-0.0"
+  String _formatGForce(double gForce) {
+    String formatted = gForce.toStringAsFixed(1);
+    if (formatted == '-0.0') {
+      formatted = '0.0';
+    }
+    if (formatted.startsWith('-')) {
+      return formatted;
+    }
+    return '+$formatted';
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _elapsed = DateTime.now().difference(_tripStartTime));
     });
     _startListening();
+    _startAccelerometer();
+    _startUserAccelerometer();
+    _startGyroscope();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+    // Coming back to "resumed" may have just closed out a violation and
+    // changed the grade, so refresh the displayed numbers.
+    if (mounted) setState(() {});
+  }
+
+  void _startAccelerometer() {
+    // Raw acceleration is used ONLY to maintain the gravity/up direction.
+    // Live driving G comes from the separate gravity-removed stream below.
+    _accelerometerSubscription = accelerometerEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_orientationCalibration.addAccelerometerSample);
+  }
+
+  void _startUserAccelerometer() {
+    // Authoritative gravity-removed vehicle acceleration. Android keeps these
+    // sensor axes fixed to the physical device's natural coordinate system so
+    // they are unaffected by the app's portrait/landscape UI rotation.
+    _userAccelerometerSubscription = userAccelerometerEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_handleUserAccelerometerEvent);
+  }
+
+  void _startGyroscope() {
+    // Feeds OrientationCalibrationService's lateral (turning) G estimate.
+    _gyroscopeSubscription = gyroscopeEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_orientationCalibration.addGyroscopeSample);
+  }
+
+  // Smoothness grading needs forward (braking/accelerating) and lateral
+  // (turning) G-force, derived from OrientationCalibrationService:
+  //  - Raw accelerometer + gyro estimate which way is UP, defining the
+  //    vehicle's horizontal plane.
+  //  - Live/calibration vehicle acceleration comes from the platform's
+  //    automatically gravity-removed UserAccelerometerEvent.
+  //  - Before forward-axis calibration, gyro yaw rate provides a temporary
+  //    lateral estimate and turn gate. After calibration, forward/lateral G
+  //    are direct projections of that gravity-removed acceleration vector.
+  //  - GPS speed trend is used only to label clean buffered calibration
+  //    intervals. Once calibrated, live magnitude and sign come from sensor
+  //    data at full rate.
+  // See orientation_calibration_service.dart for the full explanation.
+  void _handleUserAccelerometerEvent(UserAccelerometerEvent event) {
+    // Always feed the orientation service, even before the first usable GPS
+    // fix. GPS is needed only to label calibration intervals, not to obtain
+    // the gravity-removed linear acceleration itself.
+    _orientationCalibration.addUserAccelerometerSample(event);
+
+    final position = _lastPosition;
+    // Wait for a GPS fix so violations can be tagged with coordinates
+    if (position == null) return;
+
+    // Only grade smoothness while the vehicle is actually moving, so
+    // handling noise (picking the phone up, bumping the mount at a red
+    // light) doesn't get counted as harsh braking/accelerating/turning.
+    final isMoving = _currentSpeedMph >= _minSpeedMph;
+    final isForwardCalibrated = _orientationCalibration.isForwardCalibrated;
+    final forwardCalibrationConfirmations =
+        _orientationCalibration.forwardCalibrationConfirmations;
+    final forwardCalibrationConfirmationsRequired =
+        _orientationCalibration.forwardCalibrationConfirmationsRequired;
+    // Before calibration, forwardG == 0 is only a placeholder. Keep sending
+    // zero into the existing grader (which is neutral), but preserve the
+    // calibration state separately so the UI never presents it as measured G.
+    final forwardG = isMoving && isForwardCalibrated
+        ? _orientationCalibration.forwardG
+        : 0.0;
+    final lateralG = isMoving ? _orientationCalibration.lateralG : 0.0;
+
+    _smoothnessGrading.addSample(
+      forwardG: forwardG,
+      lateralG: lateralG,
+      latitude: position.latitude,
+      longitude: position.longitude,
+      timestamp: event.timestamp,
+    );
+
+    if (mounted) {
+      setState(() {
+        _currentForwardG = forwardG;
+        _currentLateralG = lateralG;
+        _isForwardCalibrated = isForwardCalibrated;
+        _forwardCalibrationConfirmations = forwardCalibrationConfirmations;
+        _forwardCalibrationConfirmationsRequired =
+            forwardCalibrationConfirmationsRequired;
+      });
+    }
   }
 
   Future<void> _startListening() async {
-    // Bump the underlying GPS stream to its 1-second trip-active interval
+    // Bump GPS to its faster trip-active interval
     await BackgroundLocationService.enterTripMode();
 
-    // Restart tracking just in case
     if (!BackgroundLocationService.isTracking) {
       await BackgroundLocationService.start();
     }
@@ -101,9 +236,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
-    // Drop back to the longer idle GPS interval now that the trip is over
+    _accelerometerSubscription?.cancel();
+    _userAccelerometerSubscription?.cancel();
+    _gyroscopeSubscription?.cancel();
+    // Drop back to the idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
     super.dispose();
   }
@@ -116,7 +255,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       return;
     }
 
-    // Skip updates GPS itself flags as unreliable
+    // Skip updates GPS flags as unreliable
     if (position.accuracy > _maxTrustedHorizontalAccuracyMeters) {
       return;
     }
@@ -125,7 +264,33 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     if (previous == null) return;
 
     final rawSpeedMph = _resolveSpeedMph(position, previous);
-    final speedMph = rawSpeedMph < _minSpeedMph ? 0.0 : rawSpeedMph;
+    double speedMph = rawSpeedMph;
+    if (rawSpeedMph < _minSpeedMph) {
+      speedMph = 0.0;
+    }
+
+    // Ground truth for orientation calibration: GPS speed trend labels the
+    // buffered accelerometer samples from the interval that just ended so
+    // the service can learn/refine the fixed vehicle-forward axis. GPS
+    // heading change is also compared against the gyroscope's integrated
+    // turning to slowly correct yaw-rate bias (see addGpsSample).
+    //
+    // A reported heading accuracy of 0 degrees is valid, so
+    // only negative or non-finite values are treated as unavailable.
+    final headingDegrees = position.heading.isFinite && position.heading >= 0
+        ? position.heading
+        : null;
+    final headingAccuracyDegrees =
+        position.headingAccuracy.isFinite && position.headingAccuracy >= 0
+        ? position.headingAccuracy
+        : null;
+
+    _orientationCalibration.addGpsSample(
+      speedMps: rawSpeedMph / _metersPerSecondToMph,
+      headingDegrees: headingDegrees,
+      timestamp: position.timestamp,
+      headingAccuracyDegrees: headingAccuracyDegrees,
+    );
 
     double addedMiles = 0;
     if (speedMph >= _minSpeedForDistanceMph) {
@@ -138,17 +303,29 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
       addedMiles = meters * _metersToMiles;
     }
 
-    // Snap straight to 0 instead of decaying, so coming to a stop reads
-    // immediately rather than trailing off. Otherwise, smooth with alpha.
-    _smoothedSpeedMph = speedMph == 0
-        ? 0
-        : (_speedSmoothingAlpha * speedMph) +
-              ((1 - _speedSmoothingAlpha) * _smoothedSpeedMph);
+    // Snap to 0 immediately when stopped, otherwise smooth with alpha
+    if (speedMph == 0) {
+      _smoothedSpeedMph = 0;
+    } else {
+      _smoothedSpeedMph = (_speedSmoothingAlpha * speedMph) +
+          ((1 - _speedSmoothingAlpha) * _smoothedSpeedMph);
+    }
 
     _properSpeedGrading.addSample(
       speedMph: _smoothedSpeedMph,
       speedLimitMph: _postedSpeedLimitMph,
       timestamp: position.timestamp,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+
+    // Keep this fresh regardless of "mounted" below, so a background period
+    // that started (or that's about to start) always has an up-to-date
+    // speed/location to attribute to it, even while the app isn't visible.
+    _focusedDrivingGrading.updateLiveState(
+      speedMph: _smoothedSpeedMph,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
 
     if (!mounted) return;
@@ -161,24 +338,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     _maybeRefreshSpeedLimit(position);
   }
 
-  // Prefers the platform-reported speed, but only when it's flagged
-  // as confident, so high speedAccuracy, not from a mock provider, AND corroborated
-  // by manual speed calculation. Otherwise, returns manual speed calculation based on
-  // displacement and time between updates.
+  // Uses platform-reported speed only when trusted and it agrees with the
+  // manually calculated speed. Otherwise falls back to manual calculation.
   double _resolveSpeedMph(Position position, Position previous) {
     final dtSeconds =
         position.timestamp.difference(previous.timestamp).inMilliseconds /
         1000.0;
-    final calculatedSpeedMph = dtSeconds > 0
-        ? (Geolocator.distanceBetween(
-                    previous.latitude,
-                    previous.longitude,
-                    position.latitude,
-                    position.longitude,
-                  ) /
-                  dtSeconds) *
-              _metersPerSecondToMph
-        : 0.0;
+
+    double calculatedSpeedMph = 0.0;
+    if (dtSeconds > 0) {
+      final meters = Geolocator.distanceBetween(
+        previous.latitude,
+        previous.longitude,
+        position.latitude,
+        position.longitude,
+      );
+      calculatedSpeedMph = (meters / dtSeconds) * _metersPerSecondToMph;
+    }
 
     final reportedSpeedMph = position.speed * _metersPerSecondToMph;
     final speedAccuracyTrusted =
@@ -204,8 +380,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
     if (_isFetchingSpeedLimit || !dueForRefresh) return;
 
-    // Set these before the await below so a second position update landing
-    // while we're still reading the token doesn't slip past the guard above
+    // Set before the await so a second update can't slip past the guard
     _isFetchingSpeedLimit = true;
     _lastSpeedLimitFetchTime = now;
 
@@ -233,29 +408,46 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
 
   void _stopTrip() {
     final now = DateTime.now();
-    // Close out a streak still in progress (driver was speeding right up
-    // until Stop Trip was pressed) so it's counted below.
+    // Close out any in-progress streak so it's counted below
     _properSpeedGrading.finalizeTrip();
-    // TODO: Overall grade should be weighted average of all grades
-    // For now, we just use the proper speed grade as a placeholder for overall grade
+    _smoothnessGrading.finalizeTrip();
+    _focusedDrivingGrading.finalizeTrip();
+
     final summary = TripSummary(
       startTime: _tripStartTime,
       endTime: now,
       elapsed: now.difference(_tripStartTime),
       milesDriven: _milesDriven,
-      overallGrade: _properSpeedGrading.grade,
+      overallGrade: _overallGrade,
       properSpeedGrade: _properSpeedGrading.grade,
-      speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
-      totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
+      speedingViolations: _properSpeedGrading.violations,
+      brakingGrade: _smoothnessGrading.brakingGrade,
+      acceleratingGrade: _smoothnessGrading.acceleratingGrade,
+      turningGrade: _smoothnessGrading.turningGrade,
+      brakingViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.braking,
+      ),
+      acceleratingViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.accelerating,
+      ),
+      turningViolations: _smoothnessGrading.violationsFor(
+        SmoothnessCategory.turning,
+      ),
+      focusedDrivingGrade: _focusedDrivingGrading.grade,
+      focusedDrivingViolations: _focusedDrivingGrading.violations,
     );
 
-    // TODO: Navigate to the Driving Report screen (passing the summary)
-    Navigator.of(context).pop(summary);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => DrivingReportScreen(summary: summary)),
+    );
   }
 
   double? get _speedDifference {
     final limit = _postedSpeedLimitMph;
-    return limit == null ? null : _currentSpeedMph - limit;
+    if (limit == null) {
+      return null;
+    }
+    return _currentSpeedMph - limit;
   }
 
   bool get _isSpeeding =>
@@ -268,9 +460,43 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         difference < _speedingThresholdMph;
   }
 
+  String get _speedingCountLabel {
+    final count = _properSpeedGrading.violationCount;
+    return count == 1 ? '1 time speeding' : '$count times speeding';
+  }
+
+  String get _focusedDrivingCountLabel {
+    final count = _focusedDrivingGrading.violationCount;
+    return count == 1 ? '1 time off app' : '$count times off app';
+  }
+
+  // Overall Grade is the average of every currently graded category
+  double get _overallGrade {
+    final grades = [
+      _properSpeedGrading.grade,
+      _smoothnessGrading.brakingGrade,
+      _smoothnessGrading.acceleratingGrade,
+      _smoothnessGrading.turningGrade,
+      _focusedDrivingGrading.grade,
+    ];
+    return grades.reduce((a, b) => a + b) / grades.length;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final overallGrade = _properSpeedGrading.grade;
+    final overallGrade = _overallGrade;
+
+    Color? speedColor;
+    if (_isSpeeding) {
+      speedColor = Colors.red;
+    } else if (_isCloseToSpeeding) {
+      speedColor = Colors.orange;
+    }
+
+    String speedLimitText = '—';
+    if (_postedSpeedLimitMph != null) {
+      speedLimitText = '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH';
+    }
 
     return PopScope(
       canPop: false,
@@ -285,59 +511,118 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildGradeCard(context, 'Overall Grade', overallGrade),
-                const SizedBox(height: 12),
-                _buildGradeCard(
-                  context,
-                  'Proper Speed',
-                  _properSpeedGrading.grade,
+                // Stats scroll on short screens; Stop Trip stays pinned below
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildGradeCard(context, 'Overall Grade', overallGrade),
+                        const SizedBox(height: 12),
+                        _buildGradeCard(
+                          context,
+                          'Proper Speed',
+                          _properSpeedGrading.grade,
+                          subtitle: _speedingCountLabel,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildGradeCard(
+                          context,
+                          'Focused Driving',
+                          _focusedDrivingGrading.grade,
+                          subtitle: _focusedDrivingCountLabel,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.braking,
+                              ),
+                            ),
+                            const SizedBox(width: 1),
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.accelerating,
+                              ),
+                            ),
+                            const SizedBox(width: 1),
+                            Expanded(
+                              child: _buildSmoothnessGradeTile(
+                                context,
+                                SmoothnessCategory.turning,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Time Elapsed',
+                                formatElapsed(_elapsed),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Miles Driven',
+                                _milesDriven.toStringAsFixed(1),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Current Speed',
+                                '${_currentSpeedMph.toStringAsFixed(0)} MPH',
+                                valueColor: speedColor,
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Speed Limit',
+                                speedLimitText,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Forward G',
+                                _isForwardCalibrated
+                                    ? _formatGForce(_currentForwardG)
+                                    : 'CAL $_forwardCalibrationConfirmations/'
+                                          '$_forwardCalibrationConfirmationsRequired',
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildStat(
+                                context,
+                                'Lateral G',
+                                _formatGForce(_currentLateralG),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Time Elapsed',
-                        formatElapsed(_elapsed),
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Miles Driven',
-                        _milesDriven.toStringAsFixed(1),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Current Speed',
-                        '${_currentSpeedMph.toStringAsFixed(0)} MPH',
-                        valueColor: _isSpeeding
-                            ? Colors.red
-                            : _isCloseToSpeeding
-                            ? Colors.orange
-                            : null,
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStat(
-                        context,
-                        'Speed Limit',
-                        _postedSpeedLimitMph == null
-                            ? '—'
-                            : '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH',
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
                 FilledButton.icon(
                   onPressed: _stopTrip,
                   style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -352,26 +637,80 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
     );
   }
 
-  Widget _buildGradeCard(BuildContext context, String label, double grade) {
-    final color = grade >= 90
-        ? Colors.green
-        : grade >= 70
-        ? Colors.orange
-        : Colors.red;
+  // "subtitle" is optional so this still works for cards like Overall Grade
+  // that don't have a per-category count to show underneath the label.
+  Widget _buildGradeCard(
+    BuildContext context,
+    String label,
+    double grade, {
+    String? subtitle,
+  }) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: Theme.of(context).textTheme.titleMedium),
+            subtitle == null
+                ? Text(label, style: Theme.of(context).textTheme.titleMedium)
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: color,
+                color: gradeColor(grade),
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmoothnessGradeTile(
+    BuildContext context,
+    SmoothnessCategory category,
+  ) {
+    final grade = _smoothnessGrading.gradeFor(category);
+    final violationCount = _smoothnessGrading.violationCountFor(category);
+
+    String eventsText = '$violationCount events';
+    if (violationCount == 1) {
+      eventsText = '1 event';
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        child: Column(
+          children: [
+            Text(
+              category.label,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              grade.toStringAsFixed(0),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: gradeColor(grade),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(eventsText, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
@@ -390,9 +729,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(color: valueColor),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: valueColor,
+            // Keeps numbers the same width so they don't shift around
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ],
     );

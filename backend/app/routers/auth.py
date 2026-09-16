@@ -71,11 +71,11 @@ def login(credentials: schemas.LoginRequest, db: DbSession):
         )
 
     # Prevent unverified users from logging in
-    if not user.email_verified:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            "Please verify your email before logging in.",
-        )
+    # if not user.email_verified:
+    #     raise HTTPException(
+    #         status.HTTP_403_FORBIDDEN,
+    #         "Please verify your email before logging in.",
+    #     )
 
     token = create_access_token(subject=str(user.id))
     return schemas.Token(access_token=token)

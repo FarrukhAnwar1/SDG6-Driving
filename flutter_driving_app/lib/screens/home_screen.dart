@@ -89,7 +89,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _startTrip() async {
-    // TODO: Update redirection to Driving Report screen
     final summary = await Navigator.of(context).push<TripSummary>(
       MaterialPageRoute(builder: (_) => const LiveDashboardScreen()),
     );
@@ -114,11 +113,9 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _openChangePassword() async {
-    final changed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ChangePasswordPage(),
-      ),
-    );
+    final changed = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => ChangePasswordPage()));
 
     if (changed == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -209,7 +206,18 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: SafeArea(child: Center(child: _buildBody(context))),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(child: Center(child: _buildBody(context))),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

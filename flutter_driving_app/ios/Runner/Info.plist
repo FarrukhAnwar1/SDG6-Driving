@@ -78,6 +78,8 @@
 	<string>We use your camera to check following distance and lane maintenance</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>We access your photos to store driving recordings</string>
+	<key>NSMotionUsageDescription</key>
+	<string>We access your motion data to analyze accelerometer patterns to detect smooth or harsh driving behaviors.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>PreciseLocationUsage</key>

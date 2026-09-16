@@ -1,6 +1,7 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic.alias_generators import to_camel
 
 class UserCreate(BaseModel):
     # what POST /users accepts, password is hashed server-side before storing
@@ -57,3 +58,91 @@ class SpeedLimitOut(BaseModel):
    speed_limit_mph: Optional[float] = Field(serialization_alias="speedLimitMph")
    road_name: Optional[str] = Field(default=None, serialization_alias="roadName")
    distance_meters: Optional[float] = Field(default=None, serialization_alias="distanceMeters")
+
+# The trip schemas below speak camelCase on the wire (matching SpeedLimitOut and
+# what the Flutter client expects) while staying snake_case in Python
+_CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+def _to_naive_utc(value: datetime) -> datetime:
+    """Normalize a timestamp to a naive UTC datetime.
+
+    The Flutter app sends local times with no UTC offset today, which arrive
+    naive and are stored as is. Anything tz-aware gets converted so that every
+    stored timestamp is the same kind. MySQL DATETIME carries no timezone, and
+    mixing naive and aware values makes later date arithmetic raise TypeError.
+    """
+    if value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
+
+
+# braking, acceleration, turning and focus aren't graded by the app yet, but
+# their columns are NOT NULL. A full marks placeholder keeps them from dragging
+# down overall_grade in any later averaging - see the README for why making
+# these columns nullable would be the better long-term fix
+UNGRADED_DIMENSION = 100.0
+
+# driving_reports.trip_duration_minutes is DECIMAL(5,2) and trip_distance_miles
+# is DECIMAL(6,2). Values past these bounds would overflow the column and fail
+# at INSERT, so reject them up front as a 422 rather than a 500
+MAX_TRIP_DURATION_MINUTES = 999.99
+MAX_TRIP_DISTANCE_MILES = 9999.99
+
+class DrivingReportCreate(BaseModel):
+    """POST /driving-reports accepts a finished report, graded client-side.
+
+    Mirrors the Flutter TripSummary model, with three differences forced by the
+    driving_reports table: duration is derived from the timestamps into decimal
+    minutes, the four ungraded dimensions may be omitted, and
+    speedingOffenseCount / totalSpeedingDuration have no column to live in
+    and are not accepted.
+    """
+
+    model_config = _CAMEL_CONFIG
+
+    started_at: datetime
+    ended_at: datetime
+    trip_distance_miles: float = Field(ge=0, le=MAX_TRIP_DISTANCE_MILES)
+
+    overall_grade: float = Field(ge=0, le=100)
+    speed_grade: float = Field(ge=0, le=100)
+    braking_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+    acceleration_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+    turning_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+    focus_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+
+    _normalize_started_at = field_validator("started_at")(_to_naive_utc)
+    _normalize_ended_at = field_validator("ended_at")(_to_naive_utc)
+
+    @model_validator(mode="after")
+    def end_must_not_precede_start(self):
+        if self.ended_at < self.started_at:
+            raise ValueError("endedAt must not be earlier than startedAt")
+        if self.trip_duration_minutes > MAX_TRIP_DURATION_MINUTES:
+            raise ValueError(
+                f"trip must be shorter than {MAX_TRIP_DURATION_MINUTES} minutes"
+            )
+        return self
+
+    @property
+    def trip_duration_minutes(self) -> float:
+        # Derived rather than sent, so it can never disagree with the timestamps
+        return round((self.ended_at - self.started_at).total_seconds() / 60, 2)
+
+
+class DrivingReportOut(BaseModel):
+    # what POST /driving-reports returns, the saved report as stored
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
+
+    id: int
+    overall_grade: float
+    speed_grade: float
+    braking_grade: float
+    acceleration_grade: float
+    turning_grade: float
+    focus_grade: float
+    report_date: Optional[datetime] = None
+    trip_duration_minutes: float
+    trip_distance_miles: float
