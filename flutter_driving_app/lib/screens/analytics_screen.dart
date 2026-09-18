@@ -373,30 +373,21 @@ class _GradeRow extends StatelessWidget {
         children: [
           CircleAvatar(radius: 5, backgroundColor: metricColors[label]),
           const SizedBox(width: 10),
-          Expanded(
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 4,
-              children: [
-                Text(label),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      '${value.toStringAsFixed(0)}%',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    if (averageValue != null)
-                      _GradeChange(delta: value - averageValue!),
-                  ],
-                ),
-              ],
+          Expanded(child: Text(label)),
+          const SizedBox(width: 12),
+          // Shared column widths keep scores and changes aligned across rows
+          SizedBox(
+            width: MediaQuery.textScalerOf(context).scale(48),
+            child: Text(
+              '${value.toStringAsFixed(0)}%',
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          if (averageValue != null) ...[
+            const SizedBox(width: 14),
+            _GradeChange(delta: value - averageValue!),
+          ],
         ],
       ),
     );
@@ -417,20 +408,28 @@ class _GradeChange extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (points != 0) ...[
-          Icon(
-            points > 0 ? Icons.arrow_upward : Icons.arrow_downward,
-            size: 20,
-            color: color,
-          ),
-          const SizedBox(width: 2),
-        ],
-        Text(
-          '${points.abs()} pts',
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
+        SizedBox(
+          width: 20,
+          height: 20,
+          child: points == 0
+              ? null
+              : Icon(
+                  points > 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                  size: 20,
+                  color: color,
+                ),
+        ),
+        const SizedBox(width: 2),
+        SizedBox(
+          width: MediaQuery.textScalerOf(context).scale(44),
+          child: Text(
+            '${points.abs()} pts',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
