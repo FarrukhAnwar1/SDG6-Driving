@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import '../widgets/api_config.dart';
+import '../widgets/error_banner.dart';
 
 class SignUpPage extends StatefulWidget {
   //sign up page
@@ -13,15 +14,21 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  static const double _fieldSpacing = 16;
+  static const double _horizontalPadding = 24;
+
   final _formKey = GlobalKey<FormState>();
 
   final usernameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final veriCode = TextEditingController();
 
   final _passwordFocusNode = FocusNode();
   final _emailFocusNode = FocusNode();
+
+  bool _obscurePassword = true;
+  bool _isSubmitting = false;
+  String? _submitError;
 
   // Same email/password rules as the login form, so an account created here
   // always satisfies what login later expects
@@ -51,7 +58,6 @@ class _SignUpPageState extends State<SignUpPage> {
     usernameController.dispose();
     emailController.dispose();
     passwordController.dispose();
-    veriCode.dispose();
     _passwordFocusNode.dispose();
     _emailFocusNode.dispose();
     super.dispose();
@@ -63,7 +69,12 @@ class _SignUpPageState extends State<SignUpPage> {
     FocusScope.of(context).unfocus();
 
     final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+    if (!isValid || _isSubmitting) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
 
     try {
       final response = await http.post(
@@ -83,20 +94,18 @@ class _SignUpPageState extends State<SignUpPage> {
           const SnackBar(content: Text("Account created successfully")),
         );
       } else if (response.statusCode == 409) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Username or email already exists")),
-        );
+        setState(() => _submitError = 'Username or email already exists.');
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Signup failed")));
+        setState(() => _submitError = 'Signup failed. Please try again.');
       }
     } catch (_) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Could not connect to backend")),
-      );
+      setState(() => _submitError = 'Could not connect to backend.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -108,79 +117,152 @@ class _SignUpPageState extends State<SignUpPage> {
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(
+                horizontal: _horizontalPadding,
+                vertical: 32,
+              ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - 64).clamp(
+                    0.0,
+                    double.infinity,
+                  ),
+                ),
                 child: IntrinsicHeight(
                   child: Form(
                     key: _formKey,
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        TextFormField(
-                          controller: usernameController,
-                          decoration: const InputDecoration(
-                            labelText: "Username",
-                          ),
-                          validator: _validateUsername,
-                          textInputAction: TextInputAction.next,
-                          onFieldSubmitted: (_) {
-                            _passwordFocusNode.requestFocus();
-                          },
+                        Text(
+                          'Create an account',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Sign up to get started',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 32),
+
+                        if (_submitError != null) ...[
+                          ErrorBanner(message: _submitError!),
+                          const SizedBox(height: _fieldSpacing),
+                        ],
 
                         TextFormField(
-                          controller: passwordController,
-                          focusNode: _passwordFocusNode,
+                          controller: usernameController,
+                          enabled: !_isSubmitting,
+                          autocorrect: false,
+                          autofillHints: const [AutofillHints.username],
                           decoration: const InputDecoration(
-                            labelText: "Password",
+                            labelText: "Username",
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
                           ),
-                          obscureText: true,
-                          validator: _validatePassword,
+                          validator: _validateUsername,
                           textInputAction: TextInputAction.next,
                           onFieldSubmitted: (_) {
                             _emailFocusNode.requestFocus();
                           },
                         ),
+                        const SizedBox(height: _fieldSpacing),
 
                         TextFormField(
                           controller: emailController,
                           focusNode: _emailFocusNode,
+                          enabled: !_isSubmitting,
+                          autocorrect: false,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
                           decoration: const InputDecoration(
                             labelText: "Email",
+                            prefixIcon: Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(),
                           ),
-                          keyboardType: TextInputType.emailAddress,
                           validator: _validateEmail,
+                          textInputAction: TextInputAction.next,
+                          onFieldSubmitted: (_) {
+                            _passwordFocusNode.requestFocus();
+                          },
+                        ),
+                        const SizedBox(height: _fieldSpacing),
+
+                        TextFormField(
+                          controller: passwordController,
+                          focusNode: _passwordFocusNode,
+                          enabled: !_isSubmitting,
+                          obscureText: _obscurePassword,
+                          autofillHints: const [AutofillHints.newPassword],
+                          decoration: InputDecoration(
+                            labelText: "Password",
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              tooltip: _obscurePassword
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: _validatePassword,
                           textInputAction: TextInputAction.done,
                           onFieldSubmitted: (_) => signUp(),
                         ),
 
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 24),
 
-                        ElevatedButton(
-                          onPressed: signUp,
-                          child: const Text("Sign Up"),
+                        FilledButton(
+                          onPressed: _isSubmitting ? null : signUp,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text("Sign up"),
                         ),
 
                         const SizedBox(height: 16),
 
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             const Text("Already have an account?"),
                             TextButton(
-                              onPressed: () {
-                                if (Navigator.of(context).canPop()) {
-                                  Navigator.of(context).pop();
-                                } else {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => const LoginPage(),
-                                    ),
-                                  );
-                                }
-                              },
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () {
+                                      if (Navigator.of(context).canPop()) {
+                                        Navigator.of(context).pop();
+                                      } else {
+                                        Navigator.of(context).pushReplacement(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginPage(),
+                                          ),
+                                        );
+                                      }
+                                    },
                               child: const Text("Log in"),
                             ),
                           ],
