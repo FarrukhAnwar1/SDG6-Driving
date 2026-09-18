@@ -41,6 +41,7 @@ dependencies:
   geolocator_apple: ^2.3.14
   device_info_plus: ^13.2.0
   sensors_plus: ^7.1.0
+  fl_chart: ^1.2.0
 
 dev_dependencies:
   flutter_test:
