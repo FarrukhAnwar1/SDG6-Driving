@@ -5,7 +5,6 @@ import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
 
-
 @immutable
 class TripSummary {
   // Basic trip information
@@ -36,6 +35,10 @@ class TripSummary {
   // vehicle was going when the app was left, and coordinates where it began.
   final double focusedDrivingGrade;
   final List<FocusedDrivingViolation> focusedDrivingViolations;
+
+  // Equal weighting for the three smoothness categories.
+  double get smoothnessGrade =>
+      (brakingGrade + acceleratingGrade + turningGrade) / 3;
 
   const TripSummary({
     required this.startTime,

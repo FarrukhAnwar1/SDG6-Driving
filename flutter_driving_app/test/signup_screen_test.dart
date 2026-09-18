@@ -19,7 +19,7 @@ void main() {
     ) async {
       await tester.pumpWidget(wrap(const SignUpPage()));
 
-      await tester.tap(find.byType(ElevatedButton));
+      await tester.tap(find.byType(FilledButton));
       await tester.pump();
 
       expect(find.text('Enter a username'), findsOneWidget);
@@ -30,11 +30,11 @@ void main() {
     testWidgets('rejects a malformed email address', (tester) async {
       await tester.pumpWidget(wrap(const SignUpPage()));
 
-      // Fields appear in the order: username, password, email
+      // Fields appear in the order: username, email, password
       await tester.enterText(find.byType(TextFormField).at(0), 'newuser');
-      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
-      await tester.enterText(find.byType(TextFormField).at(2), 'not-an-email');
-      await tester.tap(find.byType(ElevatedButton));
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
+      await tester.enterText(find.byType(TextFormField).at(1), 'not-an-email');
+      await tester.tap(find.byType(FilledButton));
       await tester.pump();
 
       expect(find.text('Enter a valid email address'), findsOneWidget);
@@ -46,12 +46,12 @@ void main() {
       await tester.pumpWidget(wrap(const SignUpPage()));
 
       await tester.enterText(find.byType(TextFormField).at(0), 'newuser');
-      await tester.enterText(find.byType(TextFormField).at(1), 'short');
+      await tester.enterText(find.byType(TextFormField).at(2), 'short');
       await tester.enterText(
-        find.byType(TextFormField).at(2),
+        find.byType(TextFormField).at(1),
         'user@example.com',
       );
-      await tester.tap(find.byType(ElevatedButton));
+      await tester.tap(find.byType(FilledButton));
       await tester.pump();
 
       expect(
@@ -65,9 +65,9 @@ void main() {
 
       // Can tap submit if wanted, but need to mock the network call
       await tester.enterText(find.byType(TextFormField).at(0), 'newuser');
-      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
       await tester.enterText(
-        find.byType(TextFormField).at(2),
+        find.byType(TextFormField).at(1),
         'user@example.com',
       );
       await tester.pump();

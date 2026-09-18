@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'auth_storage.dart';
+import 'driving_report_policy.dart';
 import 'driving_report_summary.dart';
 
 class DrivingReportResult {
@@ -45,6 +46,12 @@ class DrivingReportApi {
     required double turningGrade,
     required double focusedDrivingGrade,
   }) async {
+    if (!canGenerateDrivingReport(milesDriven)) {
+      return DrivingReportResult.failure(
+        'Drive at least 1 mile to generate and save a driving report.',
+      );
+    }
+
     final token = await AuthStorage.readToken();
 
     if (token == null) {

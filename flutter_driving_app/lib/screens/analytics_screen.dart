@@ -142,20 +142,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _SectionHeader('Grade History'),
           const SizedBox(height: 16),
           _HistoryChart(reports: _reports, visibleMetrics: _visibleMetrics),
-          const SizedBox(height: 16),
-          Text(
-            'Tap a chip to show or hide that grade.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 12),
-          _MetricLegend(
-            visibleMetrics: _visibleMetrics,
-            onToggle: (label, selected) {
-              setState(() => _visibleMetrics[label] = selected);
-            },
-          ),
+          if (_reports.length >= 2) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Tap a chip to show or hide that grade.',
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 12),
+            _MetricLegend(
+              visibleMetrics: _visibleMetrics,
+              onToggle: (label, selected) {
+                setState(() => _visibleMetrics[label] = selected);
+              },
+            ),
+          ],
           const SizedBox(height: 28),
           _SectionHeader('Trip Reports'),
           const SizedBox(height: 12),
@@ -627,21 +629,24 @@ class _HistoryChartState extends State<_HistoryChart> {
         .clamp(1, reports.length)
         .toDouble();
 
+    // Keep labels in chart-series order, including when grades are hidden
+    final visibleMetricEntries = metricColors.entries
+        .where((entry) => visibleMetrics[entry.key] ?? true)
+        .toList();
     final lineBars = <LineChartBarData>[
-      for (final entry in metricColors.entries)
-        if (visibleMetrics[entry.key] ?? true)
-          LineChartBarData(
-            spots: [
-              for (var i = 0; i < reports.length; i++)
-                FlSpot(i.toDouble(), reports[i].gradesByLabel[entry.key]!),
-            ],
-            isCurved: false,
-            color: entry.value,
-            barWidth: 2.5,
-            dotData: const FlDotData(show: true),
-            belowBarData: BarAreaData(show: false),
-            showingIndicators: [?selectedTripIndex],
-          ),
+      for (final entry in visibleMetricEntries)
+        LineChartBarData(
+          spots: [
+            for (var i = 0; i < reports.length; i++)
+              FlSpot(i.toDouble(), reports[i].gradesByLabel[entry.key]!),
+          ],
+          isCurved: false,
+          color: entry.value,
+          barWidth: 2.5,
+          dotData: const FlDotData(show: true),
+          belowBarData: BarAreaData(show: false),
+          showingIndicators: [?selectedTripIndex],
+        ),
     ];
 
     if (lineBars.isEmpty) {
@@ -724,7 +729,17 @@ class _HistoryChartState extends State<_HistoryChart> {
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (touchedSpots) {
-                      final items = defaultLineTooltipItem(touchedSpots);
+                      final items = [
+                        for (final spot in touchedSpots)
+                          LineTooltipItem(
+                            '${visibleMetricEntries[spot.barIndex].key[0]}: ${spot.y.round()}',
+                            TextStyle(
+                              color: spot.bar.color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                      ];
                       if (items.isEmpty) return items;
 
                       final date = _formatReportDate(

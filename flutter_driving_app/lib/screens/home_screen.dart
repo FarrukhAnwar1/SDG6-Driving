@@ -261,8 +261,6 @@ class _HomePageState extends State<HomePage> {
             label: const Text('View Analytics'),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _logout, child: const Text('Log Out')),
-          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _openChangePassword,
             child: const Text('Change Password'),
