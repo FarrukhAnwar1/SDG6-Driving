@@ -41,6 +41,10 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    violations: Mapped[list["Violation"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 class DrivingReport(Base):
     """One saved driving report according to the driving_reports table.
@@ -78,3 +82,45 @@ class DrivingReport(Base):
     trip_distance_miles: Mapped[float] = mapped_column(Numeric(6, 2, asdecimal=False))
 
     user: Mapped["User"] = relationship(back_populates="driving_reports")
+    violations: Mapped[list["Violation"]] = relationship(
+        back_populates="driving_report",
+        cascade="all, delete-orphan",
+        # Chronological within a trip, so a read never returns them in whatever
+        # order the rows happen to come back in
+        order_by="Violation.start_time",
+    )
+
+
+class Violation(Base):
+    """One violation inside a driving report, per the violations table.
+
+    A report's grade says how the trip went overall; these rows say where and
+    when it went wrong, so the driver can be shown the specific moments behind
+    the grade rather than just a number.
+    """
+
+    __tablename__ = "violations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Denormalized from the parent report so "every violation this user has ever
+    # had" is one indexed lookup instead of a join
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    driving_report_id: Mapped[int] = mapped_column(
+        ForeignKey("driving_reports.id"), index=True
+    )
+
+    # The column is a MySQL ENUM of the five graded dimensions, spelled exactly
+    # as the app labels them - see VIOLATION_TYPES in schemas.py
+    violation_type: Mapped[str] = mapped_column(String(32), index=True)
+
+    # Nullable: road names come from the speed-limit lookup, which returns null
+    # off-road or outside the OSM extract's coverage
+    road_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    start_time: Mapped[datetime] = mapped_column(DateTime)
+    end_time: Mapped[datetime] = mapped_column(DateTime)
+
+    user: Mapped["User"] = relationship(back_populates="violations")
+    driving_report: Mapped["DrivingReport"] = relationship(
+        back_populates="violations"
+    )

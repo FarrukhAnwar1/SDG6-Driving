@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional, get_args
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
@@ -146,3 +146,53 @@ class DrivingReportOut(BaseModel):
     report_date: Optional[datetime] = None
     trip_duration_minutes: float
     trip_distance_miles: float
+
+
+# The five graded dimensions, spelled exactly as the violations.violation_type
+# ENUM in MySQL spells them. Anything else fails at INSERT, so the API validates
+# against this set rather than letting the driver find out from a 500
+ViolationType = Literal[
+    "Proper Speed",
+    "Smooth Braking",
+    "Smooth Accelerating",
+    "Smooth Turning",
+    "Focused Driving",
+]
+VIOLATION_TYPES = get_args(ViolationType)
+
+
+class ViolationOut(BaseModel):
+    """One violation as stored, nested inside the report it belongs to.
+
+    user_id and driving_report_id are left out: the report is already the
+    caller's own and already identifies itself, so both would be noise.
+    """
+
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, from_attributes=True
+    )
+
+    id: int
+    violation_type: ViolationType
+    # Null when the speed-limit lookup had no road name for the spot
+    road_name: Optional[str] = None
+    start_time: datetime
+    end_time: datetime
+
+
+class DrivingReportWithViolationsOut(DrivingReportOut):
+    """A saved report plus the violations recorded during that trip."""
+
+    violations: List[ViolationOut] = []
+
+
+# GET /driving-reports returns the caller's most recent reports. The default
+# keeps a first page cheap; the cap stops one request from pulling an entire
+# history, and every violation under it, into memory
+DEFAULT_REPORT_LIMIT = 10
+MAX_REPORT_LIMIT = 100
+
+
+class DrivingReportsOut(BaseModel):
+    # what GET /driving-reports returns, newest trip first
+    reports: List[DrivingReportWithViolationsOut]

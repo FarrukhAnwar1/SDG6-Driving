@@ -83,6 +83,36 @@ Two things to check on the live table:
   ```
   If you run that, the API should send `NULL` for them instead of `100.00`.
 
+## The violations table
+
+Where and when a trip went wrong, so a saved report can show the specific
+moments behind its grade instead of just a number. One row per violation,
+mirrored by `Violation` in `app/models.py`:
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), denormalized from the parent report |
+| `driving_report_id` | `int` | FK → `driving_reports.id` (`ON DELETE CASCADE`) |
+| `violation_type` | `enum` | `Proper Speed`, `Smooth Braking`, `Smooth Accelerating`, `Smooth Turning`, `Focused Driving` |
+| `road_name` | `varchar(255)` | nullable — the speed-limit lookup returns no name off-road or outside the OSM extract |
+| `start_time` | `datetime` | |
+| `end_time` | `datetime` | `CHECK (end_time >= start_time)` |
+
+`user_id` duplicates what the parent report already knows, which makes "every
+violation this user has ever had" one indexed lookup rather than a join.
+
+The `violation_type` labels are spelled out in `VIOLATION_TYPES` in
+`schemas.py`, matching the `ENUM` exactly — anything else fails at `INSERT`, so
+the API validates against that set rather than letting the driver find out from
+a 500.
+
+**Nothing writes to this table yet.** `POST /driving-reports` saves grades only,
+and the Flutter client doesn't upload its violation lists (nor does it record a
+road name per violation — `TripSummary`'s violations carry lat/lng but no road).
+`GET /driving-reports` reads the table already, so it returns
+`"violations": []` on every report until the write path lands.
+
 ## Run
 
 ```bash
@@ -159,9 +189,49 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
     Note the request has no home for `speedingOffenseCount` or
     `totalSpeedingDuration` — `driving_reports` has no columns for them, so the
-    app computes them for the live dashboard but they are not saved. There is
-    also no read endpoint yet: reports can be saved but not fetched back, so the
-    driving report screen still renders from its in-memory `TripSummary`.
+    app computes them for the live dashboard but they are not saved. The request
+    also carries no violations yet, so nothing is written to the `violations`
+    table — see that section above.
+  - `GET /driving-reports?limit=n` (requires a valid access token,
+    `Authorization: Bearer <token>`) returns the authenticated user's `n` most
+    recent reports, newest trip first, each with the violations recorded during
+    that trip:
+
+    ```json
+    {
+      "reports": [
+        {
+          "id": 12, "overallGrade": 87.0, "speedGrade": 87.0,
+          "brakingGrade": 90.0, "accelerationGrade": 92.0,
+          "turningGrade": 88.0, "focusGrade": 95.0,
+          "reportDate": "2026-07-30T10:30:00",
+          "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4,
+          "violations": [
+            {
+              "id": 3,
+              "violationType": "Proper Speed",
+              "roadName": "Roosevelt Blvd",
+              "startTime": "2026-07-30T10:05:00",
+              "endTime": "2026-07-30T10:05:18"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+
+    `limit` is optional and defaults to 10, capped at 100 — without a cap one
+    request could pull an entire history, and every violation under it, into
+    memory. `422` if it's below 1 or above 100.
+
+    Ordering is by `report_date` (the trip's end time) descending, so it reflects
+    when people drove rather than when the uploads landed, with `id` breaking
+    ties between trips that ended in the same second.
+
+    Violations within a report are ordered by `start_time`, and carry no
+    `userId` or `drivingReportId`: the report is already the caller's own and
+    already identifies itself. The results are scoped to the token's user, so one
+    account can't read another's history.
 
 ## Notes
 
@@ -181,6 +251,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Only the finished report is saved, not the GPS samples behind it. Those are
   needed to produce the grade in the first place, which happens on the device,
   so there's nothing to keep afterward. 
+- `GET /driving-reports` pulls each report's violations with `selectinload`, so a
+  page of reports costs one extra query for all of their violations rather than
+  one query per report as the response model walks the rows.
 - `overall_grade` is sent by the client rather than averaged from the other five
   columns server-side, keeping the client the single source of truth on grading.
   Today the app sets it equal to the speed grade (see the TODO at
