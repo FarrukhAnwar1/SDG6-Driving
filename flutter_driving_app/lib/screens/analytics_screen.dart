@@ -1,6 +1,5 @@
 // Analytics for the latest 100 saved reports and their recorded violations
 import 'dart:math' as math;
-
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../widgets/driving_report_api.dart';
@@ -20,12 +19,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   String? _errorMessage;
   List<DrivingReportSummary> _reports = const [];
 
-  // Controls which metric lines are currently shown on the history chart.
-  // Defaults to everything on. The legend chips toggle these values,
-  // and the chart rebuilds when the map changes.
-  final Map<String, bool> _visibleMetrics = {
-    for (final label in metricColors.keys) label: true,
-  };
+  String _selectedMetric = 'Overall';
 
   @override
   void initState() {
@@ -141,20 +135,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
           _SectionHeader('Grade History'),
           const SizedBox(height: 16),
-          _HistoryChart(reports: _reports, visibleMetrics: _visibleMetrics),
+          _HistoryChart(reports: _reports, selectedMetric: _selectedMetric),
           if (_reports.length >= 2) ...[
             const SizedBox(height: 16),
-            Text(
-              'Tap a chip to show or hide that grade.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 12),
-            _MetricLegend(
-              visibleMetrics: _visibleMetrics,
-              onToggle: (label, selected) {
-                setState(() => _visibleMetrics[label] = selected);
+            _MetricDropdown(
+              selectedMetric: _selectedMetric,
+              onChanged: (label) {
+                setState(() => _selectedMetric = label);
               },
             ),
           ],
@@ -184,12 +171,16 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-String _formatReportDate(BuildContext context, DateTime? date) {
+String _formatReportDate(
+  BuildContext context,
+  DateTime? date, {
+  String separator = ' ',
+}) {
   if (date == null) return 'Date unavailable';
   final local = date.toLocal();
   final day = MaterialLocalizations.of(context).formatShortDate(local);
   final time = TimeOfDay.fromDateTime(local).format(context);
-  return '$day $time';
+  return '$day$separator$time';
 }
 
 String _formatDuration(Duration duration) {
@@ -244,23 +235,34 @@ class _ViolationTile extends StatelessWidget {
 
   const _ViolationTile({required this.violation});
 
-  String _formatTime(BuildContext context, DateTime date) {
+  String _formatTime(DateTime date) {
     final local = date.toLocal();
-    final day = MaterialLocalizations.of(context).formatShortDate(local);
-    String pad(int value) => value.toString().padLeft(2, '0');
-    return '$day ${pad(local.hour)}:${pad(local.minute)}:${pad(local.second)}';
+    final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+    final minute = local.minute.toString().padLeft(2, '0');
+    final period = local.hour < 12 ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
   @override
   Widget build(BuildContext context) {
     final roadName = violation.roadName;
+    final gradeLabel = switch (violation.violationType) {
+      'Proper Speed' => 'Speed',
+      'Smooth Braking' => 'Braking',
+      'Smooth Accelerating' => 'Acceleration',
+      'Smooth Turning' => 'Turning',
+      'Focused Driving' => 'Focused Driving',
+      _ => null,
+    };
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(violation.violationType),
+      title: Text(
+        violation.violationType,
+        style: TextStyle(color: metricColors[gradeLabel]),
+      ),
       subtitle: Text(
         '${roadName == null || roadName.trim().isEmpty ? 'Road unavailable' : roadName}\n'
-        '${_formatTime(context, violation.startTime)} – '
-        '${_formatTime(context, violation.endTime)}\n'
+        '${_formatTime(violation.startTime)}\n'
         '${_formatDuration(violation.elapsed)}',
       ),
     );
@@ -547,42 +549,52 @@ class _StatTile extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Grade History chart + legend/toggles
+// Grade History chart + grade selection
 // ---------------------------------------------------------------------------
 
-class _MetricLegend extends StatelessWidget {
-  final Map<String, bool> visibleMetrics;
-  final void Function(String label, bool selected) onToggle;
+class _MetricDropdown extends StatelessWidget {
+  final String selectedMetric;
+  final ValueChanged<String> onChanged;
 
-  const _MetricLegend({required this.visibleMetrics, required this.onToggle});
+  const _MetricDropdown({
+    required this.selectedMetric,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: metricColors.entries.map((entry) {
-        final label = entry.key;
-        final color = entry.value;
-        final selected = visibleMetrics[label] ?? true;
-        return FilterChip(
-          label: Text(label),
-          selected: selected,
-          showCheckmark: false,
-          avatar: CircleAvatar(backgroundColor: color, radius: 6),
-          selectedColor: color.withValues(alpha: 0.16),
-          onSelected: (value) => onToggle(label, value),
-        );
-      }).toList(),
+    return DropdownButtonFormField<String>(
+      initialValue: selectedMetric,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Grade',
+        border: OutlineInputBorder(),
+      ),
+      items: [
+        for (final entry in metricColors.entries)
+          DropdownMenuItem(
+            value: entry.key,
+            child: Row(
+              children: [
+                CircleAvatar(backgroundColor: entry.value, radius: 6),
+                const SizedBox(width: 10),
+                Expanded(child: Text(entry.key)),
+              ],
+            ),
+          ),
+      ],
+      onChanged: (label) {
+        if (label != null) onChanged(label);
+      },
     );
   }
 }
 
 class _HistoryChart extends StatefulWidget {
   final List<DrivingReportSummary> reports;
-  final Map<String, bool> visibleMetrics;
+  final String selectedMetric;
 
-  const _HistoryChart({required this.reports, required this.visibleMetrics});
+  const _HistoryChart({required this.reports, required this.selectedMetric});
 
   @override
   State<_HistoryChart> createState() => _HistoryChartState();
@@ -594,7 +606,8 @@ class _HistoryChartState extends State<_HistoryChart> {
   @override
   void didUpdateWidget(covariant _HistoryChart oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.reports, widget.reports)) {
+    if (!identical(oldWidget.reports, widget.reports) ||
+        oldWidget.selectedMetric != widget.selectedMetric) {
       _selectedTripIndex = null;
     }
   }
@@ -607,7 +620,7 @@ class _HistoryChartState extends State<_HistoryChart> {
   @override
   Widget build(BuildContext context) {
     final reports = widget.reports;
-    final visibleMetrics = widget.visibleMetrics;
+    final selectedMetric = widget.selectedMetric;
     final selectedTripIndex = _selectedTripIndex;
 
     if (reports.length < 2) {
@@ -628,40 +641,22 @@ class _HistoryChartState extends State<_HistoryChart> {
         .clamp(1, reports.length)
         .toDouble();
 
-    // Keep labels in chart-series order, including when grades are hidden
-    final visibleMetricEntries = metricColors.entries
-        .where((entry) => visibleMetrics[entry.key] ?? true)
-        .toList();
     final lineBars = <LineChartBarData>[
-      for (final entry in visibleMetricEntries)
-        LineChartBarData(
-          spots: [
-            for (var i = 0; i < reports.length; i++)
-              FlSpot(i.toDouble(), reports[i].gradesByLabel[entry.key]!),
-          ],
-          isCurved: false,
-          color: entry.value,
-          barWidth: 2.5,
-          dotData: const FlDotData(show: true),
-          belowBarData: BarAreaData(show: false),
-          showingIndicators: [?selectedTripIndex],
-        ),
+      LineChartBarData(
+        spots: [
+          for (var i = 0; i < reports.length; i++)
+            FlSpot(i.toDouble(), reports[i].gradesByLabel[selectedMetric]!),
+        ],
+        isCurved: false,
+        color: metricColors[selectedMetric],
+        barWidth: 2.5,
+        dotData: const FlDotData(show: true),
+        belowBarData: BarAreaData(show: false),
+        showingIndicators: [?selectedTripIndex],
+      ),
     ];
 
-    if (lineBars.isEmpty) {
-      return SizedBox(
-        height: 260,
-        child: Center(
-          child: Text(
-            'Select a grade below to see its history.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ),
-      );
-    }
-
-    // Recompute the scale from only the visible lines. Padding keeps flat
+    // Recompute the scale for the selected grade. Padding keeps flat
     // histories readable, and rounded bounds give the axis clear tick marks.
     final visibleGrades = lineBars.expand((line) => line.spots.map((s) => s.y));
     final lowestGrade = visibleGrades.reduce(math.min);
@@ -683,7 +678,7 @@ class _HistoryChartState extends State<_HistoryChart> {
       if (selectedTripIndex != null)
         for (var i = 0; i < lineBars.length; i++)
           LineBarSpot(lineBars[i], i, lineBars[i].spots[selectedTripIndex]),
-    ]..sort((a, b) => b.y.compareTo(a.y));
+    ];
 
     return TapRegion(
       onTapOutside: (_) => _selectTrip(null),
@@ -731,7 +726,7 @@ class _HistoryChartState extends State<_HistoryChart> {
                       final items = [
                         for (final spot in touchedSpots)
                           LineTooltipItem(
-                            '${visibleMetricEntries[spot.barIndex].key[0]}: ${spot.y.round()}',
+                            '${spot.y.round()}',
                             TextStyle(
                               color: spot.bar.color,
                               fontWeight: FontWeight.bold,
@@ -744,10 +739,11 @@ class _HistoryChartState extends State<_HistoryChart> {
                       final date = _formatReportDate(
                         context,
                         reports[touchedSpots.first.x.round()].reportDate,
+                        separator: '\n',
                       );
                       final firstScore = items.first;
 
-                      // Show the trip timestamp once, above the colored scores.
+                      // Put the date and time on separate lines above the score
                       items[0] = LineTooltipItem(
                         '$date\n',
                         const TextStyle(
