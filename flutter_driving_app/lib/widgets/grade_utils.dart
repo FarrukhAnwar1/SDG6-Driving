@@ -20,7 +20,7 @@ Color gradeColorFor(double grade) {
 }
 
 // One fixed color per metric, shared by the history chart's lines, its
-// legend/toggle chips, and the last-drive-vs-history comparison rows, so the
+// grade dropdown, violation titles, and comparison rows, so the
 // same metric reads as the same color everywhere it shows up on the
 // Analytics screen. Order here also controls display order.
 const Map<String, Color> metricColors = {

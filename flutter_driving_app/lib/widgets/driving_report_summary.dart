@@ -38,8 +38,8 @@ class DrivingReportSummary {
   );
 
   // All six grades keyed by the label the Analytics screen displays, charts,
-  // and builds its legend from. Centralizing this mapping means the screen,
-  // the chart series, and the legend chips can't drift out of sync with each
+  // and selects in its dropdown. Centralizing this mapping means the screen,
+  // the chart series, and the grade dropdown can't drift out of sync with each
   // other. Add a grade here and it shows up everywhere automatically.
   Map<String, double> get gradesByLabel => {
     'Overall': overallGrade,
