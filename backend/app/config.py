@@ -1,4 +1,6 @@
+# Contains the configuration/env settings
 from urllib.parse import quote_plus
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -30,6 +32,11 @@ class Settings(BaseSettings):
     resend_api_key: str = ""                    # Resend API key
     from_email: str = ""
     api_base_url: str = ""
+
+    # Optional until GET /advanced-suggestion has enough history to use Gemini
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_timeout_seconds: float = Field(default=30, gt=0, le=120)
 
     # PostGIS connection for speed-limit data (separate DB from the MySQL above)
     pg_host: str = "localhost"

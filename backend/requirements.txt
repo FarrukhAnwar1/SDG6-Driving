@@ -10,3 +10,8 @@ pyjwt>=2.8                # signs/verifies JWT email verification tokens
 resend>=2.0               # sends verification emails
 psycopg[binary]>=3.1     # PostgreSQL/PostGIS driver for speed-limit data
 pytest>=8.0               # lightweight backend regression tests
+google-genai>=1.56,<2     # Gemini structured feedback generation
+httpx>=0.28,<1            # Gemini SDK transport and its mocked HTTP requests
+httpx2>=2.0,<3            # Starlette/FastAPI TestClient (avoids deprecated httpx fallback)
+# Temporary until a released Starlette includes https://github.com/Kludex/starlette/pull/3498
+anyio>=4.14.1,<4.15       # Starlette 1.6 uses a BlockingPortal alias deprecated in AnyIO 4.15
