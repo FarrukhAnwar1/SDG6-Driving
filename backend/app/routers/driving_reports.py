@@ -1,9 +1,11 @@
+# Contains the endpoints for creating and reading driving reports.
+# The actual database queries are in services/driving_reports.py, 
+# which is imported here to keep the router file clean and focused 
+# on request/response handling.
 from fastapi import APIRouter, Query, status
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
 from .. import models, schemas
 from ..dependencies import CurrentUser, DbSession
+from ..services.driving_reports import read_driving_reports
 
 router = APIRouter(tags=["driving-reports"])
 
@@ -64,20 +66,6 @@ def list_driving_reports(
     The query is scoped to the caller's token, so one account can never read
     another's history.
     """
-    reports = db.scalars(
-        select(models.DrivingReport)
-        .where(models.DrivingReport.user_id == current_user.id)
-        # One extra query for all the violations at once, rather than one per
-        # report as the response model walks the rows
-        .options(selectinload(models.DrivingReport.violations))
-        # report_date is the trip's end time, so this orders by when people drove
-        # rather than when the uploads landed. id breaks ties, since MySQL
-        # DATETIME has no sub-second precision here
-        .order_by(
-            models.DrivingReport.report_date.desc(),
-            models.DrivingReport.id.desc(),
-        )
-        .limit(limit)
-    ).all()
+    reports = read_driving_reports(db, current_user.id, limit)
 
     return schemas.DrivingReportsOut(reports=reports)
