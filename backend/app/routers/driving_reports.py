@@ -1,7 +1,11 @@
-from fastapi import APIRouter, status
-
+# Contains the endpoints for creating and reading driving reports.
+# The actual database queries are in services/driving_reports.py, 
+# which is imported here to keep the router file clean and focused 
+# on request/response handling.
+from fastapi import APIRouter, Query, status
 from .. import models, schemas
 from ..dependencies import CurrentUser, DbSession
+from ..services.driving_reports import read_driving_reports
 
 router = APIRouter(tags=["driving-reports"])
 
@@ -41,3 +45,27 @@ def create_driving_report(
     db.refresh(report)
 
     return report
+
+
+@router.get("/driving-reports", response_model=schemas.DrivingReportsOut)
+def list_driving_reports(
+    current_user: CurrentUser,
+    db: DbSession,
+    limit: int = Query(
+        default=schemas.DEFAULT_REPORT_LIMIT,
+        ge=1,
+        le=schemas.MAX_REPORT_LIMIT,
+        description="How many of the most recent reports to return",
+    ),
+):
+    """Return the authenticated user's last `limit` reports, newest trip first.
+
+    Each report carries the violations recorded during that trip, so the report
+    history screen can show what went wrong without a second round trip.
+
+    The query is scoped to the caller's token, so one account can never read
+    another's history.
+    """
+    reports = read_driving_reports(db, current_user.id, limit)
+
+    return schemas.DrivingReportsOut(reports=reports)

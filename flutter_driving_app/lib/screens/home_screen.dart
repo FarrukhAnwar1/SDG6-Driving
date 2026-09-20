@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
+import 'analytics_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
@@ -90,6 +91,12 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const LiveDashboardScreen()));
+  }
+
+  Future<void> _openAnalytics() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
   }
 
   Future<void> _openChangePassword() async {
@@ -192,7 +199,9 @@ class _HomePageState extends State<HomePage> {
             return SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(child: Center(child: _buildBody(context))),
+                child: IntrinsicHeight(
+                  child: Center(child: _buildBody(context)),
+                ),
               ),
             );
           },
@@ -246,11 +255,15 @@ class _HomePageState extends State<HomePage> {
             label: const Text('Start Trip'),
           ),
           const SizedBox(height: 12),
-          FilledButton(onPressed: _logout, child: const Text('Log out')),
+          OutlinedButton.icon(
+            onPressed: _openAnalytics,
+            icon: const Icon(Icons.insights),
+            label: const Text('View Analytics'),
+          ),
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _openChangePassword,
-            child: const Text('Change password'),
+            child: const Text('Change Password'),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
@@ -265,7 +278,7 @@ class _HomePageState extends State<HomePage> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Delete account'),
+                : const Text('Delete Account'),
           ),
         ],
       ),

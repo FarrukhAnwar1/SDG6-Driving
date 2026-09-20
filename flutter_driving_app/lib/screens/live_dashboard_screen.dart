@@ -97,6 +97,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   double _currentForwardG = 0.0;
   double _currentLateralG = 0.0;
   bool _isForwardCalibrated = false;
+  // Startup calibration progress from OrientationCalibrationService. Showing
+  // 0/2 vs 1/2 makes it obvious whether no candidate has qualified yet or the
+  // service is waiting for one more consistent interval.
+  int _forwardCalibrationConfirmations = 0;
+  int _forwardCalibrationConfirmationsRequired = 2;
 
   // Formats g-force with a leading sign, avoiding "-0.0"
   String _formatGForce(double gForce) {
@@ -185,6 +190,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // light) doesn't get counted as harsh braking/accelerating/turning.
     final isMoving = _currentSpeedMph >= _minSpeedMph;
     final isForwardCalibrated = _orientationCalibration.isForwardCalibrated;
+    final forwardCalibrationConfirmations =
+        _orientationCalibration.forwardCalibrationConfirmations;
+    final forwardCalibrationConfirmationsRequired =
+        _orientationCalibration.forwardCalibrationConfirmationsRequired;
     // Before calibration, forwardG == 0 is only a placeholder. Keep sending
     // zero into the existing grader (which is neutral), but preserve the
     // calibration state separately so the UI never presents it as measured G.
@@ -206,6 +215,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         _currentForwardG = forwardG;
         _currentLateralG = lateralG;
         _isForwardCalibrated = isForwardCalibrated;
+        _forwardCalibrationConfirmations = forwardCalibrationConfirmations;
+        _forwardCalibrationConfirmationsRequired =
+            forwardCalibrationConfirmationsRequired;
       });
     }
   }
@@ -303,6 +315,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       speedMph: _smoothedSpeedMph,
       speedLimitMph: _postedSpeedLimitMph,
       timestamp: position.timestamp,
+      latitude: position.latitude,
+      longitude: position.longitude,
     );
 
     // Keep this fresh regardless of "mounted" below, so a background period
@@ -406,8 +420,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       milesDriven: _milesDriven,
       overallGrade: _overallGrade,
       properSpeedGrade: _properSpeedGrading.grade,
-      speedingOffenseCount: _properSpeedGrading.speedingOffenseCount,
-      totalSpeedingDuration: _properSpeedGrading.totalSpeedingDuration,
+      speedingViolations: _properSpeedGrading.violations,
       brakingGrade: _smoothnessGrading.brakingGrade,
       acceleratingGrade: _smoothnessGrading.acceleratingGrade,
       turningGrade: _smoothnessGrading.turningGrade,
@@ -448,7 +461,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   String get _speedingCountLabel {
-    final count = _properSpeedGrading.speedingOffenseCount;
+    final count = _properSpeedGrading.violationCount;
     return count == 1 ? '1 time speeding' : '$count times speeding';
   }
 
@@ -592,7 +605,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                                 'Forward G',
                                 _isForwardCalibrated
                                     ? _formatGForce(_currentForwardG)
-                                    : '—',
+                                    : 'CAL $_forwardCalibrationConfirmations/'
+                                          '$_forwardCalibrationConfirmationsRequired',
                               ),
                             ),
                             Expanded(
