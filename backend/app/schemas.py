@@ -56,10 +56,31 @@ class ChangePasswordRequest(BaseModel):
         return new_password
 
 class SpeedLimitOut(BaseModel):
-   # what GET / speed-limit returns, speed_limit_mph is null when no tagged road is found within search radius
+   """What GET /speed-limit returns for one coordinate.
+
+   speed_limit_mph is null when no driveable road was found within the search
+   radius, or when the nearest one carries no limit worth assuming - see
+   services/speed_limits.py. road_name and distance_meters are still filled in
+   that second case, so the app can say where it thinks the driver is even when
+   it has nothing to grade them against.
+   """
+
    speed_limit_mph: Optional[float] = Field(serialization_alias="speedLimitMph")
    road_name: Optional[str] = Field(default=None, serialization_alias="roadName")
    distance_meters: Optional[float] = Field(default=None, serialization_alias="distanceMeters")
+
+   # How the limit was arrived at, so the app never treats an assumption as a
+   # posted sign: "posted" read off the road, "inferred" assumed from its class,
+   # "unknown" no limit at all
+   speed_limit_source: Literal["posted", "inferred", "unknown"] = Field(
+       default="unknown", serialization_alias="speedLimitSource"
+   )
+   # How far over the limit counts as speeding on this road. Sent with the limit
+   # because the slack an assumed limit deserves depends on how tightly that
+   # road class's postings cluster, which is a property of the OSM extract
+   speeding_threshold_mph: Optional[float] = Field(
+       default=None, serialization_alias="speedingThresholdMph"
+   )
 
 # The trip schemas below speak camelCase on the wire (matching SpeedLimitOut and
 # what the Flutter client expects) while staying snake_case in Python
@@ -90,14 +111,65 @@ UNGRADED_DIMENSION = 100.0
 MAX_TRIP_DURATION_MINUTES = 999.99
 MAX_TRIP_DISTANCE_MILES = 9999.99
 
+# The five graded dimensions, spelled exactly 
+# as the violations.violation_type ENUM in MySQL spells them
+ViolationType = Literal[
+    "Proper Speed",
+    "Smooth Braking",
+    "Smooth Accelerating",
+    "Smooth Turning",
+    "Focused Driving",
+]
+VIOLATION_TYPES = get_args(ViolationType)
+
+# Max violation count in case of bugs to prevent violations from keep on going on
+MAX_VIOLATIONS_PER_REPORT = 500
+
+class ViolationCreate(BaseModel):
+    """One violation inside an uploaded report, as the app recorded it.
+
+    The app records where a violation began; the violations table stores a road
+    name instead, so the coordinates are resolved against the OSM road data on
+    the way in and then dropped - see services/road_names.py.
+
+    The grading services attach more than this to each violation (the posted
+    limit and peak speed of a speeding streak, peak g-force of a smoothness
+    violation, the speed the car was doing when the driver left the app). None
+    of it has a column, so it is ignored rather than rejected: the client may
+    send its whole violation object without the upload failing.
+    """
+
+    model_config = _CAMEL_CONFIG
+
+    violation_type: ViolationType
+    start_time: datetime
+    end_time: datetime
+
+    # Where the violation began. Required because every grading service records
+    # a position with the violation and drops the violation when it has none
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+    _normalize_start_time = field_validator("start_time")(_to_naive_utc)
+    _normalize_end_time = field_validator("end_time")(_to_naive_utc)
+
+    @model_validator(mode="after")
+    def end_must_not_precede_start(self):
+        # violations carries CHECK (end_time >= start_time). Without this the
+        # constraint rejects the INSERT and the whole upload surfaces as a 500
+        if self.end_time < self.start_time:
+            raise ValueError("endTime must not be earlier than startTime")
+        return self
+
+
 class DrivingReportCreate(BaseModel):
     """POST /driving-reports accepts a finished report, graded client-side.
 
-    Mirrors the Flutter TripSummary model, with three differences forced by the
-    driving_reports table: duration is derived from the timestamps into decimal
-    minutes, the four ungraded dimensions may be omitted, and
-    speedingOffenseCount / totalSpeedingDuration have no column to live in
-    and are not accepted.
+    Mirrors the Flutter TripSummary model, with the differences forced by the
+    driving_reports and violations tables: duration is derived from the
+    timestamps into decimal minutes, the four ungraded dimensions may be
+    omitted, and TripSummary's four separate violation lists arrive as one list
+    tagged with the ENUM label each maps to.
     """
 
     model_config = _CAMEL_CONFIG
@@ -112,6 +184,12 @@ class DrivingReportCreate(BaseModel):
     acceleration_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     turning_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     focus_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+
+    # Optional, so the clients that only send grades keep working unchanged.
+    # A trip with nothing to report legitimately has none
+    violations: List[ViolationCreate] = Field(
+        default_factory=list, max_length=MAX_VIOLATIONS_PER_REPORT
+    )
 
     _normalize_started_at = field_validator("started_at")(_to_naive_utc)
     _normalize_ended_at = field_validator("ended_at")(_to_naive_utc)
@@ -149,18 +227,6 @@ class DrivingReportOut(BaseModel):
     trip_duration_minutes: float
     trip_distance_miles: float
 
-
-# The five graded dimensions, spelled exactly as the violations.violation_type
-# ENUM in MySQL spells them. Anything else fails at INSERT, so the API validates
-# against this set rather than letting the driver find out from a 500
-ViolationType = Literal[
-    "Proper Speed",
-    "Smooth Braking",
-    "Smooth Accelerating",
-    "Smooth Turning",
-    "Focused Driving",
-]
-VIOLATION_TYPES = get_args(ViolationType)
 
 
 class ViolationOut(BaseModel):

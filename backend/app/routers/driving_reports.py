@@ -3,48 +3,41 @@
 # which is imported here to keep the router file clean and focused 
 # on request/response handling.
 from fastapi import APIRouter, Query, status
-from .. import models, schemas
-from ..dependencies import CurrentUser, DbSession
-from ..services.driving_reports import read_driving_reports
+from .. import schemas
+from ..dependencies import CurrentUser, DbSession, PgSession
+from ..services.driving_reports import read_driving_reports, write_driving_report
+from ..services.road_names import resolve_road_names
 
 router = APIRouter(tags=["driving-reports"])
 
 @router.post(
     "/driving-reports",
-    response_model=schemas.DrivingReportOut,
+    response_model=schemas.DrivingReportWithViolationsOut,
     status_code=status.HTTP_201_CREATED,
 )
 def create_driving_report(
     payload: schemas.DrivingReportCreate,
     current_user: CurrentUser,
     db: DbSession,
+    pg_db: PgSession,
 ):
-    """Save a finished driving report for the authenticated user.
+    """Save a finished driving report, and the violations behind it, for the
+    authenticated user.
 
-    The report is always attributed to the caller's token, never to a user id in
-    the body, so one account can't file reports against another.
+    Grades are stored exactly as the client computed them. Each violation
+    arrives with the coordinates where it began, which the violations table has
+    nowhere to put: they are resolved to a road name here and dropped. The
+    saved violations come back in the response, so the client sees the names the
+    server settled on without re-reading its own upload.
 
-    Grades are stored exactly as the client computed them"""
-    report = models.DrivingReport(
-        user_id=current_user.id,
-        overall_grade=payload.overall_grade,
-        speed_grade=payload.speed_grade,
-        braking_grade=payload.braking_grade,
-        acceleration_grade=payload.acceleration_grade,
-        turning_grade=payload.turning_grade,
-        focus_grade=payload.focus_grade,
-        # When the trip ended, rather than the column's CURRENT_TIMESTAMP default,
-        # so a report that uploads late still dates to the drive itself
-        report_date=payload.ended_at,
-        trip_duration_minutes=payload.trip_duration_minutes,
-        trip_distance_miles=payload.trip_distance_miles,
+    pg_db opens no connection when the report carries no violations
+    """
+    road_names = resolve_road_names(
+        pg_db,
+        [(violation.latitude, violation.longitude) for violation in payload.violations],
     )
 
-    db.add(report)
-    db.commit()
-    db.refresh(report)
-
-    return report
+    return write_driving_report(db, current_user.id, payload, road_names)
 
 
 @router.get("/driving-reports", response_model=schemas.DrivingReportsOut)
