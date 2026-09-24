@@ -2,7 +2,7 @@
 // and provides a violations list.
 //
 // GRADING RULE:
-// Driving >= [speedingThresholdMph] over the posted limit only starts
+// Driving >= the server's speedingThresholdMph over the limit only starts
 // costing points once it has been sustained for >= [graceDuration]
 // continuously. Once that grace window has been exceeded, every additional
 // second spent over the threshold costs [pointsPerSecondOverThreshold]
@@ -16,7 +16,7 @@
 // the limit, but not yet sustained for 5s) is treated as neutral.
 
 // One continuous stretch of time where the driver stayed at least
-// [SpeedGradingService.speedingThresholdMph] over the posted limit for at
+// the server's speeding threshold over the limit for at
 // least [SpeedGradingService.graceDuration], i.e. a streak that actually cost
 // grade points. Streaks that never clear the grace window are jitter/brief
 // excursions and never become violations.
@@ -39,7 +39,7 @@ class SpeedingViolation {
   final double latitude;
   final double longitude;
 
-  // Posted limit when the streak began
+  // Posted or inferred limit when the streak began
   final double speedLimitMph;
 
   // Fastest speed reached during the streak
@@ -56,9 +56,7 @@ class SpeedingViolation {
 }
 
 class SpeedGradingService {
-  // Penalize only if the driver is this many MPH over the posted limit
-  static const double speedingThresholdMph = 5;
-  // For at least this long
+  // Penalize if speeding for at least this long
   static const Duration graceDuration = Duration(seconds: 5);
   // And by this many points per second
   static const double pointsPerSecondOverThreshold = 1;
@@ -89,7 +87,7 @@ class SpeedGradingService {
   double get grade => _grade;
   int get violationCount => _violations.length;
 
-  // Closed violations, each with its start/end time, the posted limit and peak
+  // Closed violations, each with its start/end time, the limit and peak
   // speed of the streak, and the coordinates where it began.
   List<SpeedingViolation> get violations => List.unmodifiable(_violations);
 
@@ -100,12 +98,14 @@ class SpeedGradingService {
     (total, violation) => total + violation.penalizedDuration,
   );
 
-  // Called once per position update to feed the current speed and posted limit
-  // into the grading. latitude/longitude are the coordinates of that same
+  // Called once per position update with the current speed, limit and the
+  // server's tolerance for that road. Unknown limits/tolerances are ungraded.
+  // latitude/longitude are the coordinates of that same
   // position update, used to tag where a violation started.
   void addSample({
     required double speedMph,
     required double? speedLimitMph,
+    required double? speedingThresholdMph,
     required DateTime timestamp,
     required double latitude,
     required double longitude,
@@ -114,8 +114,12 @@ class SpeedGradingService {
         ? 0.0
         : timestamp.difference(_lastSampleTime!).inMilliseconds / 1000.0;
 
-    if (speedLimitMph == null) {
-      _regenerate(elapsedSeconds);
+    if (speedLimitMph == null ||
+        !speedLimitMph.isFinite ||
+        speedLimitMph < 0 ||
+        speedingThresholdMph == null ||
+        !speedingThresholdMph.isFinite ||
+        speedingThresholdMph < 0) {
       _endCurrentStreak();
       _lastPenalizedThrough = null;
       _lastSampleTime = timestamp;

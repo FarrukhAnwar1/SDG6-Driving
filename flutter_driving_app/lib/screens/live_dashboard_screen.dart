@@ -1,5 +1,5 @@
 // Shown while a trip is in progress. Tracks elapsed time, distance driven,
-// current speed, the posted speed limit, and live driving grades.
+// current speed, the road's speed limit, and live driving grades.
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -49,7 +49,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   static const double _metersToMiles = 0.000621371;
   static const double _metersPerSecondToMph = 2.23694;
 
-  // How often to refresh the posted speed limit
+  // How often to refresh the road's speed limit and grading tolerance
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
 
   // Below this speed, ignore distance/movement to avoid GPS jitter
@@ -60,9 +60,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   static const double _maxTrustedSpeedAccuracyMps = 1.5;
   static const double _maxSpeedDisagreementMph = 10.0;
   static const double _maxTrustedHorizontalAccuracyMeters = 25.0;
-
-  // Flag speed red once it's this much over the limit
-  static const double _speedingThresholdMph = 5.0;
 
   // Smoothing factor for displayed speed. 0 = never update, 1 = no smoothing.
   static const double _speedSmoothingAlpha = 1;
@@ -86,7 +83,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   double _milesDriven = 0;
   double _currentSpeedMph = 0;
   double _smoothedSpeedMph = 0;
-  double? _postedSpeedLimitMph;
+  SpeedLimit? _speedLimit;
 
   Position? _lastPosition;
   DateTime? _lastSpeedLimitFetchTime;
@@ -307,13 +304,17 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     if (speedMph == 0) {
       _smoothedSpeedMph = 0;
     } else {
-      _smoothedSpeedMph = (_speedSmoothingAlpha * speedMph) +
+      _smoothedSpeedMph =
+          (_speedSmoothingAlpha * speedMph) +
           ((1 - _speedSmoothingAlpha) * _smoothedSpeedMph);
     }
 
     _properSpeedGrading.addSample(
       speedMph: _smoothedSpeedMph,
-      speedLimitMph: _postedSpeedLimitMph,
+      speedLimitMph: _speedLimit?.canGrade == true
+          ? _speedLimit!.speedLimitMph
+          : null,
+      speedingThresholdMph: _speedLimit?.speedingThresholdMph,
       timestamp: position.timestamp,
       latitude: position.latitude,
       longitude: position.longitude,
@@ -388,19 +389,21 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       final token = await AuthStorage.readToken();
       if (token == null) {
         debugPrint('SPEED LIMIT FETCH SKIPPED: no auth token');
+        if (mounted) setState(() => _speedLimit = null);
         return;
       }
 
-      final limit = await SpeedLimitService.fetchPostedSpeedLimitMph(
+      final limit = await SpeedLimitService.fetchSpeedLimit(
         latitude: position.latitude,
         longitude: position.longitude,
         token: token,
       );
 
       if (!mounted) return;
-      setState(() => _postedSpeedLimitMph = limit);
+      setState(() => _speedLimit = limit);
     } catch (e) {
       debugPrint('SPEED LIMIT FETCH ERROR: $e');
+      if (mounted) setState(() => _speedLimit = null);
     } finally {
       _isFetchingSpeedLimit = false;
     }
@@ -443,21 +446,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   double? get _speedDifference {
-    final limit = _postedSpeedLimitMph;
-    if (limit == null) {
+    final limit = _speedLimit;
+    if (limit == null || !limit.canGrade) {
       return null;
     }
-    return _currentSpeedMph - limit;
+    return _currentSpeedMph - limit.speedLimitMph!;
   }
 
-  bool get _isSpeeding =>
-      (_speedDifference ?? double.negativeInfinity) >= _speedingThresholdMph;
+  bool get _isSpeeding {
+    final difference = _speedDifference;
+    return difference != null &&
+        difference >= _speedLimit!.speedingThresholdMph!;
+  }
 
   bool get _isCloseToSpeeding {
     final difference = _speedDifference;
     return difference != null &&
         difference > 0 &&
-        difference < _speedingThresholdMph;
+        difference < _speedLimit!.speedingThresholdMph!;
   }
 
   String get _speedingCountLabel {
@@ -493,10 +499,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       speedColor = Colors.orange;
     }
 
-    String speedLimitText = '—';
-    if (_postedSpeedLimitMph != null) {
-      speedLimitText = '${_postedSpeedLimitMph!.toStringAsFixed(0)} MPH';
-    }
+    final hasSpeedLimit = _speedLimit?.canGrade == true;
+    final speedLimitText = hasSpeedLimit
+        ? '${_speedLimit!.speedLimitMph!.toStringAsFixed(0)} MPH'
+        : 'Unavailable';
+    final isInferred = _speedLimit?.source == SpeedLimitSource.inferred;
+    final roadName = _speedLimit?.roadName;
 
     return PopScope(
       canPop: false,
@@ -523,7 +531,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                           context,
                           'Proper Speed',
                           _properSpeedGrading.grade,
-                          subtitle: _speedingCountLabel,
+                          subtitle: hasSpeedLimit
+                              ? _speedingCountLabel
+                              : '$_speedingCountLabel\nSpeed grading paused',
                         ),
                         const SizedBox(height: 12),
                         _buildGradeCard(
@@ -590,12 +600,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                             Expanded(
                               child: _buildStat(
                                 context,
-                                'Speed Limit',
+                                isInferred ? 'Estimated Limit' : 'Speed Limit',
                                 speedLimitText,
                               ),
                             ),
                           ],
                         ),
+                        if (roadName != null && roadName.trim().isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(roadName, textAlign: TextAlign.center),
+                        ],
+                        if (isInferred && hasSpeedLimit) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Estimated from road type',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                         const SizedBox(height: 16),
                         Row(
                           children: [
@@ -651,21 +673,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            subtitle == null
-                ? Text(label, style: Theme.of(context).textTheme.titleMedium)
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      Text(
-                        subtitle,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+            Expanded(
+              child: subtitle == null
+                  ? Text(label, style: Theme.of(context).textTheme.titleMedium)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          subtitle,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+            ),
+            const SizedBox(width: 12),
             Text(
               grade.toStringAsFixed(0),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
