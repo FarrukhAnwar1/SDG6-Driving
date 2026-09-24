@@ -16,7 +16,7 @@ class TripSummary {
   // Average of all other grades
   final double overallGrade;
 
-  // Proper Speed grade. Each violation holds its start/end time, the posted
+  // Proper Speed grade. Each violation holds its start/end time, the road's
   // limit and peak speed of the streak, and coordinates where it began.
   final double properSpeedGrade;
   final List<SpeedingViolation> speedingViolations;

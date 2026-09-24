@@ -2,7 +2,7 @@
 //
 // This suite verifies the core scoring logic for driver speed evaluation,
 // ensuring the application correctly processes the speed limit data returned
-// from the self-hosted Python API. It validates the 5 MPH buffer, the
+// from the self-hosted Python API. It validates server-provided tolerances, the
 // 5-second grace window, and the 1-point-per-second deduction for sustained
 // speeding. It also covers the recorded violations, plus edge cases like
 // multiple speeding streaks, handling null speed limits, trip finalization,
@@ -21,10 +21,12 @@ extension _FixedPointSamples on SpeedGradingService {
   void addSampleAt({
     required double speedMph,
     required double? speedLimitMph,
+    double? speedingThresholdMph = 5,
     required DateTime timestamp,
   }) => addSample(
     speedMph: speedMph,
     speedLimitMph: speedLimitMph,
+    speedingThresholdMph: speedingThresholdMph,
     timestamp: timestamp,
     latitude: _latitude,
     longitude: _longitude,
@@ -42,6 +44,94 @@ void main() {
       expect(service.violations, isEmpty);
       expect(service.totalSpeedingDuration, Duration.zero);
     });
+
+    for (final threshold in [5.0, 10.0, 15.0]) {
+      test('uses a $threshold mph tolerance including its boundary', () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10]) {
+          service.addSampleAt(
+            speedMph: 25 + threshold - 0.1,
+            speedLimitMph: 25,
+            speedingThresholdMph: threshold,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        expect(service.grade, 100);
+        expect(service.violationCount, 0);
+
+        for (final seconds in [11, 21]) {
+          service.addSampleAt(
+            speedMph: 25 + threshold,
+            speedLimitMph: 25,
+            speedingThresholdMph: threshold,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+        expect(
+          service.violations.single.startTime,
+          start.add(const Duration(seconds: 11)),
+        );
+      });
+    }
+
+    test(
+      'a wider tolerance ends a streak and gives the next one fresh grace',
+      () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10]) {
+          service.addSampleAt(
+            speedMph: 32,
+            speedLimitMph: 25,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.addSampleAt(
+          speedMph: 32,
+          speedLimitMph: 25,
+          speedingThresholdMph: 10,
+          timestamp: start.add(const Duration(seconds: 11)),
+        );
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+
+        for (final seconds in [20, 24, 30]) {
+          service.addSampleAt(
+            speedMph: 35,
+            speedLimitMph: 25,
+            speedingThresholdMph: 10,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+          expect(service.grade, seconds == 30 ? 90 : 95);
+        }
+        service.finalizeTrip();
+        expect(service.violationCount, 2);
+      },
+    );
+
+    test(
+      'a missing tolerance ends a streak without charging the unknown gap',
+      () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10, 20, 60, 64]) {
+          service.addSampleAt(
+            speedMph: 45,
+            speedLimitMph: 25,
+            speedingThresholdMph: seconds == 20 ? null : 10,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+        expect(
+          service.violations.single.endTime,
+          start.add(const Duration(seconds: 10)),
+        );
+      },
+    );
 
     test('driving under the threshold never penalizes the grade', () {
       final service = SpeedGradingService();
@@ -142,6 +232,7 @@ void main() {
         service.addSample(
           speedMph: 75,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start,
           latitude: 40.1,
           longitude: -75.1,
@@ -151,6 +242,7 @@ void main() {
         service.addSample(
           speedMph: 85,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start.add(const Duration(seconds: 6)),
           latitude: 40.2,
           longitude: -75.2,
@@ -158,6 +250,7 @@ void main() {
         service.addSample(
           speedMph: 80,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start.add(const Duration(seconds: 8)),
           latitude: 40.3,
           longitude: -75.3,
