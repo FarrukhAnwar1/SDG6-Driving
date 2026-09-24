@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash-lite"
     gemini_timeout_seconds: float = Field(default=30, gt=0, le=120)
 
+    # Assume a limit on roads with no maxspeed tag, from the road's class.
+    # Off by default: the app grades every limit at a flat 5 mph tolerance, and
+    # an assumed limit needs more slack than that (GET /speed-limit sends the
+    # right tolerance as speedingThresholdMph, but nothing reads it yet).
+    # Turn on once the app honors that field
+    speed_limit_inference_enabled: bool = False
+
     # PostGIS connection for speed-limit data (separate DB from the MySQL above)
     pg_host: str = "localhost"
     pg_port: int = 5432
