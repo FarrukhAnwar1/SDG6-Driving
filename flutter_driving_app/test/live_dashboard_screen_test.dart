@@ -117,22 +117,49 @@ void main() {
     );
   }
 
+  void expectSpeedColor(WidgetTester tester, double speed, Color? color) {
+    final speedText = find.text('${speed.toStringAsFixed(0)} MPH').first;
+    final normalColor = Theme.of(
+      tester.element(speedText),
+    ).textTheme.titleLarge!.color;
+    expect(tester.widget<Text>(speedText).style!.color, color ?? normalColor);
+  }
+
   testWidgets(
-    'dashboard labels inferred limits and uses the server tolerance',
+    'dashboard colors estimated ranges and groups speeding after a lookup timeout',
     (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
+      double threshold = 15;
+      var source = 'inferred';
+      var delayNextLookup = false;
+      final delayedResponse = Completer<http.Response>();
+      http.Response limitResponse() => http.Response(
+        jsonEncode({
+          'speedLimitMph': 25,
+          'speedLimitSource': source,
+          'speedingThresholdMph': threshold,
+          'roadName': 'Nearest Road',
+          'distanceMeters': 3,
+        }),
+        200,
+      );
+
+      // Follow one trip through changing road metadata, a real two-second
+      // request timeout, and recovery on the same road.
       await http.runWithClient(
         () => onDashboard(tester, () async {
           expect(find.text('Unavailable'), findsOneWidget);
+          expect(find.textContaining('±'), findsNothing);
           expect(find.textContaining('Speed grading paused'), findsOneWidget);
           await drive(tester, 39, 12);
           expect(find.text('Estimated Limit'), findsOneWidget);
+          expect(find.text('25±10 MPH'), findsOneWidget);
+          expect(find.textContaining('Estimated range:'), findsNothing);
           expect(find.text('Nearest Road'), findsOneWidget);
-          expect(find.text('Estimated from road type'), findsOneWidget);
           expectSpeedGrade('100');
           expect(
             tester.widget<Text>(find.text('39 MPH')).style!.color,
@@ -145,20 +172,91 @@ void main() {
             tester.widget<Text>(find.text('40 MPH')).style!.color,
             Colors.red,
           );
+          await drive(tester, 25, 1);
+          expect(find.text('1 time speeding'), findsOneWidget);
+
+          for (final scenario in [
+            (source: 'posted', threshold: 5.0, range: null),
+            (source: 'inferred', threshold: 10.0, range: '5'),
+            (source: 'inferred', threshold: 7.5, range: '2.5'),
+            (source: 'inferred', threshold: 5.0, range: null),
+            (source: 'inferred', threshold: 2.5, range: null),
+            (source: 'posted', threshold: 5.0, range: null),
+          ]) {
+            source = scenario.source;
+            threshold = scenario.threshold;
+            await drive(tester, 25, 4);
+            if (scenario.range == null) {
+              expect(find.textContaining('±'), findsNothing);
+              expect(find.text('25 MPH'), findsNWidgets(2));
+            } else {
+              expect(find.text('25±${scenario.range} MPH'), findsOneWidget);
+            }
+            expect(
+              find.text(
+                source == 'inferred' ? 'Estimated Limit' : 'Speed Limit',
+              ),
+              findsOneWidget,
+            );
+            expectSpeedGrade('95');
+
+            final range = double.tryParse(scenario.range ?? '') ?? 0;
+            final upperLimit = 25 + range;
+            final speedingAt = 25 + threshold;
+            final bufferSpeed = (upperLimit + speedingAt) / 2;
+
+            // The upper edge stays neutral; only the buffer above it warns
+            await drive(tester, upperLimit, 1);
+            expectSpeedColor(tester, upperLimit, null);
+            await drive(tester, bufferSpeed, 1);
+            expectSpeedColor(tester, bufferSpeed, Colors.orange);
+            await drive(tester, speedingAt, 1);
+            expectSpeedColor(tester, speedingAt, Colors.red);
+            await drive(tester, 25, 1);
+            expectSpeedColor(tester, 25, null);
+            expectSpeedGrade('95');
+          }
+
+          // A second sustained episode, well outside the first one's window
+          await drive(tester, 30, 12);
+          expectSpeedGrade('89');
+          delayNextLookup = true;
+          await drive(tester, 30, 2);
+          await tester.pump(const Duration(seconds: 2));
+          expect(find.text('Unavailable'), findsOneWidget);
+          expect(find.textContaining('±'), findsNothing);
+          expect(find.textContaining('Speed grading paused'), findsOneWidget);
+          expectSpeedGrade('87');
+          expectSpeedColor(tester, 30, null);
+
+          // The late response must not unpause grading; a fresh lookup must
+          delayedResponse.complete(limitResponse());
+          await tester.pump();
+          expect(find.text('Unavailable'), findsOneWidget);
+          await drive(tester, 30, 3);
+          expectSpeedGrade('87');
+          expect(find.textContaining('2 times speeding'), findsOneWidget);
+
+          // Grading resumes after the next lookup, and only the five seconds
+          // after fresh grace are charged during the resumed streak.
+          await drive(tester, 30, 12);
+          expect(find.text('Speed Limit'), findsOneWidget);
+          expect(find.textContaining('±'), findsNothing);
+          expect(find.textContaining('Speed grading paused'), findsNothing);
+          expectSpeedGrade('82');
+          await drive(tester, 25, 1);
+          expect(find.text('2 times speeding'), findsOneWidget);
+          expect(find.text('3 times speeding'), findsNothing);
+          expectSpeedGrade('82');
           expect(tester.takeException(), isNull);
         }),
-        () => MockClient(
-          (_) async => http.Response(
-            jsonEncode({
-              'speedLimitMph': 25,
-              'speedLimitSource': 'inferred',
-              'speedingThresholdMph': 15,
-              'roadName': 'Nearest Road',
-              'distanceMeters': 3,
-            }),
-            200,
-          ),
-        ),
+        () => MockClient((_) async {
+          if (delayNextLookup) {
+            delayNextLookup = false;
+            return delayedResponse.future;
+          }
+          return limitResponse();
+        }),
       );
     },
   );
