@@ -145,11 +145,20 @@ def resolve_speed_limit(
     the wire has and the app doesn't. It is None exactly when the limit is.
 
     `infer` gates the assumed limits only; a posted limit is returned either
-    way. It is off by default because an assumed limit is only safe to grade
-    against once the client honours the threshold sent alongside it - grading
-    an assumed 25 at the flat 5 mph tolerance the app uses today would flag a
-    driver legally doing 30 on a residential street posted 30. See
-    settings.speed_limit_inference_enabled.
+    way, so turning inference on can never change a road that was already being
+    graded - it only fills in the ones that used to come back "unknown".
+
+    The parameter defaults to off so a caller has to ask for assumptions
+    deliberately. What the app actually runs on is
+    settings.speed_limit_inference_enabled, which the /speed-limit endpoint
+    passes in and which is on.
+
+    That setting is only safe on while the client grades against the threshold
+    sent alongside the limit rather than a flat tolerance of its own: an
+    assumed 25 judged at 5 mph would flag a driver legally doing 30 on a
+    residential street posted 30. SpeedGradingService uses speedingThresholdMph
+    and refuses to grade at all without it, which is what makes it safe today.
+    A client that stops honoring the threshold has to turn this back off.
     """
     posted = parse_maxspeed_to_mph(maxspeed_tag)
     if posted is not None:
