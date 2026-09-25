@@ -5,9 +5,10 @@
 // Driving >= the server's speedingThresholdMph over the limit only starts
 // costing points once it has been sustained for >= [graceDuration]
 // continuously. Once that grace window has been exceeded, every additional
-// second spent over the threshold costs [pointsPerSecondOverThreshold]
-// points, until the driver drops back under the threshold (which resets
-// the streak and grace window).
+// second costs 1 point at the threshold, plus 1 more point per 5 mph beyond
+// it (scaled continuously). Dropping under the threshold or losing the limit
+// ends the graded streak and resets grace. Nearby streaks on the same named
+// road are grouped into one violation without charging for the gaps.
 //
 // RECOVERY:
 // Whenever the driver is not currently speeding at all, the grade slowly
@@ -15,11 +16,8 @@
 // of clean driving (capped at 100). Sitting inside the grace window (over
 // the limit, but not yet sustained for 5s) is treated as neutral.
 
-// One continuous stretch of time where the driver stayed at least
-// the server's speeding threshold over the limit for at
-// least [SpeedGradingService.graceDuration], i.e. a streak that actually cost
-// grade points. Streaks that never clear the grace window are jitter/brief
-// excursions and never become violations.
+// One or more nearby speeding streaks on the same road. Each must clear the
+// grace window; brief excursions never become violations.
 class SpeedingViolation {
   const SpeedingViolation({
     required this.startTime,
@@ -28,6 +26,8 @@ class SpeedingViolation {
     required this.longitude,
     required this.speedLimitMph,
     required this.peakSpeedMph,
+    required this.penalizedDuration,
+    this.roadName,
   });
 
   // startTime is when the streak first went over the threshold, so it
@@ -38,6 +38,7 @@ class SpeedingViolation {
   // Where the violation started
   final double latitude;
   final double longitude;
+  final String? roadName;
 
   // Posted or inferred limit when the streak began
   final double speedLimitMph;
@@ -47,10 +48,9 @@ class SpeedingViolation {
 
   Duration get duration => endTime.difference(startTime);
 
-  // The part of the streak past the grace window, which is the span that was
-  // actually penalized against the grade.
-  Duration get penalizedDuration =>
-      duration - SpeedGradingService.graceDuration;
+  // Actual graded time, excluding every streak's grace window and any gaps
+  // between grouped streaks. The start/end span alone cannot give this value.
+  final Duration penalizedDuration;
 
   double get peakOverLimitMph => peakSpeedMph - speedLimitMph;
 }
@@ -58,8 +58,12 @@ class SpeedingViolation {
 class SpeedGradingService {
   // Penalize if speeding for at least this long
   static const Duration graceDuration = Duration(seconds: 5);
-  // And by this many points per second
+  // Base rate at the threshold; each additional 5 mph adds another base rate.
   static const double pointsPerSecondOverThreshold = 1;
+  static const double mphPerPenaltyStep = 5;
+
+  // Long enough to bridge a timed-out lookup and the next 4-second refresh.
+  static const Duration violationMergeWindow = Duration(seconds: 10);
 
   // Turned off point regen for now
   static const double regenPointsPerMinute = 0;
@@ -73,26 +77,28 @@ class SpeedGradingService {
   // i.e. the end of the current streak if it were to stop right now.
   DateTime? _lastSpeedingTimestamp;
 
-  // One entry per streak that was sustained past graceDuration, added when
-  // the streak ends (see _endCurrentStreak).
+  // Graded streaks are recorded when they end. Nearby streaks on the same
+  // named road update the previous entry (see _endCurrentStreak).
   final List<SpeedingViolation> _violations = [];
+  int? _mergeCandidateIndex;
 
   // Details of the streak currently in progress, captured when it started so
   // the violation can record where it began and how far over the limit it got.
   double? _streakLatitude;
   double? _streakLongitude;
+  String? _streakRoadName;
   double _streakSpeedLimitMph = 0;
   double _streakPeakSpeedMph = 0;
 
   double get grade => _grade;
   int get violationCount => _violations.length;
 
-  // Closed violations, each with its start/end time, the limit and peak
-  // speed of the streak, and the coordinates where it began.
+  // Closed violations, with grouped start/end times, the initial limit,
+  // peak speed, and the coordinates where the first streak began.
   List<SpeedingViolation> get violations => List.unmodifiable(_violations);
 
   // Time spent over the threshold that was actually charged against the grade,
-  // i.e. excluding each violation's grace window.
+  // i.e. excluding gaps and each streak's grace window.
   Duration get totalSpeedingDuration => _violations.fold(
     Duration.zero,
     (total, violation) => total + violation.penalizedDuration,
@@ -109,19 +115,42 @@ class SpeedGradingService {
     required DateTime timestamp,
     required double latitude,
     required double longitude,
+    String? roadName,
   }) {
+    // Duplicate or out-of-order GPS fixes must not charge time twice or move
+    // a violation's end backwards.
+    if (_lastSampleTime != null && !timestamp.isAfter(_lastSampleTime!)) {
+      return;
+    }
+
     final elapsedSeconds = _lastSampleTime == null
         ? 0.0
         : timestamp.difference(_lastSampleTime!).inMilliseconds / 1000.0;
 
-    if (speedLimitMph == null ||
+    final roadKey = _roadKey(roadName);
+    // Missing lookup data is a gap; an identified different road is a boundary,
+    // even when that road has no usable limit or the driver is not speeding.
+    if (roadKey != null || speedLimitMph != null) {
+      if (_violationStartTime != null && roadKey != _roadKey(_streakRoadName)) {
+        _endCurrentStreak();
+      }
+      final candidateIndex = _mergeCandidateIndex;
+      if (candidateIndex != null &&
+          (roadKey == null ||
+              roadKey != _roadKey(_violations[candidateIndex].roadName))) {
+        _mergeCandidateIndex = null;
+      }
+    }
+
+    if (!speedMph.isFinite ||
+        speedMph < 0 ||
+        speedLimitMph == null ||
         !speedLimitMph.isFinite ||
         speedLimitMph < 0 ||
         speedingThresholdMph == null ||
         !speedingThresholdMph.isFinite ||
         speedingThresholdMph < 0) {
       _endCurrentStreak();
-      _lastPenalizedThrough = null;
       _lastSampleTime = timestamp;
       return;
     }
@@ -131,7 +160,6 @@ class SpeedGradingService {
     if (!isSpeeding) {
       _regenerate(elapsedSeconds);
       _endCurrentStreak();
-      _lastPenalizedThrough = null;
       _lastSampleTime = timestamp;
       return;
     }
@@ -140,6 +168,7 @@ class SpeedGradingService {
       _violationStartTime = timestamp;
       _streakLatitude = latitude;
       _streakLongitude = longitude;
+      _streakRoadName = roadName?.trim();
       _streakSpeedLimitMph = speedLimitMph;
       _streakPeakSpeedMph = speedMph;
     } else if (speedMph > _streakPeakSpeedMph) {
@@ -167,8 +196,11 @@ class SpeedGradingService {
         timestamp.difference(penalizeFrom).inMilliseconds / 1000.0;
 
     if (penalizableSeconds > 0) {
+      final excessMph = speedMph - speedLimitMph - speedingThresholdMph;
+      final penaltyMultiplier = 1 + excessMph / mphPerPenaltyStep;
       final newGrade =
-          _grade - penalizableSeconds * pointsPerSecondOverThreshold;
+          _grade -
+          penalizableSeconds * pointsPerSecondOverThreshold * penaltyMultiplier;
       _grade = newGrade < 0 ? 0 : newGrade;
       _lastPenalizedThrough = timestamp;
     }
@@ -195,23 +227,62 @@ class SpeedGradingService {
         endTime != null &&
         latitude != null &&
         longitude != null &&
-        endTime.difference(startTime) >= graceDuration) {
-      _violations.add(
-        SpeedingViolation(
-          startTime: startTime,
+        endTime.difference(startTime) > graceDuration) {
+      final penalizedDuration = endTime.difference(startTime) - graceDuration;
+      final candidateIndex = _mergeCandidateIndex;
+      final previous = candidateIndex == null
+          ? null
+          : _violations[candidateIndex];
+      final gap = previous == null
+          ? null
+          : startTime.difference(previous.endTime);
+      if (previous != null &&
+          _roadKey(_streakRoadName) != null &&
+          _roadKey(_streakRoadName) == _roadKey(previous.roadName) &&
+          gap! >= Duration.zero &&
+          gap <= violationMergeWindow) {
+        _violations[candidateIndex!] = SpeedingViolation(
+          startTime: previous.startTime,
           endTime: endTime,
-          latitude: latitude,
-          longitude: longitude,
-          speedLimitMph: _streakSpeedLimitMph,
-          peakSpeedMph: _streakPeakSpeedMph,
-        ),
-      );
+          latitude: previous.latitude,
+          longitude: previous.longitude,
+          roadName: previous.roadName,
+          speedLimitMph: previous.speedLimitMph,
+          peakSpeedMph: _streakPeakSpeedMph > previous.peakSpeedMph
+              ? _streakPeakSpeedMph
+              : previous.peakSpeedMph,
+          penalizedDuration: previous.penalizedDuration + penalizedDuration,
+        );
+      } else {
+        _violations.add(
+          SpeedingViolation(
+            startTime: startTime,
+            endTime: endTime,
+            latitude: latitude,
+            longitude: longitude,
+            roadName: _streakRoadName,
+            speedLimitMph: _streakSpeedLimitMph,
+            peakSpeedMph: _streakPeakSpeedMph,
+            penalizedDuration: penalizedDuration,
+          ),
+        );
+        _mergeCandidateIndex = _roadKey(_streakRoadName) == null
+            ? null
+            : _violations.length - 1;
+      }
     }
 
     _violationStartTime = null;
+    _lastPenalizedThrough = null;
     _lastSpeedingTimestamp = null;
     _streakLatitude = null;
     _streakLongitude = null;
+    _streakRoadName = null;
+  }
+
+  static String? _roadKey(String? name) {
+    final key = name?.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    return key == null || key.isEmpty ? null : key;
   }
 
   // Call once when the trip ends, so a streak still in progress at that
@@ -228,8 +299,10 @@ class SpeedGradingService {
     _lastSampleTime = null;
     _lastSpeedingTimestamp = null;
     _violations.clear();
+    _mergeCandidateIndex = null;
     _streakLatitude = null;
     _streakLongitude = null;
+    _streakRoadName = null;
     _streakSpeedLimitMph = 0;
     _streakPeakSpeedMph = 0;
   }

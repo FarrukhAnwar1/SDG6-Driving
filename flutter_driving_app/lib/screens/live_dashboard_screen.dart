@@ -52,6 +52,10 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   // How often to refresh the road's speed limit and grading tolerance
   static const Duration _speedLimitRefreshInterval = Duration(seconds: 4);
 
+  // Backend thresholds include this buffer when inferring the speed limit range.
+  // Subtract it only for display; grading uses the full backend threshold.
+  static const double _speedingBufferMph = 5;
+
   // Below this speed, ignore distance/movement to avoid GPS jitter
   static const double _minSpeedForDistanceMph = 3.0;
   static const double _minSpeedMph = 3.0;
@@ -315,6 +319,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
           ? _speedLimit!.speedLimitMph
           : null,
       speedingThresholdMph: _speedLimit?.speedingThresholdMph,
+      roadName: _speedLimit?.roadName,
       timestamp: position.timestamp,
       latitude: position.latitude,
       longitude: position.longitude,
@@ -374,7 +379,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   Future<void> _maybeRefreshSpeedLimit(Position position) async {
-    final now = DateTime.now();
+    // Use the same GPS timeline as the grader to schedule road refreshes
+    final now = position.timestamp;
     final dueForRefresh =
         _lastSpeedLimitFetchTime == null ||
         now.difference(_lastSpeedLimitFetchTime!) >= _speedLimitRefreshInterval;
@@ -453,6 +459,20 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     return _currentSpeedMph - limit.speedLimitMph!;
   }
 
+  // Share the inferred speed limit range with the warning colors
+  // so they are shown accordingly (only red when speed is above
+  // inferred limit + threshold).
+  double get _estimatedRangeMph {
+    final limit = _speedLimit;
+    if (limit == null ||
+        !limit.canGrade ||
+        limit.source != SpeedLimitSource.inferred) {
+      return 0;
+    }
+    final range = limit.speedingThresholdMph! - _speedingBufferMph;
+    return range > 0 ? range : 0;
+  }
+
   bool get _isSpeeding {
     final difference = _speedDifference;
     return difference != null &&
@@ -462,7 +482,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   bool get _isCloseToSpeeding {
     final difference = _speedDifference;
     return difference != null &&
-        difference > 0 &&
+        difference > _estimatedRangeMph &&
         difference < _speedLimit!.speedingThresholdMph!;
   }
 
@@ -500,10 +520,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     }
 
     final hasSpeedLimit = _speedLimit?.canGrade == true;
-    final speedLimitText = hasSpeedLimit
-        ? '${_speedLimit!.speedLimitMph!.toStringAsFixed(0)} MPH'
-        : 'Unavailable';
     final isInferred = _speedLimit?.source == SpeedLimitSource.inferred;
+    final estimatedRangeMph = _estimatedRangeMph;
+    final estimatedRangeText = estimatedRangeMph > 0
+        ? '±${estimatedRangeMph == estimatedRangeMph.roundToDouble() ? estimatedRangeMph.toStringAsFixed(0) : estimatedRangeMph.toString()}'
+        : '';
+    final speedLimitText = hasSpeedLimit
+        ? '${_speedLimit!.speedLimitMph!.toStringAsFixed(0)}$estimatedRangeText MPH'
+        : 'Unavailable';
     final roadName = _speedLimit?.roadName;
 
     return PopScope(
@@ -609,14 +633,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                         if (roadName != null && roadName.trim().isNotEmpty) ...[
                           const SizedBox(height: 8),
                           Text(roadName, textAlign: TextAlign.center),
-                        ],
-                        if (isInferred && hasSpeedLimit) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Estimated from road type',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
                         ],
                         const SizedBox(height: 16),
                         Row(
