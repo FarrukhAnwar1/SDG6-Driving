@@ -50,6 +50,11 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       acceleratingGrade: summary.acceleratingGrade,
       turningGrade: summary.turningGrade,
       focusedDrivingGrade: summary.focusedDrivingGrade,
+      speedingViolations: summary.speedingViolations,
+      brakingViolations: summary.brakingViolations,
+      acceleratingViolations: summary.acceleratingViolations,
+      turningViolations: summary.turningViolations,
+      focusedDrivingViolations: summary.focusedDrivingViolations,
     );
 
     if (!mounted) return;
