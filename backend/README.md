@@ -102,20 +102,36 @@ Between `"NN mph"`, a bare number and `"NN km/h"`, the parser covers all but 31
 of the extract's 210,340 tagged ways, so there is no long tail of tag formats
 left to handle.
 
-#### Turning assumptions on
+#### Turning assumptions off
 
-Assumed limits are **off by default** (`SPEED_LIMIT_INFERENCE_ENABLED=false`).
-The app grades every limit at a flat 5 mph tolerance and does not yet read
-`speedingThresholdMph`, so an assumed 25 would flag a driver legally doing 30 on
-a residential street actually posted 30. Once the app honours that field, set:
+Assumed limits are **on by default**. The switch is
+`speed_limit_inference_enabled` in `app/config.py`; to turn them off in one
+environment without a code change, set:
 
 ```dotenv
-SPEED_LIMIT_INFERENCE_ENABLED=true
+SPEED_LIMIT_INFERENCE_ENABLED=false
 ```
 
-Expect a step change in violation counts when you do — trips through
-neighbourhoods that previously graded clean will start producing violations,
-because ~91% of residential streets were being skipped rather than driven well.
+It is deliberately not in `.env.example`: pinning it there to the same value as
+the code default gives one flag two sources of truth, and they drift.
+
+Assumptions are only safe on while the app grades against the
+`speedingThresholdMph` sent with each limit rather than a flat tolerance of its
+own — an assumed 25 judged at 5 mph would flag a driver legally doing 30 on a
+residential street actually posted 30. `SpeedGradingService` uses that field and
+refuses to grade without it. **If a client ever stops honouring it, turn this
+back off.**
+
+Turning assumptions on is additive: a posted limit is returned either way, so it
+only fills in roads that previously answered `unknown` and cannot change a road
+that was already being graded.
+
+It does, however, cause a step change in violation counts — trips through
+neighbourhoods that previously graded clean start producing violations, because
+~91% of residential streets were being skipped rather than driven well. Grades
+recorded before and after the switch are not comparable, and nothing in the
+`violations` table marks which side of it a row came from.
+
 The numbers in the tables above came from the extract itself:
 
 ```sql
