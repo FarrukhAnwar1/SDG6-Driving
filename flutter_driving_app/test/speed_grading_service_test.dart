@@ -2,9 +2,9 @@
 //
 // This suite verifies the core scoring logic for driver speed evaluation,
 // ensuring the application correctly processes the speed limit data returned
-// from the self-hosted Python API. It validates the 5 MPH buffer, the
-// 5-second grace window, and the 1-point-per-second deduction for sustained
-// speeding. It also covers the recorded violations, plus edge cases like
+// from the self-hosted Python API. It validates server-provided tolerances, the
+// 5-second grace window, and severity-scaled deductions for sustained
+// speeding. It also covers grouped violations, plus edge cases like
 // multiple speeding streaks, handling null speed limits, trip finalization,
 // and state resets.
 // Note: if any constants in SpeedGradingService are changed, these tests
@@ -21,13 +21,17 @@ extension _FixedPointSamples on SpeedGradingService {
   void addSampleAt({
     required double speedMph,
     required double? speedLimitMph,
+    double? speedingThresholdMph = 5,
     required DateTime timestamp,
+    String? roadName,
   }) => addSample(
     speedMph: speedMph,
     speedLimitMph: speedLimitMph,
+    speedingThresholdMph: speedingThresholdMph,
     timestamp: timestamp,
     latitude: _latitude,
     longitude: _longitude,
+    roadName: roadName,
   );
 }
 
@@ -42,6 +46,94 @@ void main() {
       expect(service.violations, isEmpty);
       expect(service.totalSpeedingDuration, Duration.zero);
     });
+
+    for (final threshold in [5.0, 10.0, 15.0]) {
+      test('uses a $threshold mph tolerance including its boundary', () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10]) {
+          service.addSampleAt(
+            speedMph: 25 + threshold - 0.1,
+            speedLimitMph: 25,
+            speedingThresholdMph: threshold,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        expect(service.grade, 100);
+        expect(service.violationCount, 0);
+
+        for (final seconds in [11, 21]) {
+          service.addSampleAt(
+            speedMph: 25 + threshold,
+            speedLimitMph: 25,
+            speedingThresholdMph: threshold,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+        expect(
+          service.violations.single.startTime,
+          start.add(const Duration(seconds: 11)),
+        );
+      });
+    }
+
+    test(
+      'a wider tolerance ends a streak and gives the next one fresh grace',
+      () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10]) {
+          service.addSampleAt(
+            speedMph: 30,
+            speedLimitMph: 25,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.addSampleAt(
+          speedMph: 30,
+          speedLimitMph: 25,
+          speedingThresholdMph: 10,
+          timestamp: start.add(const Duration(seconds: 11)),
+        );
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+
+        for (final seconds in [20, 24, 30]) {
+          service.addSampleAt(
+            speedMph: 35,
+            speedLimitMph: 25,
+            speedingThresholdMph: 10,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+          expect(service.grade, seconds == 30 ? 90 : 95);
+        }
+        service.finalizeTrip();
+        expect(service.violationCount, 2);
+      },
+    );
+
+    test(
+      'a missing tolerance ends a streak without charging the unknown gap',
+      () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10, 20, 60, 64]) {
+          service.addSampleAt(
+            speedMph: 35,
+            speedLimitMph: 25,
+            speedingThresholdMph: seconds == 20 ? null : 10,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.grade, 95);
+        expect(service.violationCount, 1);
+        expect(
+          service.violations.single.endTime,
+          start.add(const Duration(seconds: 10)),
+        );
+      },
+    );
 
     test('driving under the threshold never penalizes the grade', () {
       final service = SpeedGradingService();
@@ -62,9 +154,9 @@ void main() {
       'a brief excursion that never clears the grace window is not penalized',
       () {
         final service = SpeedGradingService();
-        service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+        service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
         service.addSampleAt(
-          speedMph: 80,
+          speedMph: 70,
           speedLimitMph: 65,
           timestamp: start.add(const Duration(seconds: 3)),
         );
@@ -86,11 +178,11 @@ void main() {
       'sustained speeding past the grace window costs 1 point per second over',
       () {
         final service = SpeedGradingService();
-        service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+        service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
 
         // Right at the 5s grace boundary so no points lost yet
         service.addSampleAt(
-          speedMph: 80,
+          speedMph: 70,
           speedLimitMph: 65,
           timestamp: start.add(const Duration(seconds: 5)),
         );
@@ -98,7 +190,7 @@ void main() {
 
         // 5 more seconds past the grace window so 5 points lost
         service.addSampleAt(
-          speedMph: 80,
+          speedMph: 70,
           speedLimitMph: 65,
           timestamp: start.add(const Duration(seconds: 10)),
         );
@@ -109,9 +201,9 @@ void main() {
     test('a violation is recorded once the driver drops under threshold, '
         'excluding the grace period from the penalized duration', () {
       final service = SpeedGradingService();
-      service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+      service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: start.add(const Duration(seconds: 10)),
       );
@@ -142,6 +234,7 @@ void main() {
         service.addSample(
           speedMph: 75,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start,
           latitude: 40.1,
           longitude: -75.1,
@@ -151,6 +244,7 @@ void main() {
         service.addSample(
           speedMph: 85,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start.add(const Duration(seconds: 6)),
           latitude: 40.2,
           longitude: -75.2,
@@ -158,6 +252,7 @@ void main() {
         service.addSample(
           speedMph: 80,
           speedLimitMph: 65,
+          speedingThresholdMph: 5,
           timestamp: start.add(const Duration(seconds: 8)),
           latitude: 40.3,
           longitude: -75.3,
@@ -177,9 +272,9 @@ void main() {
       final service = SpeedGradingService();
 
       // First violation: a 10s sustained streak
-      service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+      service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: start.add(const Duration(seconds: 10)),
       );
@@ -192,12 +287,12 @@ void main() {
       // Clean for a while, then a second, separate 10s sustained streak
       final secondStart = start.add(const Duration(minutes: 1));
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: secondStart,
       );
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: secondStart.add(const Duration(seconds: 10)),
       );
@@ -229,9 +324,9 @@ void main() {
 
     test('a null speed limit ends the current streak without penalizing', () {
       final service = SpeedGradingService();
-      service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+      service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: start.add(const Duration(seconds: 10)),
       );
@@ -239,7 +334,7 @@ void main() {
 
       // Speed limit data becomes unavailable (such as off the mapped roads)
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: null,
         timestamp: start.add(const Duration(seconds: 11)),
       );
@@ -252,9 +347,9 @@ void main() {
       'finalizeTrip records a streak still in progress when the trip ends',
       () {
         final service = SpeedGradingService();
-        service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+        service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
         service.addSampleAt(
-          speedMph: 80,
+          speedMph: 70,
           speedLimitMph: 65,
           timestamp: start.add(const Duration(seconds: 10)),
         );
@@ -270,9 +365,9 @@ void main() {
 
     test('regeneration is currently a no-op since regenPointsPerMinute is 0', () {
       final service = SpeedGradingService();
-      service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+      service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: start.add(const Duration(seconds: 10)),
       );
@@ -291,9 +386,9 @@ void main() {
 
     test('reset() restores the initial state', () {
       final service = SpeedGradingService();
-      service.addSampleAt(speedMph: 80, speedLimitMph: 65, timestamp: start);
+      service.addSampleAt(speedMph: 70, speedLimitMph: 65, timestamp: start);
       service.addSampleAt(
-        speedMph: 80,
+        speedMph: 70,
         speedLimitMph: 65,
         timestamp: start.add(const Duration(seconds: 10)),
       );
@@ -307,6 +402,236 @@ void main() {
       expect(service.violationCount, 0);
       expect(service.violations, isEmpty);
       expect(service.totalSpeedingDuration, Duration.zero);
+    });
+
+    test('penalties rise continuously with speed beyond the tolerance', () {
+      for (final threshold in [5.0, 10.0, 15.0]) {
+        for (final excess in [0.0, 2.5, 5.0, 10.0]) {
+          final service = SpeedGradingService();
+          for (final seconds in [0, 10]) {
+            service.addSampleAt(
+              speedMph: 25 + threshold + excess,
+              speedLimitMph: 25,
+              speedingThresholdMph: threshold,
+              timestamp: start.add(Duration(seconds: seconds)),
+            );
+          }
+          service.finalizeTrip();
+          expect(service.grade, 100 - 5 * (1 + excess / 5));
+          expect(service.totalSpeedingDuration, const Duration(seconds: 5));
+        }
+      }
+    });
+
+    test('changing speed changes the rate without recharging earlier time', () {
+      final service = SpeedGradingService();
+      for (final seconds in [0, 5, 7]) {
+        service.addSampleAt(
+          speedMph: 30,
+          speedLimitMph: 25,
+          timestamp: start.add(Duration(seconds: seconds)),
+        );
+      }
+      expect(service.grade, 98);
+      service.addSampleAt(
+        speedMph: 40,
+        speedLimitMph: 25,
+        timestamp: start.add(const Duration(seconds: 9)),
+      );
+      expect(service.grade, 92);
+      service.addSampleAt(
+        speedMph: 30,
+        speedLimitMph: 25,
+        timestamp: start.add(const Duration(seconds: 10)),
+      );
+      expect(service.grade, 91);
+    });
+
+    test('exactly five seconds of speeding does not record a violation', () {
+      final service = SpeedGradingService();
+      for (final seconds in [0, 5]) {
+        service.addSampleAt(
+          speedMph: 40,
+          speedLimitMph: 25,
+          timestamp: start.add(Duration(seconds: seconds)),
+        );
+      }
+      service.finalizeTrip();
+      expect(service.grade, 100);
+      expect(service.violations, isEmpty);
+    });
+
+    test(
+      'a brief lookup gap groups same-road violations without grading it',
+      () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10]) {
+          service.addSample(
+            speedMph: 30,
+            speedLimitMph: 25,
+            speedingThresholdMph: 5,
+            timestamp: start.add(Duration(seconds: seconds)),
+            latitude: 40.1,
+            longitude: -75.1,
+            roadName: 'Main Street',
+          );
+        }
+        for (final seconds in [11, 12, 13]) {
+          service.addSampleAt(
+            speedMph: 100,
+            speedLimitMph: null,
+            speedingThresholdMph: null,
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+          expect(service.grade, 95);
+        }
+        for (final seconds in [14, 24]) {
+          service.addSampleAt(
+            speedMph: 40,
+            speedLimitMph: 25,
+            timestamp: start.add(Duration(seconds: seconds)),
+            roadName: ' MAIN   Street ',
+          );
+        }
+        service.finalizeTrip();
+        service.finalizeTrip();
+
+        expect(service.grade, 80);
+        expect(service.violationCount, 1);
+        final violation = service.violations.single;
+        expect(violation.startTime, start);
+        expect(violation.endTime, start.add(const Duration(seconds: 24)));
+        expect(violation.roadName, 'Main Street');
+        expect(violation.latitude, 40.1);
+        expect(violation.longitude, -75.1);
+        expect(violation.peakSpeedMph, 40);
+        expect(violation.penalizedDuration, const Duration(seconds: 10));
+        expect(service.totalSpeedingDuration, const Duration(seconds: 10));
+      },
+    );
+
+    test('successive nearby streaks remain one violation', () {
+      final service = SpeedGradingService();
+      for (final firstSecond in [0, 12, 24]) {
+        for (final offset in [0, 10, 11]) {
+          service.addSampleAt(
+            speedMph: offset == 11 ? 25 : 30,
+            speedLimitMph: 25,
+            roadName: 'Main Street',
+            timestamp: start.add(Duration(seconds: firstSecond + offset)),
+          );
+        }
+        expect(service.violationCount, 1);
+      }
+      expect(service.grade, 85);
+      expect(
+        service.violations.single.endTime,
+        start.add(const Duration(seconds: 34)),
+      );
+      expect(service.totalSpeedingDuration, const Duration(seconds: 15));
+    });
+
+    for (final gap in [10, 11]) {
+      test('same-road streaks $gap seconds apart respect the merge window', () {
+        final service = SpeedGradingService();
+        for (final seconds in [0, 10, 11, 10 + gap, 20 + gap]) {
+          service.addSampleAt(
+            speedMph: 30,
+            speedLimitMph: seconds == 11 ? null : 25,
+            roadName: seconds == 11 ? null : 'Main Street',
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.grade, 90);
+        expect(service.violationCount, gap == 10 ? 1 : 2);
+        expect(service.totalSpeedingDuration, const Duration(seconds: 10));
+      });
+    }
+
+    test('turning onto another road starts a separate violation', () {
+      final service = SpeedGradingService();
+      for (final seconds in [0, 10, 11, 21]) {
+        service.addSampleAt(
+          speedMph: 30,
+          speedLimitMph: 25,
+          roadName: seconds < 11 ? 'Main Street' : 'Oak Avenue',
+          timestamp: start.add(Duration(seconds: seconds)),
+        );
+      }
+      service.finalizeTrip();
+      expect(service.grade, 90);
+      expect(service.violationCount, 2);
+      expect(service.violations.map((v) => v.roadName), [
+        'Main Street',
+        'Oak Avenue',
+      ]);
+    });
+
+    for (final otherRoadLimit in [25.0, null]) {
+      test(
+        'an intervening road with limit $otherRoadLimit prevents merging',
+        () {
+          final service = SpeedGradingService();
+          for (final seconds in [0, 10, 11, 12, 22]) {
+            service.addSampleAt(
+              speedMph: seconds == 11 ? 20 : 30,
+              speedLimitMph: seconds == 11 ? otherRoadLimit : 25,
+              roadName: seconds == 11 ? 'Oak Avenue' : 'Main Street',
+              timestamp: start.add(Duration(seconds: seconds)),
+            );
+          }
+          service.finalizeTrip();
+          expect(service.violationCount, 2);
+        },
+      );
+    }
+
+    test('unnamed roads are not assumed to be the same road across a gap', () {
+      final service = SpeedGradingService();
+      for (final seconds in [0, 10, 11, 12, 22]) {
+        service.addSampleAt(
+          speedMph: 30,
+          speedLimitMph: seconds == 11 ? null : 25,
+          roadName: seconds == 11 ? null : ' ',
+          timestamp: start.add(Duration(seconds: seconds)),
+        );
+      }
+      service.finalizeTrip();
+      expect(service.violationCount, 2);
+    });
+
+    test('reset clears pending road grouping and timing state', () {
+      final service = SpeedGradingService();
+      for (var trip = 0; trip < 2; trip++) {
+        for (final seconds in [0, 10, 11]) {
+          service.addSampleAt(
+            speedMph: 30,
+            speedLimitMph: seconds == 11 ? null : 25,
+            roadName: seconds == 11 ? null : 'Main Street',
+            timestamp: start.add(Duration(seconds: seconds)),
+          );
+        }
+        service.finalizeTrip();
+        expect(service.violationCount, 1);
+        expect(service.grade, 95);
+        service.reset();
+      }
+    });
+
+    test('duplicate and out-of-order fixes cannot inflate penalties', () {
+      final service = SpeedGradingService();
+      for (final seconds in [0, 10, 10, 9, 11]) {
+        service.addSampleAt(
+          speedMph: 30,
+          speedLimitMph: 25,
+          roadName: 'Main Street',
+          timestamp: start.add(Duration(seconds: seconds)),
+        );
+      }
+      service.finalizeTrip();
+      expect(service.grade, 94);
+      expect(service.totalSpeedingDuration, const Duration(seconds: 6));
     });
   });
 }

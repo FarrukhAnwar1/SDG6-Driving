@@ -43,6 +43,101 @@ PG_USER=...        # Username
 PG_PASSWORD=...    # Password
 ```
 
+### Which roads count, and what they're worth
+
+OSM tags every road *and every path* with `highway`, so the tag alone doesn't
+mean a car can be there. The lookup is restricted to driveable classes
+(`DRIVEABLE_HIGHWAY_TYPES` in `app/services/speed_limits.py`), which keeps it
+off the ~773k footways, paths, cycleways, tracks, steps and corridors in this
+extract, and off `construction`/`proposed` ways — 23.5% of which carry a
+`maxspeed`, so they would otherwise match on roads that may not exist yet.
+`service` (driveways, parking aisles, alleys) *is* included, so a driver in a
+parking lot resolves to the aisle they're on rather than to an arterial 70m
+away, but it carries no assumed limit and so reads as ungraded.
+
+The query deliberately does **not** filter on `maxspeed`. Doing so returned the
+nearest road that happened to be tagged on an untagged residential street,
+that meant answering with an arterial's 45 from up to 75m away, under that
+arterial's name. `GET /speed-limit` and the violation road-name lookup now
+search the same radius and the same classes, which is what makes a stored
+violation name the road whose limit the driver was actually graded against.
+
+#### Assumed limits
+
+`maxspeed` coverage in this extract is good exactly where it matters least and
+poor where it matters most:
+
+| Road group | Ways | Tagged |
+| --- | --- | --- |
+| Arterials (`motorway`, `trunk`, `primary`, `secondary`) | 155,424 | **80.3%** |
+| Local streets (`residential`, `tertiary`, `unclassified`, `living_street`) | 685,066 | **11.3%** |
+| Ramps (`*_link`) | 36,778 | **4.8%** |
+| `service` | 1,181,540 | **0.5%** |
+
+`residential` alone is 584k ways at 8.6%, so without a fallback the grader says
+nothing about neighbourhood driving — which is where a 25 mph limit exists and
+where speeding is most dangerous.
+
+A class gets an assumed limit only when its tagged ways cluster tightly enough
+that one number describes it. Each tolerance is derived, not picked: wide enough
+that a driver doing the real limit on the highest plausible posting for that
+class still doesn't register as speeding.
+
+| `highway` | Assumed | Tolerance | Basis |
+| --- | --- | --- | --- |
+| `residential` | 25 mph | 10 mph | 68.4% of 50,546 tagged ways; 30 is the ceiling (25+30 = 79.7%). Matches PA's statutory 25 mph urban-district limit |
+| `unclassified` | 25 mph | 15 mph | 35.9% of 2,794 — weaker mode with a 35 mph tail |
+| `living_street` | 15 mph | 10 mph | 88 tagged ways, spread 5–25; only 1,240 ways in the extract |
+
+Deliberately absent: `tertiary` (30/35/40/45 at 33/25/13/12% — assume 30 and a
+driver legally doing 50 on a real 45 reads as 20 over), `secondary` (same flat
+shape, already 58% tagged), `service` (grading driveways isn't the point),
+`*_link` (ramps vary far too much), and the arterials (already 90%+ tagged, so
+an untagged one is an outlier rather than a gap).
+
+`maxspeed=unposted` (392 ways) resolves to the assumed limit rather than to
+nothing, since that tag is stating the statutory default applies.
+
+Between `"NN mph"`, a bare number and `"NN km/h"`, the parser covers all but 31
+of the extract's 210,340 tagged ways, so there is no long tail of tag formats
+left to handle.
+
+#### Turning assumptions on
+
+Assumed limits are **off by default** (`SPEED_LIMIT_INFERENCE_ENABLED=false`).
+The app grades every limit at a flat 5 mph tolerance and does not yet read
+`speedingThresholdMph`, so an assumed 25 would flag a driver legally doing 30 on
+a residential street actually posted 30. Once the app honours that field, set:
+
+```dotenv
+SPEED_LIMIT_INFERENCE_ENABLED=true
+```
+
+Expect a step change in violation counts when you do — trips through
+neighbourhoods that previously graded clean will start producing violations,
+because ~91% of residential streets were being skipped rather than driven well.
+The numbers in the tables above came from the extract itself:
+
+```sql
+-- coverage by road class
+SELECT highway, count(*) AS ways,
+       count(*) FILTER (WHERE tags -> 'maxspeed' IS NOT NULL) AS with_maxspeed
+FROM planet_osm_line WHERE highway IS NOT NULL GROUP BY highway ORDER BY ways DESC;
+
+-- the modal posting per class, which is where the assumed limits come from
+SELECT * FROM (
+  SELECT highway, tags -> 'maxspeed' AS maxspeed, count(*) AS ways,
+         row_number() OVER (PARTITION BY highway ORDER BY count(*) DESC) AS rn
+  FROM planet_osm_line
+  WHERE highway IN ('residential','unclassified','living_street','tertiary','service')
+    AND tags -> 'maxspeed' IS NOT NULL
+  GROUP BY highway, 2
+) t WHERE rn <= 5 ORDER BY highway, rn;
+```
+
+Rerun them after an extract rebuild. If coverage or the modes have shifted,
+the table in `app/services/speed_limits.py` should shift with them.
+
 ## Configure advanced driving feedback (Gemini)
 
 `GET /advanced-suggestion` uses the Gemini Developer API through `google-genai`.
@@ -141,11 +236,45 @@ The `violation_type` labels are spelled out in `VIOLATION_TYPES` in
 the API validates against that set rather than letting the driver find out from
 a 500.
 
-**Nothing writes to this table yet.** `POST /driving-reports` saves grades only,
-and the Flutter client doesn't upload its violation lists (nor does it record a
-road name per violation — `TripSummary`'s violations carry lat/lng but no road).
-`GET /driving-reports` reads the table already, so it returns
-`"violations": []` on every report until the write path lands.
+`POST /driving-reports` writes these rows, from the `violations` array on the
+upload. There is no separate violations endpoint: a violation only means
+anything as part of the trip it happened on, and writing both in one request
+keeps a report from ever existing without the violations behind it.
+
+### Coordinates in, road names out
+
+`TripSummary`'s violations carry the lat/lng where each one began; the table has
+a road name and no geometry. The endpoint bridges that gap: every point on an
+upload is resolved against the same PostGIS road data behind `GET /speed-limit`
+(nearest named `highway` within 75m), and the coordinates are then dropped.
+`app/services/road_names.py` does this for the whole report in one query rather
+than one per violation.
+
+`road_name` is `NULL` when the point is off-road, outside the OSM extract's
+coverage, or the nearest road is unnamed and also when the PostGIS database is
+unreachable. That last case is deliberate: the road data is a *different*
+database from the one the report is being written to, and losing a road name is
+recoverable while losing the drive is not, so the upload still returns `201`
+with the violations saved unnamed. The failure is logged as a warning.
+
+### Which label each grading service maps to
+
+The client sends the `ENUM` label directly. The backend does not infer it from
+the violation's shape. `TripSummary` keeps four lists, and they map like this:
+
+| `TripSummary` field | `violation_type` |
+| --- | --- |
+| `speedingViolations` | `Proper Speed` |
+| `brakingViolations` | `Smooth Braking` |
+| `acceleratingViolations` | `Smooth Accelerating` |
+| `turningViolations` | `Smooth Turning` |
+| `focusedDrivingViolations` | `Focused Driving` |
+
+Everything else the grading services attach to a violation. `speedLimitMph`
+and `peakSpeedMph` on a speeding streak, `peakGForce` on a smoothness
+violation, `speedAtStartMph` on a focus violation which has no column. Those fields
+are **ignored rather than rejected**, so the client can send a whole violation
+object unchanged, but they are not stored and can't be read back.
 
 ## Run
 
@@ -177,12 +306,30 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     different from `current_password`. `401` if `current_password` doesn't
     match the account's stored password.
   - `GET /speed-limit?lat=...&lng=...` (requires a valid access token,
-    `Authorization: Bearer <token>`) → `{"speedLimitMph": 45.0, "roadName": "...", "distanceMeters": 5.9}`.
-    Looks up the nearest tagged road segment to the given GPS point in the
-    PostGIS `speedlimits` database, within a 75m search radius. Returns
-    `{"speedLimitMph": null, "roadName": null, "distanceMeters": null}` if no
-    tagged road is found nearby (e.g. off-road, out of the OSM extract's
-    coverage area, or the nearest road has no `maxspeed` tag).
+    `Authorization: Bearer <token>`) →
+
+    ```json
+    {
+      "speedLimitMph": 45.0, "roadName": "...", "distanceMeters": 5.9,
+      "speedLimitSource": "posted", "speedingThresholdMph": 5.0
+    }
+    ```
+
+    Looks up the nearest **driveable** road segment to the given GPS point in
+    the PostGIS `speedlimits` database, within a 75m search radius, then
+    decides what limit applies to it. See *Which roads count, and what they're
+    worth* below. `speedLimitMph` is `null` when no driveable road is nearby
+    (off-road, or outside the extract's coverage) or when the nearest one
+    carries no limit worth using. `roadName` and `distanceMeters` are still
+    filled in that second case, so the app can name the road while grading
+    nothing against it.
+
+    `speedLimitSource` is `"posted"` (read off the road's `maxspeed` tag),
+    `"inferred"` (assumed from the road's class) or `"unknown"` (no limit).
+    `speedingThresholdMph` is how far over the limit counts as speeding on this
+    road, and is `null` exactly when the limit is. It is sent by the server
+    rather than fixed in the app because an assumed limit needs more slack than
+    a posted one, and how much depends on the road class.
   - `POST /driving-reports` (requires a valid access token,
     `Authorization: Bearer <token>`) saves one finished driving report for the
     authenticated user and returns it with its new `id`. The report is always
@@ -194,11 +341,21 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
       "endedAt": "2026-07-30T10:30:00",
       "tripDistanceMiles": 12.4,
       "overallGrade": 87.0,
-      "speedGrade": 87.0
+      "speedGrade": 87.0,
+      "violations": [
+        {
+          "violationType": "Proper Speed",
+          "startTime": "2026-07-30T10:05:00",
+          "endTime": "2026-07-30T10:05:18",
+          "latitude": 40.0379,
+          "longitude": -75.0182
+        }
+      ]
     }
     ```
 
-    → `201` with the saved report:
+    -> `201` with the saved report, each violation carrying the road name the
+    server resolved its coordinates to:
 
     ```json
     {
@@ -206,7 +363,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
       "brakingGrade": 100.0, "accelerationGrade": 100.0,
       "turningGrade": 100.0, "focusGrade": 100.0,
       "reportDate": "2026-07-30T10:30:00",
-      "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4
+      "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4,
+      "violations": [
+        {
+          "id": 1, "violationType": "Proper Speed", "roadName": "Roosevelt Blvd",
+          "startTime": "2026-07-30T10:05:00", "endTime": "2026-07-30T10:05:18"
+        }
+      ]
     }
     ```
 
@@ -216,16 +379,29 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     timestamps rather than sent, so it can't disagree with them, and `reportDate`
     is set from `endedAt` so a report that uploads late still dates to the drive.
 
+    `violations` is optional and defaults to `[]`, so a client that sends only
+    grades keeps working unchanged, and a clean trip legitimately has none. Each
+    violation needs `violationType` (one of the five `ENUM` labels),
+    `startTime`, `endTime`, `latitude` and `longitude`. The coordinates become
+    `road_name` and are not stored. See the `violations` table section above
+    for the mapping and what happens to the extra grading fields.
+
+    The report and its violations are written in one transaction, so a trip
+    never lands with half its violations attached.
+
     `422` if `endedAt` is earlier than `startedAt`, if any grade is outside
     0–100, if the distance is negative or over 9999.99, if the trip is longer
     than 999.99 minutes (both would overflow their `decimal` columns), or if a
-    required field is missing.
+    required field is missing. Also `422` if a violation's `violationType` isn't
+    one of the five labels (it would fail the `ENUM` at `INSERT`), if its
+    `endTime` is earlier than its `startTime` (it would fail
+    `CHECK (end_time >= start_time)`), if a coordinate is out of range, or if
+    more than 500 violations are sent in one report.
 
     Note the request has no home for `speedingOffenseCount` or
     `totalSpeedingDuration` — `driving_reports` has no columns for them, so the
-    app computes them for the live dashboard but they are not saved. The request
-    also carries no violations yet, so nothing is written to the `violations`
-    table — see that section above.
+    app computes them for the live dashboard but they are not saved. Both are
+    now derivable from the stored violations anyway.
   - `GET /driving-reports?limit=n` (requires a valid access token,
     `Authorization: Bearer <token>`) returns the authenticated user's `n` most
     recent reports, newest trip first, each with the violations recorded during
@@ -363,6 +539,14 @@ AnyIO 4.15. Remove this constraint after upgrading to a Starlette release that
 includes [the upstream fix](https://github.com/Kludex/starlette/pull/3498), then
 verify with `python -m pytest tests -q -p no:cacheprovider -W error`.
 
+The speed-limit tests stub the PostGIS query, since it needs a live database,
+and check the decision made on top of a row: which tag values parse, which road
+classes carry an assumed limit and which deliberately don't, and that an
+assumption never reaches the client labelled as a posted sign. They also assert
+the two nearest road queries still filter on the same classes, since those
+drifting apart is what let a violation name a road the driver was never graded
+against.
+
 The suggestion tests use an in-memory SQLite database and a mocked HTTP transport
 for the real Gemini SDK. They cover authentication, user isolation, the report
 limit and ordering, full prompt data, trend calculations, insufficient history,
@@ -385,7 +569,14 @@ and provider errors without a live MySQL/PostGIS server or Gemini key.
   would eventually disagree and make the report screen contradict the dashboard.
 - Only the finished report is saved, not the GPS samples behind it. Those are
   needed to produce the grade in the first place, which happens on the device,
-  so there's nothing to keep afterward. 
+  so there's nothing to keep afterward. The one exception is the coordinates a
+  violation started at, and those aren't kept either, they're resolved to a
+  road name on the way in and dropped, so the stored history says which road a
+  violation happened on without amounting to a trace of where the driver went.
+- Road names are resolved at upload time rather than on read. A name is a fact
+  about the moment the violation happened, and the OSM extract gets rebuilt; a
+  report shouldn't quietly change its mind about where a drive went wrong
+  because the map data moved underneath it.
 - `GET /driving-reports` pulls each report's violations with `selectinload`, so a
   page of reports costs one extra query for all of their violations rather than
   one query per report as the response model walks the rows.

@@ -5,18 +5,51 @@ import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
 
+enum SpeedLimitSource { posted, inferred, unknown }
+
+class SpeedLimit {
+  final double? speedLimitMph;
+  final SpeedLimitSource source;
+  final double? speedingThresholdMph;
+  final String? roadName;
+  final double? distanceMeters;
+
+  const SpeedLimit({
+    required this.speedLimitMph,
+    required this.source,
+    required this.speedingThresholdMph,
+    this.roadName,
+    this.distanceMeters,
+  });
+
+  // A number without its source and tolerance is not enough to grade safely
+  bool get canGrade =>
+      source != SpeedLimitSource.unknown &&
+      speedLimitMph != null &&
+      speedLimitMph!.isFinite &&
+      speedLimitMph! >= 0 &&
+      speedingThresholdMph != null &&
+      speedingThresholdMph!.isFinite &&
+      speedingThresholdMph! >= 0;
+
+  factory SpeedLimit.fromJson(Map<String, dynamic> json) => SpeedLimit(
+    speedLimitMph: (json['speedLimitMph'] as num?)?.toDouble(),
+    source: switch (json['speedLimitSource']) {
+      'posted' => SpeedLimitSource.posted,
+      'inferred' => SpeedLimitSource.inferred,
+      _ => SpeedLimitSource.unknown,
+    },
+    speedingThresholdMph: (json['speedingThresholdMph'] as num?)?.toDouble(),
+    roadName: json['roadName'] as String?,
+    distanceMeters: (json['distanceMeters'] as num?)?.toDouble(),
+  );
+}
+
 class SpeedLimitService {
   SpeedLimitService._();
 
-  // Returns the posted speed limit (MPH) near the given coordinates, or
-  // null if none was found / the request failed
-  //
-  // Backend contract (see speed_limits.py):
-  //   GET {baseUrl}/speed-limit?lat=<lat>&lng=<lng>
-  //   -> { "speedLimitMph": number | null,
-  //        "roadName": string | null,
-  //        "distanceMeters": number | null }
-  static Future<double?> fetchPostedSpeedLimitMph({
+  // An unknown limit can still identify the road. Null means the lookup failed.
+  static Future<SpeedLimit?> fetchSpeedLimit({
     required double latitude,
     required double longitude,
     required String token,
@@ -44,7 +77,7 @@ class SpeedLimitService {
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return (data['speedLimitMph'] as num?)?.toDouble();
+      return SpeedLimit.fromJson(data);
     } on TimeoutException {
       debugPrint(
         'SpeedLimitService: Request timed out after 2 seconds '

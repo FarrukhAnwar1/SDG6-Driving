@@ -1,64 +1,39 @@
-import re
-
+# Answers "what's the limit where I am right now?" for the live dashboard,
+# which polls this every 4 seconds while a trip is running. The decision of
+# what the limit actually is lives in services/speed_limits.py; this file runs
+# the nearest-road query and shapes the response.
 from fastapi import APIRouter, Query
 from sqlalchemy import text
 
+from ..config import settings
 from ..dependencies import CurrentUser, PgSession
 from ..schemas import SpeedLimitOut
+from ..services.speed_limits import (
+    DRIVEABLE_HIGHWAY_TYPES,
+    SEARCH_RADIUS_METERS,
+    resolve_speed_limit,
+)
 
 router = APIRouter(tags=["speed-limits"])
 
-# How far (in meters) to search for a tagged road around the given point
-# Flutter app samples location roughly every 50m while driving, so this gives a buffer above that 
-# so pings landing between two samples still find a nearby match
-
-SEARCH_RADIUS_METERS = 75
-
-# Captures only numeric part of the speed in mph
-_MPH_PATTERN = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*mph\s*$", re.IGNORECASE)
-# Captures only numeric part of the speed in kmh, converts to mph
-_KMH_PATTERN = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*km/?h\s*$", re.IGNORECASE)
-# Captures only a bare number, assumed to be mph since this extract is US roads
-_BARE_NUMBER_PATTERN = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*$")
-
-KMH_TO_MPH = 0.621371
-
-
-def parse_maxspeed_to_mph(raw: str | None) -> float | None:
-    """Normalize an OSM `maxspeed` tag value into a plain mph float.
-
-    Handles the formats actually seen in this dataset: "NN mph", bare "NN" (assumed mph, 
-    since this extract is US roads), and "NN km/h" for any non-US segments that slip in 
-    Anything else (like "unposted" or "signals") returns None rather than raising, 
-    so one bad row doesn't break the query
-    """
-    if raw is None:
-        return None
-
-    if match := _MPH_PATTERN.match(raw):
-        return float(match.group(1))
-
-    if match := _KMH_PATTERN.match(raw):
-        return round(float(match.group(1)) * KMH_TO_MPH, 1)
-
-    if match := _BARE_NUMBER_PATTERN.match(raw):
-        return float(match.group(1))
-
-    return None
-
-
-# Finds the closest `highway` line segment with a maxspeed tag within SEARCH_RADIUS_METERS of the given point. 
-# `way` is stored in SRID 3857 (meters), so the incoming lat/lng (SRID 4326) is transformed to match before distance comparisons
-
+# Finds the closest driveable line segment within SEARCH_RADIUS_METERS of the
+# given point. `way` is stored in SRID 3857 (meters), so the incoming lat/lng
+# (SRID 4326) is transformed to match before distance comparisons.
+#
+# Note this does NOT filter on maxspeed. Doing so returned the nearest road
+# *that happened to be tagged*, which on an untagged residential street meant
+# answering with an arterial's 45 up to 75m away - wrong limit, wrong road
+# name, and wrong grading. The nearest driveable road is the honest answer;
+# whether it has a limit is then resolve_speed_limit's problem.
 _NEAREST_ROAD_SQL = text(
     """
     SELECT
         name,
+        highway,
         tags -> 'maxspeed' AS maxspeed,
         ST_Distance(way, ST_Transform(:point, 3857)) AS distance_meters
     FROM planet_osm_line
-    WHERE highway IS NOT NULL
-      AND tags -> 'maxspeed' IS NOT NULL
+    WHERE highway = ANY(CAST(:driveable AS text[]))
       AND ST_DWithin(way, ST_Transform(:point, 3857), :radius)
     ORDER BY way <-> ST_Transform(:point, 3857)
     LIMIT 1
@@ -78,14 +53,28 @@ def get_speed_limit(
 
     row = pg_db.execute(
         _NEAREST_ROAD_SQL,
-        {"point": point_wkt, "radius": SEARCH_RADIUS_METERS},
+        {
+            "point": point_wkt,
+            "radius": SEARCH_RADIUS_METERS,
+            "driveable": list(DRIVEABLE_HIGHWAY_TYPES),
+        },
     ).first()
 
     if row is None:
         return SpeedLimitOut(speed_limit_mph=None)
 
+    speed_limit_mph, source, threshold_mph = resolve_speed_limit(
+        row.maxspeed,
+        row.highway,
+        infer=settings.speed_limit_inference_enabled,
+    )
+
+    # The road name and distance come back even when the limit doesn't, so the
+    # app can still say where it thinks the driver is while grading nothing
     return SpeedLimitOut(
-        speed_limit_mph=parse_maxspeed_to_mph(row.maxspeed),
+        speed_limit_mph=speed_limit_mph,
+        speed_limit_source=source,
+        speeding_threshold_mph=threshold_mph,
         road_name=row.name,
         distance_meters=round(row.distance_meters, 1),
     )
