@@ -1,7 +1,11 @@
 // Analytics for the latest 100 saved reports and their recorded violations
+import 'dart:convert';//
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;//
+import '../widgets/api_config.dart';//
+import '../widgets/auth_storage.dart';//
 import '../widgets/driving_report_api.dart';
 import '../widgets/driving_report_summary.dart';
 import '../widgets/error_banner.dart';
@@ -14,17 +18,103 @@ class AnalyticsScreen extends StatefulWidget {
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
 }
 
+enum AnalyticsRange {
+  last10,
+  last25,
+  last50,
+  last75,
+  last100,
+}
+
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   List<DrivingReportSummary> _reports = const [];
 
   String _selectedMetric = 'Overall';
+  AnalyticsRange _selectedRange = AnalyticsRange.last10;
+
+  bool _isLoadingSuggestions = false;
+  String? _suggestionsError;
+  String? _suggestion;
+  
+  int getTripLimit(AnalyticsRange range) {
+  switch (range) {
+    case AnalyticsRange.last10:
+      return 10;
+    case AnalyticsRange.last25:
+      return 25;
+    case AnalyticsRange.last50:
+      return 50;
+    case AnalyticsRange.last75:
+      return 75;
+    case AnalyticsRange.last100:
+      return 100;
+    }
+  }
+  // Returns the most recent reports up to the selected range limit.
+  List<DrivingReportSummary> get _filteredReports {
+  final limit = getTripLimit(_selectedRange);
+
+  if (_reports.length <= limit) {
+    return _reports;
+  }
+
+  return _reports.sublist(_reports.length - limit);
+  }
+
+  //suggestions loaded from backend based on the selected range
+  Future<void> _loadSuggestions() async {
+    setState(() {
+      _isLoadingSuggestions = true;
+      _suggestionsError = null;
+    });
+
+    try {
+      final token = await AuthStorage.readToken();
+
+      if (token == null) {
+        throw Exception('User is not autherized. Please log in.');
+      }
+
+      final limit = getTripLimit(_selectedRange);
+
+      final response = await http.get(
+        Uri.parse(
+          '${ApiConfig.baseUrl}/suggestions?limit=$limit',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to load suggestions');
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      setState(() {
+        _suggestion = data['message'] as String?;
+        _isLoadingSuggestions = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _suggestionsError = 'Suggestions could not be loaded.';
+        _isLoadingSuggestions = false;
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
+    _loadSuggestions();
   }
 
   Future<void> _loadHistory() async {
@@ -47,6 +137,37 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _errorMessage = result.errorMessage;
       }
     });
+  }
+
+  Widget _buildSuggestionsSection() {
+    if (_isLoadingSuggestions) {
+      return const Center( child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_suggestionsError != null) {
+      return ErrorBanner(
+        message: _suggestionsError!,
+      );
+    }
+
+    if (_suggestions.isEmpty) {
+      return const Text(
+        'No driving suggestions available yet.',
+      );
+    }
+
+    return Column(
+      children: [
+        for (final suggestion in _suggestions)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.lightbulb_outline),
+              title: Text(suggestion),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -134,8 +255,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 28),
 
           _SectionHeader('Grade History'),
+          SegmentedButton<AnalyticsRange>(
+            // Trip history range filtering buttons
+            segments: const [
+              ButtonSegment(
+                value: AnalyticsRange.last10,
+                label: Text('10'),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.last25,
+                label: Text('25'),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.last50,
+                label: Text('50'),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.last75,
+                label: Text('75'),
+              ),
+              ButtonSegment(
+                value: AnalyticsRange.last100,
+                label: Text('100'),
+              ),
+            ],
+
+            selected: {_selectedRange},
+            onSelectionChanged: (selection) {
+              setState(() {
+                _selectedRange = selection.first;}
+                );
+              _loadSuggestions();
+            },
+          ),
+
           const SizedBox(height: 16),
-          _HistoryChart(reports: _reports, selectedMetric: _selectedMetric),
+          _HistoryChart(reports: _filteredReports, selectedMetric: _selectedMetric),
           if (_reports.length >= 2) ...[
             const SizedBox(height: 16),
             _MetricDropdown(
@@ -145,6 +300,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               },
             ),
           ],
+          const SizedBox(height: 28),
+          _SectionHeader('Driving Suggestions'),
+          const SizedBox(height: 12),
+          _buildSuggestionsSection(),
+
           const SizedBox(height: 28),
           _SectionHeader('Trip Reports'),
           const SizedBox(height: 12),
@@ -229,6 +389,7 @@ class _ReportCard extends StatelessWidget {
     );
   }
 }
+
 
 class _ViolationTile extends StatelessWidget {
   final DrivingReportViolation violation;
