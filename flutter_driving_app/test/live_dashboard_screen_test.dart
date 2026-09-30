@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_driving_app/screens/live_dashboard_screen.dart';
 import 'package:flutter_driving_app/widgets/background_location_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -84,7 +85,12 @@ void main() {
     Future<void> Function() check,
   ) async {
     try {
-      await tester.pumpWidget(const MaterialApp(home: LiveDashboardScreen()));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
+          home: const LiveDashboardScreen(),
+        ),
+      );
       await tester.pump();
       await check();
     } finally {
@@ -107,31 +113,118 @@ void main() {
   }
 
   void expectSpeedGrade(String grade) {
-    final card = find.ancestor(
-      of: find.text('Proper Speed'),
-      matching: find.byType(Card),
-    );
+    final row = find.byKey(const ValueKey('grade-Proper Speed'));
     expect(
-      find.descendant(of: card, matching: find.text(grade)),
+      find.descendant(of: row, matching: find.text(grade)),
       findsOneWidget,
     );
   }
 
   void expectSpeedColor(WidgetTester tester, double speed, Color? color) {
-    final speedText = find.text('${speed.toStringAsFixed(0)} MPH').first;
+    final speedText = find.byKey(const ValueKey('current-speed'));
+    expect(tester.widget<Text>(speedText).data, speed.toStringAsFixed(0));
     final normalColor = Theme.of(
       tester.element(speedText),
-    ).textTheme.titleLarge!.color;
+    ).textTheme.displayLarge!.color;
     expect(tester.widget<Text>(speedText).style!.color, color ?? normalColor);
+  }
+
+  void expectLimit(WidgetTester tester, String value, {String? range}) {
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('speed-limit-value'))).data,
+      value,
+    );
+    final rangeFinder = find.byKey(const ValueKey('speed-limit-range'));
+    if (range == null) {
+      expect(rangeFinder, findsNothing);
+    } else {
+      expect(tester.widget<Text>(rangeFinder).data, '±$range');
+    }
+  }
+
+  void setViewport(WidgetTester tester, Size size) {
+    tester.view.physicalSize = size;
+    tester.view.devicePixelRatio = 1;
+    tester.view.padding = const FakeViewPadding(top: 24, bottom: 24);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+  }
+
+  void expectDashboardFits(WidgetTester tester) {
+    expect(tester.takeException(), isNull);
+    expect(find.byType(Scrollable), findsNothing);
+    final stop = find.byKey(const ValueKey('stop-trip'));
+    expect(stop.hitTestable(), findsOneWidget);
+    final stopBounds = tester.getRect(stop);
+    final screenHeight = tester.view.physicalSize.height;
+    expect(stopBounds.bottom, lessThanOrEqualTo(screenHeight - 24));
+
+    final limit = find.byKey(const ValueKey('speed-limit-value'));
+    final limitText = tester.widget<Text>(limit).data!;
+    final limitParagraph = tester.renderObject<RenderParagraph>(limit);
+    final limitLines = limitParagraph.getBoxesForSelection(
+      TextSelection(baseOffset: 0, extentOffset: limitText.length),
+    );
+    expect(limitLines, hasLength(1));
+
+    for (final label in [
+      'Proper Speed',
+      'Focused Driving',
+      'Smooth Braking',
+      'Smooth Accelerating',
+      'Smooth Turning',
+    ]) {
+      final row = find.byKey(ValueKey('grade-$label'));
+      final bar = find.descendant(
+        of: row,
+        matching: find.byType(LinearProgressIndicator),
+      );
+      expect(find.text(label).hitTestable(), findsOneWidget);
+      expect(bar.hitTestable(), findsOneWidget);
+      expect(tester.getRect(row).top, greaterThan(80));
+      expect(tester.getRect(row).bottom, lessThan(stopBounds.top));
+      expect(tester.getRect(bar).bottom, lessThan(stopBounds.top));
+    }
+
+    final tripCard = find.ancestor(
+      of: find.text('TIME'),
+      matching: find.byType(Card),
+    );
+    final rightEdge = tester.getRect(tripCard).right - 20;
+    for (final label in ['TIME', 'MILES']) {
+      for (final part in ['label', 'value']) {
+        final stat = find.byKey(ValueKey('stat-$label-$part'));
+        expect(stat.hitTestable(), findsOneWidget);
+        expect(tester.getRect(stat).right, closeTo(rightEdge, 0.1));
+      }
+    }
+  }
+
+  Future<void> expectResponsiveLayout(WidgetTester tester) async {
+    // Resize the same live trip, keeping its GPS stream and grades active
+    for (final viewport in [
+      (size: const Size(320, 640), textScale: 1.0),
+      (size: const Size(360, 800), textScale: 1.0),
+      (size: const Size(411, 891), textScale: 1.0),
+      (size: const Size(456, 1020), textScale: 1.0),
+      (size: const Size(360, 800), textScale: 1.5),
+    ]) {
+      tester.view.physicalSize = viewport.size;
+      tester.platformDispatcher.textScaleFactorTestValue = viewport.textScale;
+      await tester.pump();
+      expectDashboardFits(tester);
+    }
+    tester.view.physicalSize = const Size(360, 800);
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
+    await tester.pump();
   }
 
   testWidgets(
     'dashboard colors estimated ranges and groups speeding after a lookup timeout',
     (tester) async {
-      tester.view.physicalSize = const Size(360, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+      setViewport(tester, const Size(360, 800));
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
       double threshold = 15;
       var source = 'inferred';
@@ -152,28 +245,30 @@ void main() {
       // request timeout, and recovery on the same road.
       await http.runWithClient(
         () => onDashboard(tester, () async {
-          expect(find.text('Unavailable'), findsOneWidget);
+          expectLimit(tester, '--');
           expect(find.textContaining('±'), findsNothing);
-          expect(find.textContaining('Speed grading paused'), findsOneWidget);
+          expect(find.text('Paused – no speed limit data'), findsOneWidget);
+          expect(find.text('Forward G'), findsNothing);
+          expect(find.text('Lateral G'), findsNothing);
+          expect(
+            find.textContaining(RegExp(r'\d+ (times?|events?)')),
+            findsNothing,
+          );
+          await expectResponsiveLayout(tester);
           await drive(tester, 39, 12);
-          expect(find.text('Estimated Limit'), findsOneWidget);
-          expect(find.text('25±10 MPH'), findsOneWidget);
+          expect(find.text('EST.\nLIMIT'), findsOneWidget);
+          expectLimit(tester, '25', range: '10');
           expect(find.textContaining('Estimated range:'), findsNothing);
           expect(find.text('Nearest Road'), findsOneWidget);
           expectSpeedGrade('100');
-          expect(
-            tester.widget<Text>(find.text('39 MPH')).style!.color,
-            Colors.orange,
-          );
+          expectSpeedColor(tester, 39, Colors.orange);
+          await expectResponsiveLayout(tester);
 
           await drive(tester, 40, 11);
           expectSpeedGrade('95');
-          expect(
-            tester.widget<Text>(find.text('40 MPH')).style!.color,
-            Colors.red,
-          );
+          expectSpeedColor(tester, 40, Colors.red);
           await drive(tester, 25, 1);
-          expect(find.text('1 time speeding'), findsOneWidget);
+          expect(find.textContaining('time speeding'), findsNothing);
 
           for (final scenario in [
             (source: 'posted', threshold: 5.0, range: null),
@@ -188,14 +283,12 @@ void main() {
             await drive(tester, 25, 4);
             if (scenario.range == null) {
               expect(find.textContaining('±'), findsNothing);
-              expect(find.text('25 MPH'), findsNWidgets(2));
+              expectLimit(tester, '25');
             } else {
-              expect(find.text('25±${scenario.range} MPH'), findsOneWidget);
+              expectLimit(tester, '25', range: scenario.range);
             }
             expect(
-              find.text(
-                source == 'inferred' ? 'Estimated Limit' : 'Speed Limit',
-              ),
+              find.text(source == 'inferred' ? 'EST.\nLIMIT' : 'SPEED\nLIMIT'),
               findsOneWidget,
             );
             expectSpeedGrade('95');
@@ -223,32 +316,34 @@ void main() {
           delayNextLookup = true;
           await drive(tester, 30, 2);
           await tester.pump(const Duration(seconds: 2));
-          expect(find.text('Unavailable'), findsOneWidget);
+          expectLimit(tester, '--');
           expect(find.textContaining('±'), findsNothing);
-          expect(find.textContaining('Speed grading paused'), findsOneWidget);
+          expect(find.text('Paused – no speed limit data'), findsOneWidget);
           expectSpeedGrade('87');
           expectSpeedColor(tester, 30, null);
 
           // The late response must not unpause grading; a fresh lookup must
           delayedResponse.complete(limitResponse());
           await tester.pump();
-          expect(find.text('Unavailable'), findsOneWidget);
+          expectLimit(tester, '--');
           await drive(tester, 30, 3);
           expectSpeedGrade('87');
-          expect(find.textContaining('2 times speeding'), findsOneWidget);
+          expect(find.textContaining('times speeding'), findsNothing);
 
           // Grading resumes after the next lookup, and only the five seconds
           // after fresh grace are charged during the resumed streak.
           await drive(tester, 30, 12);
-          expect(find.text('Speed Limit'), findsOneWidget);
+          expect(find.text('SPEED\nLIMIT'), findsOneWidget);
           expect(find.textContaining('±'), findsNothing);
-          expect(find.textContaining('Speed grading paused'), findsNothing);
+          expect(find.text('Paused – no speed limit data'), findsNothing);
           expectSpeedGrade('82');
           await drive(tester, 25, 1);
-          expect(find.text('2 times speeding'), findsOneWidget);
-          expect(find.text('3 times speeding'), findsNothing);
+          expect(
+            find.textContaining(RegExp(r'\d+ (times?|events?)')),
+            findsNothing,
+          );
           expectSpeedGrade('82');
-          expect(tester.takeException(), isNull);
+          expectDashboardFits(tester);
         }),
         () => MockClient((_) async {
           if (delayNextLookup) {

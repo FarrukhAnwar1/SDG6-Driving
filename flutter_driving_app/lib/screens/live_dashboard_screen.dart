@@ -95,27 +95,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   bool _receivedFirstPosition = false;
 
-  double _currentForwardG = 0.0;
-  double _currentLateralG = 0.0;
-  bool _isForwardCalibrated = false;
-  // Startup calibration progress from OrientationCalibrationService. Showing
-  // 0/2 vs 1/2 makes it obvious whether no candidate has qualified yet or the
-  // service is waiting for one more consistent interval.
-  int _forwardCalibrationConfirmations = 0;
-  int _forwardCalibrationConfirmationsRequired = 2;
-
-  // Formats g-force with a leading sign, avoiding "-0.0"
-  String _formatGForce(double gForce) {
-    String formatted = gForce.toStringAsFixed(1);
-    if (formatted == '-0.0') {
-      formatted = '0.0';
-    }
-    if (formatted.startsWith('-')) {
-      return formatted;
-    }
-    return '+$formatted';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -191,13 +170,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // light) doesn't get counted as harsh braking/accelerating/turning.
     final isMoving = _currentSpeedMph >= _minSpeedMph;
     final isForwardCalibrated = _orientationCalibration.isForwardCalibrated;
-    final forwardCalibrationConfirmations =
-        _orientationCalibration.forwardCalibrationConfirmations;
-    final forwardCalibrationConfirmationsRequired =
-        _orientationCalibration.forwardCalibrationConfirmationsRequired;
     // Before calibration, forwardG == 0 is only a placeholder. Keep sending
-    // zero into the existing grader (which is neutral), but preserve the
-    // calibration state separately so the UI never presents it as measured G.
+    // zero into the existing grader (which is neutral).
     final forwardG = isMoving && isForwardCalibrated
         ? _orientationCalibration.forwardG
         : 0.0;
@@ -210,17 +184,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       longitude: position.longitude,
       timestamp: event.timestamp,
     );
-
-    if (mounted) {
-      setState(() {
-        _currentForwardG = forwardG;
-        _currentLateralG = lateralG;
-        _isForwardCalibrated = isForwardCalibrated;
-        _forwardCalibrationConfirmations = forwardCalibrationConfirmations;
-        _forwardCalibrationConfirmationsRequired =
-            forwardCalibrationConfirmationsRequired;
-      });
-    }
   }
 
   Future<void> _startListening() async {
@@ -486,16 +449,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         difference < _speedLimit!.speedingThresholdMph!;
   }
 
-  String get _speedingCountLabel {
-    final count = _properSpeedGrading.violationCount;
-    return count == 1 ? '1 time speeding' : '$count times speeding';
-  }
-
-  String get _focusedDrivingCountLabel {
-    final count = _focusedDrivingGrading.violationCount;
-    return count == 1 ? '1 time off app' : '$count times off app';
-  }
-
   // Overall Grade is the average of every currently graded category
   double get _overallGrade {
     final grades = [
@@ -526,8 +479,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         ? '±${estimatedRangeMph == estimatedRangeMph.roundToDouble() ? estimatedRangeMph.toStringAsFixed(0) : estimatedRangeMph.toString()}'
         : '';
     final speedLimitText = hasSpeedLimit
-        ? '${_speedLimit!.speedLimitMph!.toStringAsFixed(0)}$estimatedRangeText MPH'
-        : 'Unavailable';
+        ? _speedLimit!.speedLimitMph!.toStringAsFixed(0)
+        : '--';
     final roadName = _speedLimit?.roadName;
 
     return PopScope(
@@ -535,136 +488,69 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Live Dashboard'),
+          centerTitle: true,
           automaticallyImplyLeading: false,
+          scrolledUnderElevation: 0,
         ),
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Stats scroll on short screens; Stop Trip stays pinned below
+                // Allocate the available height so every grade stays visible
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildGradeCard(context, 'Overall Grade', overallGrade),
-                        const SizedBox(height: 12),
-                        _buildGradeCard(
-                          context,
-                          'Proper Speed',
-                          _properSpeedGrading.grade,
-                          subtitle: hasSpeedLimit
-                              ? _speedingCountLabel
-                              : '$_speedingCountLabel\nSpeed grading paused',
-                        ),
-                        const SizedBox(height: 12),
-                        _buildGradeCard(
-                          context,
-                          'Focused Driving',
-                          _focusedDrivingGrading.grade,
-                          subtitle: _focusedDrivingCountLabel,
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildSmoothnessGradeTile(
-                                context,
-                                SmoothnessCategory.braking,
-                              ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final gap = constraints.maxHeight < 560 ? 10.0 : 16.0;
+                      final contentHeight = constraints.maxHeight - gap * 2;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            height: contentHeight * 0.28,
+                            child: _buildSpeedHero(
+                              context,
+                              speedColor: speedColor,
+                              limitLabel: isInferred
+                                  ? 'EST.\nLIMIT'
+                                  : 'SPEED\nLIMIT',
+                              limitValue: speedLimitText,
+                              limitRange: estimatedRangeText,
+                              roadName: roadName,
                             ),
-                            const SizedBox(width: 1),
-                            Expanded(
-                              child: _buildSmoothnessGradeTile(
-                                context,
-                                SmoothnessCategory.accelerating,
-                              ),
-                            ),
-                            const SizedBox(width: 1),
-                            Expanded(
-                              child: _buildSmoothnessGradeTile(
-                                context,
-                                SmoothnessCategory.turning,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                'Time Elapsed',
-                                formatElapsed(_elapsed),
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                'Miles Driven',
-                                _milesDriven.toStringAsFixed(1),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                'Current Speed',
-                                '${_currentSpeedMph.toStringAsFixed(0)} MPH',
-                                valueColor: speedColor,
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                isInferred ? 'Estimated Limit' : 'Speed Limit',
-                                speedLimitText,
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (roadName != null && roadName.trim().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(roadName, textAlign: TextAlign.center),
+                          ),
+                          SizedBox(height: gap),
+                          SizedBox(
+                            height: contentHeight * 0.22,
+                            child: _buildTripCard(context, overallGrade),
+                          ),
+                          SizedBox(height: gap),
+                          Expanded(
+                            child: _buildGradesCard(context, hasSpeedLimit),
+                          ),
                         ],
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                'Forward G',
-                                _isForwardCalibrated
-                                    ? _formatGForce(_currentForwardG)
-                                    : 'CAL $_forwardCalibrationConfirmations/'
-                                          '$_forwardCalibrationConfirmationsRequired',
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildStat(
-                                context,
-                                'Lateral G',
-                                _formatGForce(_currentLateralG),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 FilledButton.icon(
+                  key: const ValueKey('stop-trip'),
                   onPressed: _stopTrip,
-                  style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                  icon: const Icon(Icons.stop_circle_outlined),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(60),
+                    textStyle: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+                  icon: const Icon(Icons.stop_circle_outlined, size: 28),
                   label: const Text('Stop Trip'),
                 ),
               ],
@@ -675,108 +561,449 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // "subtitle" is optional so this still works for cards like Overall Grade
-  // that don't have a per-category count to show underneath the label.
-  Widget _buildGradeCard(
-    BuildContext context,
-    String label,
-    double grade, {
-    String? subtitle,
+  // Rounded, softly outlined container shared by the different dashboard sections
+  Widget _buildSurface(
+    BuildContext context, {
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(20),
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: subtitle == null
-                  ? Text(label, style: Theme.of(context).textTheme.titleMedium)
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          label,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        Text(
-                          subtitle,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              grade.toStringAsFixed(0),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: gradeColor(grade),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: scheme.outlineVariant),
       ),
+      child: Padding(padding: padding, child: child),
     );
   }
 
-  Widget _buildSmoothnessGradeTile(
-    BuildContext context,
-    SmoothnessCategory category,
-  ) {
-    final grade = _smoothnessGrading.gradeFor(category);
-    final violationCount = _smoothnessGrading.violationCountFor(category);
-
-    String eventsText = '$violationCount events';
-    if (violationCount == 1) {
-      eventsText = '1 event';
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
-        child: Column(
-          children: [
-            Text(
-              category.label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              grade.toStringAsFixed(0),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: gradeColor(grade),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(eventsText, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStat(
-    BuildContext context,
-    String label,
-    String value, {
-    Color? valueColor,
+  // Big current speed on the left, speed limit sign on the right, road name
+  // underneath. Meant to be read at a glance.
+  Widget _buildSpeedHero(
+    BuildContext context, {
+    required Color? speedColor,
+    required String limitLabel,
+    required String limitValue,
+    required String limitRange,
+    required String? roadName,
   }) {
+    final textTheme = Theme.of(context).textTheme;
+    final subtleColor = Theme.of(context).colorScheme.onSurfaceVariant;
+    final hasRoad = roadName != null && roadName.trim().isNotEmpty;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: valueColor,
-            // Keeps numbers the same width so they don't shift around
-            fontFeatures: const [FontFeature.tabularFigures()],
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _currentSpeedMph.toStringAsFixed(0),
+                          key: const ValueKey('current-speed'),
+                          style: textTheme.displayLarge?.copyWith(
+                            fontSize: 112,
+                            fontWeight: FontWeight.w800,
+                            height: 1.0,
+                            color: speedColor,
+                            // Keeps numbers the same width so they don't shift
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 24,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'MPH',
+                          style: textTheme.titleMedium?.copyWith(
+                            letterSpacing: 3,
+                            fontWeight: FontWeight.w600,
+                            color: subtleColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: _buildSpeedLimitSign(
+                  context,
+                  label: limitLabel,
+                  value: limitValue,
+                  rangeText: limitRange,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Fixed height so the layout doesn't jump when the road name changes
+        SizedBox(
+          height:
+              24.0 * MediaQuery.textScalerOf(context).scale(1).clamp(1, 1.5),
+          child: hasRoad
+              ? Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 20,
+                      color: subtleColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        roadName.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyLarge?.copyWith(
+                          fontSize: 18,
+                          height: 1.2,
+                          color: subtleColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : null,
+        ),
+      ],
+    );
+  }
+
+  // Outlined road-sign style badge
+  Widget _buildSpeedLimitSign(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required String rangeText,
+  }) {
+    final ink = Theme.of(context).colorScheme.onSurface;
+    return Container(
+      width: 96,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ink, width: 3),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            key: const ValueKey('speed-limit-label'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: ink,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              key: const ValueKey('speed-limit-value'),
+              maxLines: 1,
+              style: TextStyle(
+                color: ink,
+                fontSize: 44,
+                fontWeight: FontWeight.w800,
+                height: 1.05,
+              ),
+            ),
+          ),
+          if (rangeText.isNotEmpty)
+            Text(
+              rangeText,
+              key: const ValueKey('speed-limit-range'),
+              style: TextStyle(
+                color: ink,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Overall grade ring alongside elapsed time and miles
+  Widget _buildTripCard(BuildContext context, double overallGrade) {
+    return _buildSurface(
+      context,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final ringSize = constraints.maxHeight
+              .clamp(0.0, (constraints.maxWidth * 0.45).clamp(0.0, 120.0))
+              .toDouble();
+          return Row(
+            children: [
+              _buildOverallGradeRing(context, overallGrade, ringSize),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildStat(
+                        context,
+                        'TIME',
+                        formatElapsed(_elapsed),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: _buildStat(
+                        context,
+                        'MILES',
+                        _milesDriven.toStringAsFixed(1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOverallGradeRing(
+    BuildContext context,
+    double grade,
+    double size,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final color = gradeColor(grade);
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SizedBox.expand(
+            child: CircularProgressIndicator(
+              value: (grade / 100).clamp(0.0, 1.0).toDouble(),
+              strokeWidth: size / 12,
+              strokeCap: StrokeCap.round,
+              color: color,
+              backgroundColor: scheme.outlineVariant,
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(size * 0.15),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    grade.toStringAsFixed(0),
+                    style: textTheme.displaySmall?.copyWith(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w800,
+                      height: 1.0,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'OVERALL',
+                    style: textTheme.labelMedium?.copyWith(
+                      letterSpacing: 1.5,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStat(BuildContext context, String label, String value) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              label,
+              key: ValueKey('stat-$label-label'),
+              textAlign: TextAlign.right,
+              style: textTheme.labelLarge?.copyWith(
+                letterSpacing: 1.5,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          flex: 2,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Text(
+              value,
+              key: ValueKey('stat-$label-value'),
+              textAlign: TextAlign.right,
+              style: textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                // Keeps numbers the same width so they don't shift around
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  // One card holding every category grade as a row with a progress bar
+  Widget _buildGradesCard(BuildContext context, bool hasSpeedLimit) {
+    return _buildSurface(
+      context,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      child: Column(
+        children: [
+          Expanded(
+            child: _buildGradeRow(
+              context,
+              'Proper Speed',
+              _properSpeedGrading.grade,
+              note: hasSpeedLimit ? null : 'Paused – no speed limit data',
+            ),
+          ),
+          Expanded(
+            child: _buildGradeRow(
+              context,
+              'Focused Driving',
+              _focusedDrivingGrading.grade,
+            ),
+          ),
+          for (final category in [
+            SmoothnessCategory.braking,
+            SmoothnessCategory.accelerating,
+            SmoothnessCategory.turning,
+          ]) ...[
+            Expanded(
+              child: _buildGradeRow(
+                context,
+                category.label,
+                _smoothnessGrading.gradeFor(category),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradeRow(
+    BuildContext context,
+    String label,
+    double grade, {
+    String? note,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+    final color = gradeColor(grade);
+
+    return Padding(
+      key: ValueKey('grade-$label'),
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          label,
+                          style: textTheme.titleMedium?.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        if (note != null)
+                          Text(
+                            note,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    grade.toStringAsFixed(0),
+                    style: textTheme.headlineMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: (grade / 100).clamp(0.0, 1.0).toDouble(),
+              minHeight: 6,
+              color: color,
+              backgroundColor: scheme.outlineVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
