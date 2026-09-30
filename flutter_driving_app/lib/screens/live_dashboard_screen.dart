@@ -901,8 +901,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: _buildGradeRow(
               context,
               'Proper Speed',
-              _properSpeedGrading.grade,
-              note: hasSpeedLimit ? null : 'Paused – no speed limit data',
+              _properSpeedGrading.grade
             ),
           ),
           Expanded(

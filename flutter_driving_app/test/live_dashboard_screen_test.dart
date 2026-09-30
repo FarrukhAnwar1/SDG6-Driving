@@ -247,7 +247,6 @@ void main() {
         () => onDashboard(tester, () async {
           expectLimit(tester, '--');
           expect(find.textContaining('±'), findsNothing);
-          expect(find.text('Paused – no speed limit data'), findsOneWidget);
           expect(find.text('Forward G'), findsNothing);
           expect(find.text('Lateral G'), findsNothing);
           expect(
@@ -318,7 +317,6 @@ void main() {
           await tester.pump(const Duration(seconds: 2));
           expectLimit(tester, '--');
           expect(find.textContaining('±'), findsNothing);
-          expect(find.text('Paused – no speed limit data'), findsOneWidget);
           expectSpeedGrade('87');
           expectSpeedColor(tester, 30, null);
 
@@ -335,7 +333,6 @@ void main() {
           await drive(tester, 30, 12);
           expect(find.text('SPEED\nLIMIT'), findsOneWidget);
           expect(find.textContaining('±'), findsNothing);
-          expect(find.text('Paused – no speed limit data'), findsNothing);
           expectSpeedGrade('82');
           await drive(tester, 25, 1);
           expect(
