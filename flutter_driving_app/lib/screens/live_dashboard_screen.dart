@@ -901,7 +901,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: _buildGradeRow(
               context,
               'Proper Speed',
-              _properSpeedGrading.grade
+              _properSpeedGrading.grade,
             ),
           ),
           Expanded(

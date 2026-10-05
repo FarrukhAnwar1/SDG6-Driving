@@ -23,7 +23,8 @@
 class ApiConfig {
   ApiConfig._();
   static const Map<String, String> _urls = {
-    'dev': 'http://10.0.2.2:8000', // Android emulator 10.0.2.2:8000 or localhost:8000
+    'dev':
+        'http://10.0.2.2:8000', // Android emulator 10.0.2.2:8000 or localhost:8000
     'staging': 'https://staging.example.com',
     'prod': 'https://api.driveucf.com',
   };
