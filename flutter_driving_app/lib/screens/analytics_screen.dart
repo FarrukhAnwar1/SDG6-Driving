@@ -151,22 +151,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
-    if (_suggestions.isEmpty) {
+    if (_suggestion == null || _suggestion!.isEmpty) {
       return const Text(
         'No driving suggestions available yet.',
       );
     }
 
-    return Column(
-      children: [
-        for (final suggestion in _suggestions)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.lightbulb_outline),
-              title: Text(suggestion),
-            ),
-          ),
-      ],
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.lightbulb_outline),
+        title: Text(_suggestion!),
+      ),
     );
   }
 
