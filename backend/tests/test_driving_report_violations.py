@@ -124,7 +124,7 @@ def test_a_violation_is_parsed_from_camel_case() -> None:
 
 @pytest.mark.parametrize("violation_type", VIOLATION_TYPES)
 def test_every_enum_label_is_accepted(violation_type: str) -> None:
-    # TripSummary keeps four separate violation lists and all five ENUM labels have
+    # TripSummary keeps five separate violation lists and all five ENUM labels have
     # to arrive through this one field
     report = DrivingReportCreate.model_validate(
         valid_report(violations=[valid_violation(violationType=violation_type)])
@@ -219,6 +219,32 @@ def test_the_violation_list_is_capped() -> None:
     too_many = [valid_violation() for _ in range(MAX_VIOLATIONS_PER_REPORT + 1)]
     with pytest.raises(ValidationError):
         DrivingReportCreate.model_validate(valid_report(violations=too_many))
+
+
+def test_navigation_mode_rejects_focus_violations() -> None:
+    # Focus isn't tracked while navigating, so a focus violation on a
+    # navigation report means the client mixed up its modes
+    with pytest.raises(ValidationError, match="not tracked in navigation mode"):
+        DrivingReportCreate.model_validate(
+            valid_report(
+                drivingMode="navigation",
+                violations=[valid_violation(violationType="Focused Driving")],
+            )
+        )
+
+
+def test_navigation_mode_keeps_the_other_violations() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(
+            drivingMode="navigation",
+            violations=[
+                valid_violation(violationType=kind)
+                for kind in VIOLATION_TYPES
+                if kind != "Focused Driving"
+            ],
+        )
+    )
+    assert len(report.violations) == len(VIOLATION_TYPES) - 1
 
 
 def test_the_cap_itself_is_accepted() -> None:
@@ -357,7 +383,7 @@ def test_the_route_still_requires_a_token() -> None:
 def test_the_response_returns_the_saved_violations() -> None:
     # The client learns the road names the server resolved without rereading
     row = models.DrivingReport(
-        id=7, user_id=1, overall_grade=87.0, speed_grade=87.0, braking_grade=100.0,
+        id=7, user_id=1, driving_mode="regular", overall_grade=87.0, speed_grade=87.0, braking_grade=100.0,
         acceleration_grade=100.0, turning_grade=100.0, focus_grade=100.0,
         report_date=datetime(2026, 7, 30, 10, 30),
         trip_duration_minutes=30.0, trip_distance_miles=12.4,
@@ -503,3 +529,38 @@ def test_a_rejected_body_writes_nothing(client, scratch_db) -> None:
     with scratch_db() as db:
         assert db.query(models.DrivingReport).count() == 0
         assert db.query(models.Violation).count() == 0
+
+
+def test_a_navigation_upload_stores_its_mode_and_a_null_focus_grade(
+    client, scratch_db
+) -> None:
+    response = client.post(
+        "/driving-reports",
+        json=valid_report(
+            drivingMode="navigation",
+            violations=[
+                valid_violation(),
+                valid_violation(violationType="Smooth Turning", latitude=0.0, longitude=0.0),
+            ],
+        ),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["drivingMode"] == "navigation"
+    assert body["focusGrade"] is None
+    with scratch_db() as db:
+        report = db.query(models.DrivingReport).one()
+    assert report.driving_mode == "navigation"
+    assert report.focus_grade is None
+
+
+def test_an_upload_without_a_mode_is_stored_as_regular(client, scratch_db) -> None:
+    response = client.post("/driving-reports", json=valid_report())
+
+    assert response.status_code == 201
+    assert response.json()["drivingMode"] == "regular"
+    with scratch_db() as db:
+        report = db.query(models.DrivingReport).one()
+    assert report.driving_mode == "regular"
+    assert report.focus_grade == 100.0

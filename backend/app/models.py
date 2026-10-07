@@ -63,15 +63,28 @@ class DrivingReport(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
+    # The column is a MySQL ENUM('regular', 'navigation') - see DRIVING_MODES in
+    # schemas.py. "regular" grades every dimension; "navigation" grades all but
+    # focus, since a driver following directions has to look at the phone.
+    # Reports saved before modes existed were all regular, hence the default
+    driving_mode: Mapped[str] = mapped_column(
+        String(16), default="regular", server_default="regular"
+    )
+
     overall_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
-    # The only dimension the app grades today, from SpeedGradingService
+    # From SpeedGradingService
     speed_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
-    # Not yet implemented in the app. The columns are NOT NULL, so the API fills
-    # them with a placeholder - see UNGRADED_DIMENSION in schemas.py
+    # From SmoothnessGradingService. NOT NULL, so a report that omits one gets
+    # a placeholder - see UNGRADED_DIMENSION in schemas.py
     braking_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     acceleration_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     turning_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
-    focus_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
+    # From FocusedDrivingGradingService. NULL exactly when driving_mode is
+    # "navigation", which doesn't grade focus.
+    # A CHECK constraint on the table enforces the pairing
+    focus_grade: Mapped[float | None] = mapped_column(
+        Numeric(5, 2, asdecimal=False), nullable=True
+    )
 
     # Set to when the trip ended, not when the row was written, so a report that
     # uploads late (or is retried after a failure) still dates to the drive

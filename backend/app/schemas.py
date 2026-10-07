@@ -24,7 +24,7 @@ class Users(BaseModel):
     users: List[UserOut]
 
 class EmailRequest(BaseModel):
-    email: str        # what POST /auth/request-verification accepts
+    email: str        # what POST /resend-verification and /forgot-password accept
 class LoginRequest(BaseModel):
     # what POST /login accepts
     email: str
@@ -89,9 +89,9 @@ _CAMEL_CONFIG = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 def _to_naive_utc(value: datetime) -> datetime:
     """Normalize a timestamp to a naive UTC datetime.
 
-    The Flutter app sends local times with no UTC offset today, which arrive
-    naive and are stored as is. Anything tz-aware gets converted so that every
-    stored timestamp is the same kind. MySQL DATETIME carries no timezone, and
+    The Flutter app sends UTC with a Z suffix, which gets converted here; a
+    naive value is stored as is. Converting everything tz-aware keeps every
+    stored timestamp the same kind. MySQL DATETIME carries no timezone, and
     mixing naive and aware values makes later date arithmetic raise TypeError.
     """
     if value.tzinfo is None:
@@ -99,10 +99,9 @@ def _to_naive_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-# braking, acceleration, turning and focus aren't graded by the app yet, but
-# their columns are NOT NULL. A full marks placeholder keeps them from dragging
-# down overall_grade in any later averaging - see the README for why making
-# these columns nullable would be the better long-term fix
+# The app sends all five grades, but it once sent speed alone and the braking,
+# acceleration, turning and focus columns are NOT NULL. A client that omits one
+# still gets this full marks placeholder rather than a failed INSERT
 UNGRADED_DIMENSION = 100.0
 
 # driving_reports.trip_duration_minutes is DECIMAL(5,2) and trip_distance_miles
@@ -121,6 +120,13 @@ ViolationType = Literal[
     "Focused Driving",
 ]
 VIOLATION_TYPES = get_args(ViolationType)
+
+# How the trip was driven, spelled exactly as the driving_reports.driving_mode
+# ENUM in MySQL spells it. "regular" grades every dimension; "navigation" grades
+# every dimension except focus, since following directions means glancing at
+# the phone, so focus_grade is NULL and focus violations aren't recorded
+DrivingMode = Literal["regular", "navigation"]
+DRIVING_MODES = get_args(DrivingMode)
 
 # Max violation count in case of bugs to prevent violations from keep on going on
 MAX_VIOLATIONS_PER_REPORT = 500
@@ -167,9 +173,13 @@ class DrivingReportCreate(BaseModel):
 
     Mirrors the Flutter TripSummary model, with the differences forced by the
     driving_reports and violations tables: duration is derived from the
-    timestamps into decimal minutes, the four ungraded dimensions may be
-    omitted, and TripSummary's four separate violation lists arrive as one list
+    timestamps into decimal minutes, every grade but overall and speed may be
+    omitted, and TripSummary's five separate violation lists arrive as one list
     tagged with the ENUM label each maps to.
+
+    driving_mode defaults to "regular" so clients that predate modes keep
+    working unchanged. A "navigation" report must leave focus out entirely: no
+    focusGrade and no Focused Driving violations.
     """
 
     model_config = _CAMEL_CONFIG
@@ -177,13 +187,16 @@ class DrivingReportCreate(BaseModel):
     started_at: datetime
     ended_at: datetime
     trip_distance_miles: float = Field(ge=0, le=MAX_TRIP_DISTANCE_MILES)
+    driving_mode: DrivingMode = "regular"
 
     overall_grade: float = Field(ge=0, le=100)
     speed_grade: float = Field(ge=0, le=100)
     braking_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     acceleration_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     turning_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
-    focus_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
+    # None until validated: a regular report then falls back to
+    # UNGRADED_DIMENSION, while a navigation report keeps it None
+    focus_grade: Optional[float] = Field(default=None, ge=0, le=100)
 
     # Optional, so the clients that only send grades keep working unchanged.
     # A trip with nothing to report legitimately has none
@@ -204,6 +217,22 @@ class DrivingReportCreate(BaseModel):
             )
         return self
 
+    @model_validator(mode="after")
+    def focus_matches_driving_mode(self):
+        # driving_reports carries a CHECK pairing focus_grade IS NULL with
+        # navigation mode, so a mismatch is caught here as a 422 rather than
+        # failing the INSERT as a 500
+        if self.driving_mode == "navigation":
+            if self.focus_grade is not None:
+                raise ValueError("focusGrade must be omitted in navigation mode")
+            if any(v.violation_type == "Focused Driving" for v in self.violations):
+                raise ValueError(
+                    "Focused Driving violations are not tracked in navigation mode"
+                )
+        elif self.focus_grade is None:
+            self.focus_grade = UNGRADED_DIMENSION
+        return self
+
     @property
     def trip_duration_minutes(self) -> float:
         # Derived rather than sent, so it can never disagree with the timestamps
@@ -217,12 +246,14 @@ class DrivingReportOut(BaseModel):
     )
 
     id: int
+    driving_mode: DrivingMode
     overall_grade: float
     speed_grade: float
     braking_grade: float
     acceleration_grade: float
     turning_grade: float
-    focus_grade: float
+    # Null on navigation reports, which don't grade focus
+    focus_grade: Optional[float] = None
     report_date: Optional[datetime] = None
     trip_duration_minutes: float
     trip_distance_miles: float

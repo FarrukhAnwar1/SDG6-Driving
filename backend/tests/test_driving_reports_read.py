@@ -27,6 +27,7 @@ def report_row(violations: list[models.Violation] | None = None) -> models.Drivi
     return models.DrivingReport(
         id=7,
         user_id=1,
+        driving_mode="regular",
         overall_grade=87.0,
         speed_grade=87.0,
         braking_grade=90.0,

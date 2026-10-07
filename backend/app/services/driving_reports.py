@@ -46,6 +46,7 @@ def write_driving_report(
     """
     report = models.DrivingReport(
         user_id=user_id,
+        driving_mode=payload.driving_mode,
         overall_grade=payload.overall_grade,
         speed_grade=payload.speed_grade,
         braking_grade=payload.braking_grade,
