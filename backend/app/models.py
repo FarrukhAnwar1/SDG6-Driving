@@ -35,6 +35,29 @@ class User(Base):
     )
     reset_code_attempts: Mapped[int] = mapped_column(Integer, default=0)
 
+    # NULL means no family, which is the default on signup. An admin's own row
+    # points at the family they administer, so they are listed among its members.
+    # use_alter breaks the users <-> driving_families FK cycle for create_all
+    family_id: Mapped[int | None] = mapped_column(
+        ForeignKey("driving_families.id", ondelete="SET NULL", use_alter=True),
+        nullable=True,
+        default=None,
+    )
+    family: Mapped["DrivingFamily | None"] = relationship(
+        foreign_keys=[family_id],
+        back_populates="members",
+        post_update=True,
+    )
+    administered_family: Mapped["DrivingFamily | None"] = relationship(
+        foreign_keys="DrivingFamily.admin_user_id",
+        back_populates="admin",
+        cascade="all, delete-orphan",
+    )
+    sent_invitations: Mapped[list["FamilyInvitation"]] = relationship(
+        back_populates="invited_by",
+        cascade="all, delete-orphan",
+    )
+
     # No passive_deletes. Letting SQLAlchemy delete the rows
     # itself makes DELETE /users/me clean up correctly either way
     driving_reports: Mapped[list["DrivingReport"]] = relationship(
@@ -124,3 +147,70 @@ class Violation(Base):
     driving_report: Mapped["DrivingReport"] = relationship(
         back_populates="violations"
     )
+
+
+class DrivingFamily(Base):
+    """One Driving Family, per the driving_families table.
+
+    A family is a group of drivers who can see each other's report summaries.
+    It has no name, and membership lives on users.family_id rather than in a
+    join table, so a user belongs to at most one family. The admin is the user
+    who created it and is the only one who can invite or remove members.
+    """
+
+    __tablename__ = "driving_families"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Unique so the same user can't create more than one family
+    admin_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), unique=True
+    )
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    admin: Mapped["User"] = relationship(
+        foreign_keys=[admin_user_id], back_populates="administered_family"
+    )
+    # No delete cascade: deleting a family drops its members back to no family
+    # rather than deleting their accounts. post_update clears their family_id in
+    # a separate UPDATE, since the admin's row and this one point at each other
+    members: Mapped[list["User"]] = relationship(
+        foreign_keys="User.family_id",
+        back_populates="family",
+        post_update=True,
+    )
+    invitations: Mapped[list["FamilyInvitation"]] = relationship(
+        back_populates="family",
+        cascade="all, delete-orphan",
+    )
+
+
+class FamilyInvitation(Base):
+    """One outstanding invitation to join a family, per family_invitations.
+
+    A row lives only until it is redeemed: joining deletes it in the same
+    transaction that sets the user's family_id, which is what makes each code
+    single use. Only the code's hash is stored. It is a SHA-256 digest rather
+    than bcrypt so the join endpoint can find the row from the code alone.
+    """
+
+    __tablename__ = "family_invitations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    family_id: Mapped[int] = mapped_column(
+        ForeignKey("driving_families.id", ondelete="CASCADE")
+    )
+    # Stored normalized (trimmed, lowercased) - see normalize_email in schemas.py
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    invited_by_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE")
+    )
+    # Hex SHA-256 of the emailed join code
+    code_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    family: Mapped["DrivingFamily"] = relationship(back_populates="invitations")
+    invited_by: Mapped["User"] = relationship(back_populates="sent_invitations")
