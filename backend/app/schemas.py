@@ -1,5 +1,6 @@
 # Defines the Pydantic models (schemas) used for request validation and 
 # response serialization in the FastAPI application.
+import re
 from datetime import datetime, timezone
 from typing import List, Literal, Optional, get_args
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -284,3 +285,129 @@ class AdvancedSuggestionOut(FeedbackMessage):
     reports_analyzed: int = Field(ge=0)
     analysis_start_date: Optional[datetime] = None
     analysis_end_date: Optional[datetime] = None
+
+
+# Driving Family. The wire contract is in flutter_driving_app/docs/driving_family.md
+
+# family_invitations.email and users.email are both VARCHAR(255)
+MAX_EMAIL_LENGTH = 255
+_EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
+
+
+def normalize_email(email: str) -> str:
+    """Trim and lowercase an email address.
+
+    An invitation is bound to its recipient's email, and joining compares it
+    against the signed-in account's email. Both sides must go through this one
+    function, or the same address spelled with different case will not match.
+    """
+    return email.strip().lower()
+
+
+# Machine-readable error codes the family endpoints return in detail.code,
+# which the app uses to tell a correctable code apart from changed membership
+FamilyErrorCode = Literal[
+    "admin_required",
+    "invitation_email_mismatch",
+    "invalid_invitation",
+    "already_in_family",
+    "not_in_family",
+]
+FAMILY_ERROR_CODES = get_args(FamilyErrorCode)
+
+
+class FamilyInvitationCreate(BaseModel):
+    """POST /families/me/invitations accepts the recipient's email.
+
+    The inviting user and family come from the access token, never the body.
+    """
+
+    model_config = _CAMEL_CONFIG
+
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def email_must_be_valid(cls, email: str) -> str:
+        email = normalize_email(email)
+        if len(email) > MAX_EMAIL_LENGTH or not _EMAIL_PATTERN.fullmatch(email):
+            raise ValueError("email must be a valid email address")
+        return email
+
+
+class FamilyJoinRequest(BaseModel):
+    """POST /families/join accepts only the emailed code.
+
+    The joining account and its email come from the access token. The code
+    keeps its case and punctuation, matching what the app sends.
+    """
+
+    model_config = _CAMEL_CONFIG
+
+    code: str
+
+    @field_validator("code")
+    @classmethod
+    def code_must_be_one_token(cls, code: str) -> str:
+        code = code.strip()
+        if not code:
+            raise ValueError("code must not be blank")
+        if any(character.isspace() for character in code):
+            raise ValueError("code must not contain whitespace")
+        return code
+
+
+_CAMEL_OUT_CONFIG = ConfigDict(
+    alias_generator=to_camel, populate_by_name=True, from_attributes=True
+)
+
+
+class FamilyGradesOut(BaseModel):
+    # A member's six grades, 0-100. Null grades display as an em dash in the app
+    model_config = _CAMEL_OUT_CONFIG
+
+    overall_grade: Optional[float] = None
+    speed_grade: Optional[float] = None
+    braking_grade: Optional[float] = None
+    acceleration_grade: Optional[float] = None
+    turning_grade: Optional[float] = None
+    focus_grade: Optional[float] = None
+
+
+class FamilyLatestDriveOut(FamilyGradesOut):
+    # The member's most recent report by report_date, which is null on older reports
+    report_date: Optional[datetime] = None
+
+
+class FamilyMemberOut(BaseModel):
+    """One member's summary, calculated across all of their saved reports.
+
+    average_grades and latest_drive are null for a member with no reports,
+    and the totals are 0.
+    """
+
+    model_config = _CAMEL_OUT_CONFIG
+
+    user_id: int
+    username: str
+    drive_count: int = Field(ge=0)
+    average_grades: Optional[FamilyGradesOut] = None
+    latest_drive: Optional[FamilyLatestDriveOut] = None
+    total_driving_minutes: float = Field(ge=0)
+    total_distance_miles: float = Field(ge=0)
+
+
+class FamilyOut(BaseModel):
+    # members includes the admin and the caller
+    model_config = _CAMEL_OUT_CONFIG
+
+    id: int
+    admin_user_id: int
+    members: List[FamilyMemberOut]
+
+
+class FamilyMeOut(BaseModel):
+    # what GET /families/me returns, family is null when the caller has none
+    model_config = _CAMEL_OUT_CONFIG
+
+    family: Optional[FamilyOut] = None

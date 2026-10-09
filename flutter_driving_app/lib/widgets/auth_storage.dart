@@ -1,6 +1,6 @@
 // Handles secure, on-device persistence of the JWT access token
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
- 
+
 class AuthStorage {
   AuthStorage._();
 

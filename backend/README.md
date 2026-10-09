@@ -102,20 +102,36 @@ Between `"NN mph"`, a bare number and `"NN km/h"`, the parser covers all but 31
 of the extract's 210,340 tagged ways, so there is no long tail of tag formats
 left to handle.
 
-#### Turning assumptions on
+#### Turning assumptions off
 
-Assumed limits are **off by default** (`SPEED_LIMIT_INFERENCE_ENABLED=false`).
-The app grades every limit at a flat 5 mph tolerance and does not yet read
-`speedingThresholdMph`, so an assumed 25 would flag a driver legally doing 30 on
-a residential street actually posted 30. Once the app honours that field, set:
+Assumed limits are **on by default**. The switch is
+`speed_limit_inference_enabled` in `app/config.py`; to turn them off in one
+environment without a code change, set:
 
 ```dotenv
-SPEED_LIMIT_INFERENCE_ENABLED=true
+SPEED_LIMIT_INFERENCE_ENABLED=false
 ```
 
-Expect a step change in violation counts when you do — trips through
-neighbourhoods that previously graded clean will start producing violations,
-because ~91% of residential streets were being skipped rather than driven well.
+It is deliberately not in `.env.example`: pinning it there to the same value as
+the code default gives one flag two sources of truth, and they drift.
+
+Assumptions are only safe on while the app grades against the
+`speedingThresholdMph` sent with each limit rather than a flat tolerance of its
+own — an assumed 25 judged at 5 mph would flag a driver legally doing 30 on a
+residential street actually posted 30. `SpeedGradingService` uses that field and
+refuses to grade without it. **If a client ever stops honouring it, turn this
+back off.**
+
+Turning assumptions on is additive: a posted limit is returned either way, so it
+only fills in roads that previously answered `unknown` and cannot change a road
+that was already being graded.
+
+It does, however, cause a step change in violation counts — trips through
+neighbourhoods that previously graded clean start producing violations, because
+~91% of residential streets were being skipped rather than driven well. Grades
+recorded before and after the switch are not comparable, and nothing in the
+`violations` table marks which side of it a row came from.
+
 The numbers in the tables above came from the extract itself:
 
 ```sql
@@ -275,6 +291,113 @@ and `peakSpeedMph` on a speeding streak, `peakGForce` on a smoothness
 violation, `speedAtStartMph` on a focus violation which has no column. Those fields
 are **ignored rather than rejected**, so the client can send a whole violation
 object unchanged, but they are not stored and can't be read back.
+
+## The Driving Family tables
+
+A Driving Family is a group of drivers who can see each other's report
+summaries. The app's side, and the API contract the backend still has to
+implement, is in `flutter_driving_app/docs/driving_family.md`. These tables are
+mirrored by `DrivingFamily`, `FamilyInvitation` and `User.family_id` in
+`app/models.py`.
+
+### driving_families
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `admin_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), `UNIQUE` so one user can't create several families |
+| `created_at` | `datetime` | defaults to the insert time |
+
+A family has no name. The admin is the user who created it, and the only one
+who can invite or remove members.
+
+### users.family_id
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `family_id` | `int` | nullable FK → `driving_families.id` (`ON DELETE SET NULL`); `NULL` means no family, the default on signup |
+
+Membership lives on the user row, so a user belongs to at most one family. The
+admin's own `family_id` points at the family they administer, since they are
+listed among its members.
+
+### family_invitations
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `family_id` | `int` | FK → `driving_families.id` (`ON DELETE CASCADE`) |
+| `email` | `varchar(255)` | the invited recipient, stored trimmed and lowercased (`normalize_email` in `schemas.py`) |
+| `invited_by_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), always taken from the token |
+| `code_hash` | `char(64)` | `UNIQUE`, hex SHA-256 of the emailed join code |
+| `created_at` | `datetime` | defaults to the insert time |
+
+An invitation row lives only until it is redeemed: joining deletes it in the
+same transaction that sets the user's `family_id`, which is what makes a code
+single use. There are no redemption or expiry columns.
+
+`code_hash` is SHA-256, not bcrypt like `reset_code_hash`. Joining sends only
+the code, so the server has to find the invitation from the code alone, and a
+salted bcrypt hash of the same code is different every time. A deterministic
+hash is safe here because the code is long and random (for example
+`secrets.token_urlsafe(32)`), unlike a 6-digit reset code. The `UNIQUE` index
+doubles as the lookup index.
+
+### Creating them
+
+Check `SHOW CREATE TABLE users` first: the new FK columns must match `users.id`
+exactly (`int` vs `int unsigned` vs `bigint`), and the table must be InnoDB.
+
+```sql
+CREATE TABLE driving_families (
+    id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT NOT NULL,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_driving_families_admin_user_id UNIQUE (admin_user_id),
+    CONSTRAINT fk_driving_families_admin_user_id
+        FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Existing accounts get NULL (no family) automatically, so no backfill UPDATE is needed
+ALTER TABLE users
+    ADD COLUMN family_id INT NULL DEFAULT NULL,
+    ADD CONSTRAINT fk_users_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE SET NULL;
+
+CREATE TABLE family_invitations (
+    id                 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    family_id          INT NOT NULL,
+    email              VARCHAR(255) NOT NULL,
+    invited_by_user_id INT NOT NULL,
+    code_hash          CHAR(64) NOT NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_family_invitations_code_hash UNIQUE (code_hash),
+    KEY ix_family_invitations_email (email),
+    CONSTRAINT fk_family_invitations_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_family_invitations_invited_by_user_id
+        FOREIGN KEY (invited_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+Afterwards, `SELECT COUNT(*) FROM users WHERE family_id IS NOT NULL` should
+return 0.
+
+### What deleting does
+
+- **An admin deletes their account.** Their family and its invitations are
+  deleted, and every other member drops back to `family_id = NULL`. Their
+  accounts and reports are untouched.
+- **A member deletes their account.** The family is unaffected.
+- **A family is deleted.** Its members' `family_id` becomes `NULL` and its
+  invitations are deleted.
+
+`DELETE /users/me` does all of this through the ORM, not the database: it
+clears the members' `family_id` first, then deletes the invitations, the
+family and the user, in that order. That matters because the two FKs point at
+each other, and an admin delete left to MySQL would have to cascade from
+`users` to `driving_families` and back into `users`, which MySQL can refuse.
+The `ON DELETE` rules are a backstop for rows deleted outside the API.
 
 ## Run
 
@@ -555,7 +678,8 @@ and provider errors without a live MySQL/PostGIS server or Gemini key.
 ## Notes
 
 - `app/models.py` mirrors the users table: `id, username, email, password_hash, created_at, email_verified,
-  verification_token, verification_token_expires_at`.
+  verification_token, verification_token_expires_at, reset_code_hash, reset_code_expires_at,
+  reset_code_attempts, family_id`.
 - Speed limit lookups query `planet_osm_line` directly (no ORM model — raw
   SQL via SQLAlchemy's `text()`), since the geometry column needs PostGIS
   functions (`ST_Transform`, `ST_DWithin`) rather than plain ORM queries.
