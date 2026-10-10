@@ -10,8 +10,8 @@
 // Which backend you get is controlled at build/run time with
 // --dart-define, so you never edit this file to switch environments:
 //
-//   flutter run --dart-define=ENVIRONMENT=dev        (default if omitted)
-//   flutter run --dart-define=ENVIRONMENT=staging
+//   flutter run --dart-define=ENVIRONMENT=dev_android (default if omitted)
+//   flutter run --dart-define=ENVIRONMENT=dev_browser
 //   flutter run --dart-define=ENVIRONMENT=prod
 //
 // You can also skip the presets below entirely and point at any
@@ -23,15 +23,14 @@
 class ApiConfig {
   ApiConfig._();
   static const Map<String, String> _urls = {
-    'dev':
-        'http://10.0.2.2:8000', // Android emulator 10.0.2.2:8000 or localhost:8000
-    'staging': 'https://staging.example.com',
+    'dev_android': 'http://10.0.2.2:8000',
+    'dev_browser': 'http://localhost:8000',
     'prod': 'https://api.driveucf.com',
   };
 
   static const String _envName = String.fromEnvironment(
     'ENVIRONMENT',
-    defaultValue: 'dev',
+    defaultValue: 'dev_android',
   );
 
   static const String _explicitOverride = String.fromEnvironment(
@@ -40,7 +39,7 @@ class ApiConfig {
 
   static String get baseUrl {
     if (_explicitOverride.isNotEmpty) return _explicitOverride;
-    return _urls[_envName] ?? _urls['dev']!;
+    return _urls[_envName] ?? _urls['dev_android']!;
   }
 
   static String get environmentName => _envName;

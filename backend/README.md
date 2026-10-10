@@ -292,6 +292,113 @@ violation, `speedAtStartMph` on a focus violation which has no column. Those fie
 are **ignored rather than rejected**, so the client can send a whole violation
 object unchanged, but they are not stored and can't be read back.
 
+## The Driving Family tables
+
+A Driving Family is a group of drivers who can see each other's report
+summaries. The app's side, and the API contract the backend still has to
+implement, is in `flutter_driving_app/docs/driving_family.md`. These tables are
+mirrored by `DrivingFamily`, `FamilyInvitation` and `User.family_id` in
+`app/models.py`.
+
+### driving_families
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `admin_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), `UNIQUE` so one user can't create several families |
+| `created_at` | `datetime` | defaults to the insert time |
+
+A family has no name. The admin is the user who created it, and the only one
+who can invite or remove members.
+
+### users.family_id
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `family_id` | `int` | nullable FK → `driving_families.id` (`ON DELETE SET NULL`); `NULL` means no family, the default on signup |
+
+Membership lives on the user row, so a user belongs to at most one family. The
+admin's own `family_id` points at the family they administer, since they are
+listed among its members.
+
+### family_invitations
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `family_id` | `int` | FK → `driving_families.id` (`ON DELETE CASCADE`) |
+| `email` | `varchar(255)` | the invited recipient, stored trimmed and lowercased (`normalize_email` in `schemas.py`) |
+| `invited_by_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), always taken from the token |
+| `code_hash` | `char(64)` | `UNIQUE`, hex SHA-256 of the emailed join code |
+| `created_at` | `datetime` | defaults to the insert time |
+
+An invitation row lives only until it is redeemed: joining deletes it in the
+same transaction that sets the user's `family_id`, which is what makes a code
+single use. There are no redemption or expiry columns.
+
+`code_hash` is SHA-256, not bcrypt like `reset_code_hash`. Joining sends only
+the code, so the server has to find the invitation from the code alone, and a
+salted bcrypt hash of the same code is different every time. A deterministic
+hash is safe here because the code is long and random (for example
+`secrets.token_urlsafe(32)`), unlike a 6-digit reset code. The `UNIQUE` index
+doubles as the lookup index.
+
+### Creating them
+
+Check `SHOW CREATE TABLE users` first: the new FK columns must match `users.id`
+exactly (`int` vs `int unsigned` vs `bigint`), and the table must be InnoDB.
+
+```sql
+CREATE TABLE driving_families (
+    id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT NOT NULL,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_driving_families_admin_user_id UNIQUE (admin_user_id),
+    CONSTRAINT fk_driving_families_admin_user_id
+        FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Existing accounts get NULL (no family) automatically, so no backfill UPDATE is needed
+ALTER TABLE users
+    ADD COLUMN family_id INT NULL DEFAULT NULL,
+    ADD CONSTRAINT fk_users_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE SET NULL;
+
+CREATE TABLE family_invitations (
+    id                 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    family_id          INT NOT NULL,
+    email              VARCHAR(255) NOT NULL,
+    invited_by_user_id INT NOT NULL,
+    code_hash          CHAR(64) NOT NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_family_invitations_code_hash UNIQUE (code_hash),
+    KEY ix_family_invitations_email (email),
+    CONSTRAINT fk_family_invitations_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_family_invitations_invited_by_user_id
+        FOREIGN KEY (invited_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+Afterwards, `SELECT COUNT(*) FROM users WHERE family_id IS NOT NULL` should
+return 0.
+
+### What deleting does
+
+- **An admin deletes their account.** Their family and its invitations are
+  deleted, and every other member drops back to `family_id = NULL`. Their
+  accounts and reports are untouched.
+- **A member deletes their account.** The family is unaffected.
+- **A family is deleted.** Its members' `family_id` becomes `NULL` and its
+  invitations are deleted.
+
+`DELETE /users/me` does all of this through the ORM, not the database: it
+clears the members' `family_id` first, then deletes the invitations, the
+family and the user, in that order. That matters because the two FKs point at
+each other, and an admin delete left to MySQL would have to cascade from
+`users` to `driving_families` and back into `users`, which MySQL can refuse.
+The `ON DELETE` rules are a backstop for rows deleted outside the API.
+
 ## Run
 
 ```bash
@@ -571,7 +678,8 @@ and provider errors without a live MySQL/PostGIS server or Gemini key.
 ## Notes
 
 - `app/models.py` mirrors the users table: `id, username, email, password_hash, created_at, email_verified,
-  verification_token, verification_token_expires_at`.
+  verification_token, verification_token_expires_at, reset_code_hash, reset_code_expires_at,
+  reset_code_attempts, family_id`.
 - Speed limit lookups query `planet_osm_line` directly (no ORM model — raw
   SQL via SQLAlchemy's `text()`), since the geometry column needs PostGIS
   functions (`ST_Transform`, `ST_DWithin`) rather than plain ORM queries.
