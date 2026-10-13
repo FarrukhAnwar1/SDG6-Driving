@@ -12,6 +12,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:flutter_driving_app/widgets/driving_mode.dart';
 
 class _Locations extends GeolocatorPlatform {
   final positions = StreamController<Position>.broadcast();
@@ -88,7 +89,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
-          home: const LiveDashboardScreen(),
+          home: const LiveDashboardScreen(drivingMode: DrivingMode.normal),
         ),
       );
       await tester.pump();

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/driving_report_screen.dart';
 import 'package:flutter_driving_app/screens/home_screen.dart';
+import 'package:flutter_driving_app/widgets/driving_mode.dart';
 import 'package:flutter_driving_app/widgets/driving_report_api.dart';
 import 'package:flutter_driving_app/widgets/driving_report_policy.dart';
 import 'package:flutter_driving_app/widgets/trip_summary.dart';
@@ -16,6 +17,7 @@ TripSummary trip(double miles) => TripSummary(
   endTime: DateTime.utc(2026, 9, 18, 10, 5),
   elapsed: const Duration(minutes: 5),
   milesDriven: miles,
+  drivingMode: DrivingMode.normal,
   overallGrade: 74,
   properSpeedGrade: 90,
   speedingViolations: const [],
@@ -35,6 +37,7 @@ Future<DrivingReportResult> upload(double miles) {
     startTime: summary.startTime,
     endTime: summary.endTime,
     milesDriven: summary.milesDriven,
+    drivingMode: summary.drivingMode,
     overallGrade: summary.overallGrade,
     properSpeedGrade: summary.properSpeedGrade,
     brakingGrade: summary.brakingGrade,
@@ -66,8 +69,8 @@ void main() {
       await http.runWithClient(
         () async {
           for (final miles in [0.0, 0.5, 0.999999, 1.0, 1.2]) {
-            final result = await upload(miles);
-            expect(result.success, miles >= 1.0);
+           final result = await upload(miles);
+           expect(result.success, miles >= 1.0);
             if (miles < 1.0) {
               expect(result.errorMessage, contains('at least 1 mile'));
             }
@@ -79,6 +82,7 @@ void main() {
           expect(request.headers['Authorization'], 'Bearer test-token');
           final payload = jsonDecode(request.body) as Map<String, dynamic>;
           uploadedMiles.add((payload['tripDistanceMiles'] as num).toDouble());
+          expect(payload['drivingMode'], 'regular');
           expect(payload['focusGrade'], 40);
           expect(payload['brakingGrade'], 80);
           expect(payload['accelerationGrade'], 60);
@@ -253,9 +257,7 @@ void main() {
         expect(request.method, 'GET');
         expect(request.url.path, '/me');
         return http.Response(
-          '{"id":1,"username":"driver","email":"driver@example.com"}',
-          200,
-        );
+        '{"id":1,"username":"driver","email":"driver@example.com"}',200,);
       }),
     );
   });

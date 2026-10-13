@@ -16,7 +16,7 @@ class DrivingReportSummary {
   final double brakingGrade;
   final double acceleratingGrade;
   final double turningGrade;
-  final double focusedDrivingGrade;
+  final double? focusedDrivingGrade;
 
   const DrivingReportSummary({
     required this.id,
@@ -37,17 +37,15 @@ class DrivingReportSummary {
         .round(),
   );
 
-  // All six grades keyed by the label the Analytics screen displays, charts,
-  // and selects in its dropdown. Centralizing this mapping means the screen,
-  // the chart series, and the grade dropdown can't drift out of sync with each
-  // other. Add a grade here and it shows up everywhere automatically.
+  // Grades keyed by the labels Analytics displays, charts, and selects.
+  // Navigation trips omit Focused Driving because it was not measured.
   Map<String, double> get gradesByLabel => {
     'Overall': overallGrade,
     'Speed': properSpeedGrade,
     'Braking': brakingGrade,
     'Acceleration': acceleratingGrade,
     'Turning': turningGrade,
-    'Focused Driving': focusedDrivingGrade,
+    'Focused Driving': ?focusedDrivingGrade,
   };
 
   // Read responses contain reportDate and decimal minutes, not the write
@@ -71,7 +69,7 @@ class DrivingReportSummary {
       brakingGrade: (json['brakingGrade'] as num).toDouble(),
       acceleratingGrade: (json['accelerationGrade'] as num).toDouble(),
       turningGrade: (json['turningGrade'] as num).toDouble(),
-      focusedDrivingGrade: (json['focusGrade'] as num).toDouble(),
+      focusedDrivingGrade: (json['focusGrade'] as num?)?.toDouble(),
     );
   }
 }

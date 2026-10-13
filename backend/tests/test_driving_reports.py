@@ -27,8 +27,13 @@ def valid_report(**overrides) -> dict:
         "tripDistanceMiles": 12.4,
         "overallGrade": 87.0,
         "speedGrade": 87.0,
+        "focusGrade": 100.0,
     }
     body.update(overrides)
+
+    if body.get("drivingMode", "regular") == "navigation" and "focusGrade" not in overrides:
+        body["focusGrade"] = None
+
     return body
 
 

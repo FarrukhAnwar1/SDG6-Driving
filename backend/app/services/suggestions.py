@@ -49,7 +49,11 @@ Each report has a drivingMode. Navigation trips (the driver was following
 directions on the phone) do not grade focus: their focusGrade is null and they
 record no Focused Driving violations. Focus averages and Focused Driving rates
 cover regular trips only; a null focus value means there were no regular trips
-in that period, not a zero.
+in that period, not a zero. Overall grades use different category sets depending on drivingMode:
+regular trips include focus, while navigation trips exclude focus.
+Do not interpret a change in overall grade caused solely by switching
+driving modes as evidence of improvement or decline. Compare grades
+within the same mode when assessing overall driving progress.
 Missing weeks are unobserved, not zero-violation weeks. Undated reports contribute
 to overall statistics but cannot support temporal claims. Violation durations
 may overlap, so their sum is not necessarily unique time spent violating.

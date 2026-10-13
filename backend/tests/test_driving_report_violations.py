@@ -39,14 +39,20 @@ def valid_violation(**overrides) -> dict:
 
 
 def valid_report(**overrides) -> dict:
+    """A well-formed body, as the Flutter client would send it today."""
     body = {
         "startedAt": "2026-07-30T10:00:00",
         "endedAt": "2026-07-30T10:30:00",
         "tripDistanceMiles": 12.4,
         "overallGrade": 87.0,
         "speedGrade": 87.0,
+        "focusGrade": 100.0,
     }
     body.update(overrides)
+
+    if body.get("drivingMode", "regular") == "navigation" and "focusGrade" not in overrides:
+        body["focusGrade"] = None
+
     return body
 
 
