@@ -20,6 +20,15 @@ GRADE_FIELDS = (
     "turning_grade", "focus_grade",
 )
 
+
+def _average_grade(reports: list[DrivingReportWithViolationsOut], field: str) -> float | None:
+    # focus_grade is null on navigation trips, which don't grade focus, so those
+    # are left out of its average rather than counted as zero
+    grades = [getattr(report, field) for report in reports]
+    grades = [grade for grade in grades if grade is not None]
+    return round(fmean(grades), 2) if grades else None
+
+
 SYSTEM_INSTRUCTION = """You are a supportive driving coach writing directly to the driver.
 Use the supplied driving history and calculated trends to write one natural,
 cohesive message of 2-4 short sentences, at most 1200 characters. Blend exactly
@@ -36,6 +45,11 @@ Use weekly patterns and the earlier/recent calendar-period comparison, taking
 sample sizes and driving exposure into account. Grade changes are percentage
 points on a 0-100 scale, not relative percentages. Rate changes are absolute.
 Null rates mean driving duration is zero; do not interpret them as zero rates.
+Each report has a drivingMode. Navigation trips (the driver was following
+directions on the phone) do not grade focus: their focusGrade is null and they
+record no Focused Driving violations. Focus averages and Focused Driving rates
+cover regular trips only; a null focus value means there were no regular trips
+in that period, not a zero.
 Missing weeks are unobserved, not zero-violation weeks. Undated reports contribute
 to overall statistics but cannot support temporal claims. Violation durations
 may overlap, so their sum is not necessarily unique time spent violating.
@@ -58,7 +72,12 @@ history. Write warmly and respectfully without guarantees of safety.
 
 def _summarize(reports: list[DrivingReportWithViolationsOut]) -> dict:
     minutes = sum(report.trip_duration_minutes for report in reports)
-    hours = minutes / 60
+    # Navigation trips can't record focus violations, so counting their time
+    # toward the focus rate would make it look better than it was
+    regular_minutes = sum(
+        report.trip_duration_minutes for report in reports
+        if report.driving_mode == "regular"
+    )
     dated = [report.report_date for report in reports if report.report_date is not None]
     violations = [violation for report in reports for violation in report.violations]
     by_type = {}
@@ -68,11 +87,12 @@ def _summarize(reports: list[DrivingReportWithViolationsOut]) -> dict:
             (violation.end_time - violation.start_time).total_seconds()
             for violation in matching
         )
+        exposure = regular_minutes if kind == "Focused Driving" else minutes
         by_type[kind] = {
             "count": len(matching),
             "durationSeconds": round(seconds, 2),
-            "countPerDrivingHour": round(len(matching) / hours, 4) if hours else None,
-            "violationMinutesPerDrivingHour": round(seconds / minutes, 4) if minutes else None,
+            "countPerDrivingHour": round(len(matching) / (exposure / 60), 4) if exposure else None,
+            "violationMinutesPerDrivingHour": round(seconds / exposure, 4) if exposure else None,
         }
     return {
         "reportCount": len(reports),
@@ -80,11 +100,7 @@ def _summarize(reports: list[DrivingReportWithViolationsOut]) -> dict:
         "endDate": max(dated).isoformat() if dated else None,
         "tripDurationMinutes": round(minutes, 2),
         "tripDistanceMiles": round(sum(report.trip_distance_miles for report in reports), 2),
-        "averageGrades": {
-            field: round(fmean(getattr(report, field) for report in reports), 2)
-            if reports else None
-            for field in GRADE_FIELDS
-        },
+        "averageGrades": {field: _average_grade(reports, field) for field in GRADE_FIELDS},
         "violationsByType": by_type,
     }
 
@@ -125,6 +141,8 @@ def analyze_history(reports: list[DrivingReportWithViolationsOut]) -> dict:
             "recent": recent,
             "gradeChanges": {
                 field: round(recent["averageGrades"][field] - earlier["averageGrades"][field], 2)
+                if earlier["averageGrades"][field] is not None
+                and recent["averageGrades"][field] is not None else None
                 for field in GRADE_FIELDS
             },
             "violationRateChanges": rate_changes,

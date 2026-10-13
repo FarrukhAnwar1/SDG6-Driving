@@ -41,7 +41,7 @@ def test_route_is_registered_and_requires_a_token() -> None:
 
 
 def test_accepts_the_fields_the_app_can_send_today() -> None:
-    # The app only grades speed, so the other four dimensions must be optional
+    # Older clients sent speed alone, so the other four dimensions stay optional
     report = DrivingReportCreate.model_validate(valid_report())
     assert report.speed_grade == 87.0
     assert report.trip_distance_miles == 12.4
@@ -172,6 +172,7 @@ def test_response_is_camel_case_and_hides_user_id() -> None:
     row = models.DrivingReport(
         id=7,
         user_id=1,
+        driving_mode="regular",
         overall_grade=87.0,
         speed_grade=87.0,
         braking_grade=100.0,
@@ -191,3 +192,65 @@ def test_response_is_camel_case_and_hides_user_id() -> None:
     assert body["speedGrade"] == 87.0
     assert "trip_duration_minutes" not in body
     assert "userId" not in body
+
+
+# driving modes
+
+def test_a_report_without_a_mode_is_regular() -> None:
+    # Clients that predate driving modes keep saving regular reports, with the
+    # usual placeholder for an ungraded focus dimension
+    report = DrivingReportCreate.model_validate(valid_report())
+    assert report.driving_mode == "regular"
+    assert report.focus_grade == UNGRADED_DIMENSION
+
+
+def test_a_navigation_report_has_no_focus_grade() -> None:
+    report = DrivingReportCreate.model_validate(valid_report(drivingMode="navigation"))
+    assert report.driving_mode == "navigation"
+    assert report.focus_grade is None
+
+
+def test_a_navigation_report_rejects_a_focus_grade() -> None:
+    # driving_reports pairs navigation mode with a NULL focus_grade, so sending
+    # one is a client bug worth a 422 rather than a silent drop
+    with pytest.raises(ValidationError, match="focusGrade must be omitted"):
+        DrivingReportCreate.model_validate(
+            valid_report(drivingMode="navigation", focusGrade=90.0)
+        )
+
+
+def test_a_navigation_report_still_takes_the_other_grades() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(drivingMode="navigation", brakingGrade=72.5, turningGrade=88.0)
+    )
+    assert report.braking_grade == 72.5
+    assert report.turning_grade == 88.0
+
+
+def test_an_unknown_mode_is_rejected() -> None:
+    # It would fail the driving_mode ENUM at INSERT
+    with pytest.raises(ValidationError):
+        DrivingReportCreate.model_validate(valid_report(drivingMode="parking"))
+
+
+def test_a_navigation_report_serializes_a_null_focus_grade() -> None:
+    from app import models
+
+    row = models.DrivingReport(
+        id=8,
+        user_id=1,
+        driving_mode="navigation",
+        overall_grade=87.0,
+        speed_grade=87.0,
+        braking_grade=100.0,
+        acceleration_grade=100.0,
+        turning_grade=100.0,
+        focus_grade=None,
+        report_date=datetime(2026, 7, 30, 10, 30),
+        trip_duration_minutes=30.0,
+        trip_distance_miles=12.4,
+    )
+    body = DrivingReportOut.model_validate(row).model_dump(by_alias=True)
+
+    assert body["drivingMode"] == "navigation"
+    assert body["focusGrade"] is None

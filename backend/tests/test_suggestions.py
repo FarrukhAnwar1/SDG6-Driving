@@ -25,6 +25,7 @@ def report(index=0, user_id=1, **overrides):
     fields = {
         "id": user_id * 1000 + index,
         "user_id": user_id,
+        "driving_mode": "regular",
         **{name: 60 + index * 4 + offset for offset, name in enumerate(suggestions.GRADE_FIELDS)},
         "report_date": ended,
         "trip_duration_minutes": 30 if index < 3 else 60,
@@ -179,6 +180,42 @@ def test_zero_duration_and_undated_reports_do_not_invent_temporal_data():
     assert history["overall"]["violationsByType"]["Proper Speed"]["countPerDrivingHour"] is None
     assert history["comparison"]["violationRateChanges"]["Proper Speed"]["violationMinutesPerDrivingHour"] is None
     assert len(history["reports"]) == 6
+
+
+def test_navigation_trips_are_left_out_of_focus_statistics():
+    rows = history_rows()
+    for row in rows[3:]:
+        row.driving_mode = "navigation"
+        row.focus_grade = None
+    rows[0].violations[0].violation_type = "Focused Driving"
+    history = suggestions.analyze_history(rows)
+    # Only the three 30-minute regular trips count toward focus
+    assert history["overall"]["averageGrades"]["focus_grade"] == 69
+    focus = history["overall"]["violationsByType"]["Focused Driving"]
+    assert focus["countPerDrivingHour"] == round(1 / 1.5, 4)
+    # Other dimensions still use every trip's driving time (4.5 hours)
+    assert history["overall"]["violationsByType"]["Proper Speed"]["countPerDrivingHour"] == round(5 / 4.5, 4)
+    # The recent half is all navigation, so there is no focus trend to report
+    comparison = history["comparison"]
+    assert comparison["recent"]["averageGrades"]["focus_grade"] is None
+    assert comparison["gradeChanges"]["focus_grade"] is None
+    assert comparison["violationRateChanges"]["Focused Driving"]["countPerDrivingHour"] is None
+    assert comparison["gradeChanges"]["speed_grade"] == 12
+
+
+def test_endpoint_reads_navigation_reports_with_null_focus(api, gemini):
+    client, engine = api
+    rows = [report(index) for index in range(6)]
+    for row in rows[::2]:
+        row.driving_mode = "navigation"
+        row.focus_grade = None
+    seed(engine, rows)
+    response = client.get("/advanced-suggestion", headers=auth())
+    assert response.status_code == 200
+    payload = json.loads(gemini["requests"][0].content)
+    history = json.loads(payload["contents"][0]["parts"][0]["text"])
+    assert [row["drivingMode"] for row in history["reports"]] == ["navigation", "regular"] * 3
+    assert [row["focusGrade"] for row in history["reports"]][::2] == [None] * 3
 
 
 @pytest.mark.parametrize("count,span_days,sufficient", [(5, 28, False), (6, 27, False), (6, 28, True)])
