@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'auth_storage.dart';
+import 'driving_mode.dart';
 import 'driving_report_policy.dart';
 import 'driving_report_summary.dart';
 import 'speed_grading_service.dart';
@@ -39,12 +40,13 @@ class DrivingReportApi {
     required DateTime startTime,
     required DateTime endTime,
     required double milesDriven,
+    required DrivingMode drivingMode,
     required double overallGrade,
     required double properSpeedGrade,
     required double brakingGrade,
     required double acceleratingGrade,
     required double turningGrade,
-    required double focusedDrivingGrade,
+    required double? focusedDrivingGrade,
     List<SpeedingViolation> speedingViolations = const [],
     List<SmoothnessViolation> brakingViolations = const [],
     List<SmoothnessViolation> acceleratingViolations = const [],
@@ -82,11 +84,13 @@ class DrivingReportApi {
           'startedAt': startTime.toUtc().toIso8601String(),
           'endedAt': endTime.toUtc().toIso8601String(),
           'tripDistanceMiles': milesDriven,
+          'drivingMode': drivingMode.apiValue,
           'overallGrade': overallGrade,
           'speedGrade': properSpeedGrade,
           'brakingGrade': brakingGrade,
           'accelerationGrade': acceleratingGrade,
           'turningGrade': turningGrade,
+          // Null means focus wasn't measured for this mode
           'focusGrade': focusedDrivingGrade,
           'violations': violations,
         }),
@@ -103,9 +107,9 @@ class DrivingReportApi {
           'Failed to send report. Please try again.',
         );
       }
-    } catch (_) {
-      return DrivingReportResult.failure('Could not connect to backend.');
-    }
+      } catch (_) {
+    return DrivingReportResult.failure('Could not connect to backend.');
+  }
   }
 
   static Future<DrivingReportHistoryResult> fetchHistory() async {

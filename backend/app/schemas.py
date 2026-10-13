@@ -231,7 +231,7 @@ class DrivingReportCreate(BaseModel):
                     "Focused Driving violations are not tracked in navigation mode"
                 )
         elif self.focus_grade is None:
-            self.focus_grade = UNGRADED_DIMENSION
+              raise ValueError("focusGrade is required in regular mode")
         return self
 
     @property
