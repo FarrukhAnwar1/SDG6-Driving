@@ -2,6 +2,7 @@
 // and subsequently be uploaded to the database via the Driving Report Upload API endpoint
 import 'package:flutter/foundation.dart';
 
+import 'driving_mode.dart';
 import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
@@ -13,8 +14,9 @@ class TripSummary {
   final DateTime endTime;
   final Duration elapsed;
   final double milesDriven;
+  final DrivingMode drivingMode;
 
-  // Average of all other grades
+  // Average of all graded categories for this mode
   final double overallGrade;
 
   // Proper Speed grade and its recorded violations
@@ -29,8 +31,9 @@ class TripSummary {
   final List<SmoothnessViolation> acceleratingViolations;
   final List<SmoothnessViolation> turningViolations;
 
-  // Focused Driving grade.
-  final double focusedDrivingGrade;
+  // Focused Driving grade. Null when drivingMode doesn't support focus
+  // grading (e.g. navigation).
+  final double? focusedDrivingGrade;
   final List<FocusedDrivingViolation> focusedDrivingViolations;
 
   const TripSummary({
@@ -38,6 +41,7 @@ class TripSummary {
     required this.endTime,
     required this.elapsed,
     required this.milesDriven,
+    required this.drivingMode,
     required this.overallGrade,
     required this.properSpeedGrade,
     required this.speedingViolations,

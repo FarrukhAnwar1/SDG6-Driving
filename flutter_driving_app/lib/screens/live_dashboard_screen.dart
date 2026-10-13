@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import '../widgets/background_location_service.dart';
+import '../widgets/driving_mode.dart';
 import '../widgets/speed_grading_service.dart';
 import '../widgets/speed_limit_service.dart';
 import '../widgets/smoothness_grading_service.dart';
@@ -38,7 +39,12 @@ Color gradeColor(double grade) {
 }
 
 class LiveDashboardScreen extends StatefulWidget {
-  const LiveDashboardScreen({super.key});
+  final DrivingMode drivingMode;
+
+  const LiveDashboardScreen({
+    super.key,
+    this.drivingMode = DrivingMode.navigation,
+  });
 
   @override
   State<LiveDashboardScreen> createState() => _LiveDashboardScreenState();
@@ -95,6 +101,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   bool _receivedFirstPosition = false;
 
+  // Focus is only graded in normal mode (e.g. not while using navigation)
+  bool get _isFocusGraded => widget.drivingMode == DrivingMode.normal;
+
   @override
   void initState() {
     super.initState();
@@ -112,7 +121,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+    if (_isFocusGraded) {
+      _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+    }
     // Coming back to "resumed" may have just closed out a violation and
     // changed the grade, so refresh the displayed numbers.
     if (mounted) setState(() {});
@@ -383,13 +394,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // Close out any in-progress streak so it's counted below
     _properSpeedGrading.finalizeTrip();
     _smoothnessGrading.finalizeTrip();
-    _focusedDrivingGrading.finalizeTrip();
+
+    // Focus is left null (not 100) when this mode doesn't measure it
+    double? focusGrade;
+    List<FocusedDrivingViolation> focusViolations = const [];
+    if (_isFocusGraded) {
+      _focusedDrivingGrading.finalizeTrip();
+      focusGrade = _focusedDrivingGrading.grade;
+      focusViolations = _focusedDrivingGrading.violations;
+    }
 
     final summary = TripSummary(
       startTime: _tripStartTime,
       endTime: now,
       elapsed: now.difference(_tripStartTime),
       milesDriven: _milesDriven,
+      drivingMode: widget.drivingMode,
       overallGrade: _overallGrade,
       properSpeedGrade: _properSpeedGrading.grade,
       speedingViolations: _properSpeedGrading.violations,
@@ -405,8 +425,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       turningViolations: _smoothnessGrading.violationsFor(
         SmoothnessCategory.turning,
       ),
-      focusedDrivingGrade: _focusedDrivingGrading.grade,
-      focusedDrivingViolations: _focusedDrivingGrading.violations,
+      focusedDrivingGrade: focusGrade,
+      focusedDrivingViolations: focusViolations,
     );
 
     Navigator.of(context).pushReplacement(
@@ -449,14 +469,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         difference < _speedLimit!.speedingThresholdMph!;
   }
 
-  // Overall Grade is the average of every currently graded category
+  // Overall Grade is the average of every graded category for this mode
   double get _overallGrade {
     final grades = [
       _properSpeedGrading.grade,
       _smoothnessGrading.brakingGrade,
       _smoothnessGrading.acceleratingGrade,
       _smoothnessGrading.turningGrade,
-      _focusedDrivingGrading.grade,
+      if (_isFocusGraded) _focusedDrivingGrading.grade,
     ];
     return grades.reduce((a, b) => a + b) / grades.length;
   }
@@ -904,13 +924,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               _properSpeedGrading.grade,
             ),
           ),
-          Expanded(
-            child: _buildGradeRow(
-              context,
-              'Focused Driving',
-              _focusedDrivingGrading.grade,
+          if (_isFocusGraded)
+            Expanded(
+              child: _buildGradeRow(
+                context,
+                'Focused Driving',
+                _focusedDrivingGrading.grade,
+              ),
             ),
-          ),
           for (final category in [
             SmoothnessCategory.braking,
             SmoothnessCategory.accelerating,
