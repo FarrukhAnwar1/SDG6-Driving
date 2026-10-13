@@ -252,7 +252,10 @@ void main() {
       () => MockClient((request) async {
         expect(request.method, 'GET');
         expect(request.url.path, '/me');
-        return http.Response('{"username":"driver"}', 200);
+        return http.Response(
+          '{"id":1,"username":"driver","email":"driver@example.com"}',
+          200,
+        );
       }),
     );
   });

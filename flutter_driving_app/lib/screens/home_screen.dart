@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
 import 'analytics_screen.dart';
+import 'driving_family_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
@@ -22,6 +23,8 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   bool _isDeleting = false;
   String? _username;
+  int? _userId;
+  String? _userEmail;
   String? _loadError;
 
   @override
@@ -51,6 +54,8 @@ class _HomePageState extends State<HomePage> {
         final data = jsonDecode(response.body);
         setState(() {
           _username = data['username'] as String?;
+          _userId = data['id'] as int;
+          _userEmail = data['email'] as String;
           _isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -97,6 +102,20 @@ class _HomePageState extends State<HomePage> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+  }
+
+  Future<void> _openDrivingFamily() async {
+    final userId = _userId;
+    final userEmail = _userEmail;
+    if (userId == null || userEmail == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DrivingFamilyScreen(
+          currentUserId: userId,
+          currentUserEmail: userEmail,
+        ),
+      ),
+    );
   }
 
   Future<void> _openChangePassword() async {
@@ -259,6 +278,12 @@ class _HomePageState extends State<HomePage> {
             onPressed: _openAnalytics,
             icon: const Icon(Icons.insights),
             label: const Text('View Analytics'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _openDrivingFamily,
+            icon: const Icon(Icons.groups_outlined),
+            label: const Text('Driving Family'),
           ),
           const SizedBox(height: 12),
           OutlinedButton(

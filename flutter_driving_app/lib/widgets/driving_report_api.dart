@@ -116,9 +116,9 @@ class DrivingReportApi {
     }
 
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}/driving-reports').replace(
-        queryParameters: {'limit': '$historyLimit'},
-      );
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}/driving-reports',
+      ).replace(queryParameters: {'limit': '$historyLimit'});
 
       final response = await http.get(
         uri,
@@ -139,16 +139,17 @@ class DrivingReportApi {
 
       try {
         final decoded = jsonDecode(response.body);
-        if (decoded is! Map<String, dynamic> ||
-            decoded['reports'] is! List) {
+        if (decoded is! Map<String, dynamic> || decoded['reports'] is! List) {
           return DrivingReportHistoryResult.failure(
             'Could not read trip history. Please try again.',
           );
         }
 
         final reports = (decoded['reports'] as List)
-            .map((item) =>
-                DrivingReportSummary.fromJson(item as Map<String, dynamic>))
+            .map(
+              (item) =>
+                  DrivingReportSummary.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
 
         // Newest first; nulls last, id descending breaks same-timestamp ties.
@@ -169,7 +170,9 @@ class DrivingReportApi {
         );
       }
     } catch (_) {
-      return DrivingReportHistoryResult.failure('Could not connect to backend.');
+      return DrivingReportHistoryResult.failure(
+        'Could not connect to backend.',
+      );
     }
   }
 
