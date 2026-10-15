@@ -7,9 +7,11 @@ import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'driving_family_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
+import '../widgets/driving_mode.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -92,10 +94,18 @@ class _HomePageState extends State<HomePage> {
     _goToLogin();
   }
 
+  //Reads the driving mode from storage and starts the trip with that mode.
   Future<void> _startTrip() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LiveDashboardScreen()));
+    final drivingMode = await loadDrivingMode();
+
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => LiveDashboardScreen(
+        drivingMode: drivingMode,
+        ),
+      ),
+    );
   }
 
   Future<void> _openAnalytics() async {
@@ -116,6 +126,12 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage(),),);
   }
 
   Future<void> _openChangePassword() async {
@@ -285,10 +301,17 @@ class _HomePageState extends State<HomePage> {
             icon: const Icon(Icons.groups_outlined),
             label: const Text('Driving Family'),
           ),
+          
           const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _openChangePassword,
             child: const Text('Change Password'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _openSettings,
+            icon: const Icon(Icons.settings_outlined),
+            label: const Text('Settings'),
           ),
           const SizedBox(height: 12),
           OutlinedButton(

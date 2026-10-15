@@ -14,6 +14,8 @@ import '../widgets/error_banner.dart';
 
 import '../widgets/grade_utils.dart';
 
+import '../widgets/driving_mode.dart';
+
 
 
 class AnalyticsScreen extends StatefulWidget {
@@ -408,14 +410,25 @@ class _ReportCard extends StatelessWidget {
 
         title: Text(_formatReportDate(context, report.reportDate)),
 
-        subtitle: Text(
+        // Subtitle shows the driving mode (retroactivly), distance, duration, and violation count.
+        subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
 
-          '${report.milesDriven.toStringAsFixed(1)} mi · '
+            _DrivingModeBadge(mode: report.drivingMode,),
+            const SizedBox(height: 6),
 
-          '${_formatDuration(report.elapsed)}\n'
+            Text(
 
-          '$count recorded violation${count == 1 ? '' : 's'}',
+              '${report.milesDriven.toStringAsFixed(1)} mi · '
 
+              '${_formatDuration(report.elapsed)}\n'
+              
+              '$count recorded violation${count == 1 ? '' : 's'}',
+
+            ),
+          ],
         ),
 
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -429,6 +442,9 @@ class _ReportCard extends StatelessWidget {
             _GradeRow(label: entry.key, value: entry.value, averageValue: null),
 
           const Divider(height: 24),
+          
+          if (report.focusedDrivingGrade == null)
+            const _NotTrackedGradeRow(),
 
           Text(
 
@@ -448,16 +464,59 @@ class _ReportCard extends StatelessWidget {
 
             for (final violation in report.violations)
 
-              _ViolationTile(violation: violation),
-
+              _ViolationTile(violation: violation,),
         ],
-
       ),
-
     );
+  }       
+}
 
+
+class _DrivingModeBadge extends StatelessWidget {
+  final DrivingMode mode;
+
+  const _DrivingModeBadge({
+    required this.mode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isNavigation = mode == DrivingMode.navigation;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 5,
+      ),
+      decoration: BoxDecoration(
+        color: isNavigation
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isNavigation
+                ? Icons.navigation_outlined
+                : Icons.directions_car_outlined,
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            isNavigation
+                ? 'Navigation Mode'
+                : 'Regular Mode',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
 }
 
 
@@ -671,6 +730,9 @@ class _LastDriveCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
+            if (trip.focusedDrivingGrade == null)
+              const _NotTrackedGradeRow(),
+
             Text(
 
               priorTrips.isEmpty
@@ -755,7 +817,7 @@ class _GradeRow extends StatelessWidget {
 
               textAlign: TextAlign.end,
 
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.bold),
 
             ),
 
@@ -779,7 +841,36 @@ class _GradeRow extends StatelessWidget {
 
 }
 
+//Adds a row to the last drive card for grades that are not tracked,
+//such as focused driving in navigation mode.
+class _NotTrackedGradeRow extends StatelessWidget {
+  const _NotTrackedGradeRow();
 
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(
+            Icons.remove_circle_outline,
+            size: 12,
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text('Focused Driving'),
+          ),
+          Text(
+            'Not Tracked',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _GradeChange extends StatelessWidget {
 
@@ -849,7 +940,7 @@ class _GradeChange extends StatelessWidget {
 
               fontSize: 12,
 
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
 
             ),
 
@@ -1505,7 +1596,7 @@ class _HistoryChartState extends State<_HistoryChart> {
 
                           fontSize: 12,
 
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
 
                         ),
 
