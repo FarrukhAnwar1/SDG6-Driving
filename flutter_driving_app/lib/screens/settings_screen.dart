@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/driving_mode.dart';
+import '../widgets/error_banner.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,6 +12,8 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   DrivingMode _drivingMode = DrivingMode.normal;
   bool _isLoading = true;
+  bool _isSaving = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -30,30 +33,48 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _updateDrivingMode(bool navigationEnabled) async {
-  final newMode = navigationEnabled
-    ? DrivingMode.navigation
-    : DrivingMode.normal;
+    if (_isSaving) return;
 
-  setState(() {
-    _drivingMode = newMode;
-  });
+    final newMode = navigationEnabled
+        ? DrivingMode.navigation
+        : DrivingMode.normal;
 
-  await newMode.save();
-}
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await newMode.save();
+      if (!mounted) return;
+
+      setState(() {
+        _drivingMode = newMode;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _errorMessage = 'Could not save your driving mode. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isNavigationMode = _drivingMode == DrivingMode.navigation;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
+            ? const Center(child: CircularProgressIndicator())
             : ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
@@ -77,14 +98,21 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       title: const Text('Navigation Mode'),
                       subtitle: Text(
-                        isNavigationMode
+                        _isSaving
+                            ? 'Saving driving mode...'
+                            : isNavigationMode
                             ? 'On, Focus tracking will not be used.'
                             : 'Off, Regular driving mode is active.',
                       ),
                       value: isNavigationMode,
-                      onChanged: _updateDrivingMode,
+                      onChanged: _isSaving ? null : _updateDrivingMode,
                     ),
                   ),
+
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(message: _errorMessage!),
+                  ],
 
                   const SizedBox(height: 24),
 
@@ -102,7 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.navigation_outlined,
                     title: 'Navigation Mode',
                     description:
-                        'Use this mode when your phone is being used for navigation. '                        
+                        'Use this mode when your phone is being used for navigation. '
                         'Focus tracking will be disabled and will not affect your grade.',
                     isSelected: _drivingMode == DrivingMode.navigation,
                   ),
@@ -178,19 +206,12 @@ class _ModeDescriptionCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           title,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                       ),
                       if (isSelected)
-                        Icon(
-                          Icons.check_circle,
-                          color: colorScheme.primary,
-                        ),
+                        Icon(Icons.check_circle, color: colorScheme.primary),
                     ],
                   ),
                   const SizedBox(height: 6),

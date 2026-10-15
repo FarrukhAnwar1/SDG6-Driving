@@ -504,13 +504,15 @@ class _DrivingModeBadge extends StatelessWidget {
             size: 16,
           ),
           const SizedBox(width: 6),
-          Text(
-            isNavigation
-                ? 'Navigation Mode'
-                : 'Regular Mode',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              isNavigation
+                  ? 'Navigation Mode'
+                  : 'Regular Mode',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
