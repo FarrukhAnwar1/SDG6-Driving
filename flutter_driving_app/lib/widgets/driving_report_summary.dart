@@ -1,6 +1,7 @@
 // Models a single saved report and its nested violations
 // returned by GET /driving-reports.
 import 'package:flutter/foundation.dart';
+import 'driving_mode.dart';
 
 @immutable
 class DrivingReportSummary {
@@ -10,6 +11,7 @@ class DrivingReportSummary {
   final double tripDurationMinutes;
   final double milesDriven;
   final List<DrivingReportViolation> violations;
+  final DrivingMode drivingMode;
 
   final double overallGrade;
   final double properSpeedGrade;
@@ -30,6 +32,7 @@ class DrivingReportSummary {
     required this.acceleratingGrade,
     required this.turningGrade,
     required this.focusedDrivingGrade,
+    required this.drivingMode,
   });
 
   Duration get elapsed => Duration(
@@ -58,6 +61,9 @@ class DrivingReportSummary {
           : _parseReportTime(json['reportDate'] as String),
       tripDurationMinutes: (json['tripDurationMinutes'] as num).toDouble(),
       milesDriven: (json['tripDistanceMiles'] as num).toDouble(),
+      drivingMode: json['drivingMode'] == 'navigation'
+        ? DrivingMode.navigation
+        : DrivingMode.normal,
       violations: List.unmodifiable(
         (json['violations'] as List<dynamic>).map(
           (item) =>

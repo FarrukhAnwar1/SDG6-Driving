@@ -43,7 +43,7 @@ class LiveDashboardScreen extends StatefulWidget {
 
   const LiveDashboardScreen({
     super.key,
-    this.drivingMode = DrivingMode.navigation,
+    this.drivingMode = DrivingMode.normal,//navigation,
   });
 
   @override
@@ -518,6 +518,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _buildDrivingModeIndicator(context),
+                const SizedBox(height: 12),
                 // Allocate the available height so every grade stays visible
                 Expanded(
                   child: LayoutBuilder(
@@ -1020,6 +1022,47 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               minHeight: 6,
               color: color,
               backgroundColor: scheme.outlineVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // Driving mode indicator at the top of the dashboard, showing whether
+  // the user is in navigation mode or regular mode.
+  Widget _buildDrivingModeIndicator(BuildContext context) {
+    final isNavigationMode =
+        widget.drivingMode == DrivingMode.navigation;
+
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: isNavigationMode
+            ? scheme.primaryContainer
+            : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isNavigationMode
+                ? Icons.navigation_outlined
+                : Icons.directions_car_outlined,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isNavigationMode
+                  ? 'Navigation Mode Active'
+                  : 'Regular Mode Active',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
