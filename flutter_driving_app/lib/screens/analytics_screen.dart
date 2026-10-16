@@ -38,7 +38,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   List<DrivingReportSummary> _reports = const [];
 
   String _selectedMetric = 'Overall';
-  AnalyticsRange _selectedRange = AnalyticsRange.last10;
+  AnalyticsRange _selectedRange = AnalyticsRange.last100;
   DateTimeRange? _dateRange;
   AnalyticsTimeOfDay _timeOfDay = AnalyticsTimeOfDay.all;
 
@@ -356,12 +356,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 20),
+          _SectionHeader('Filters'),
+          const SizedBox(height: 12),
           _buildFilters(context),
           const SizedBox(height: 12),
           Text(
             'Showing ${reports.length} matching trip${reports.length == 1 ? '' : 's'}.',
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
+          _SectionHeader('Driving Suggestions'),
+          const SizedBox(height: 8),
+          Text(
+            'Based on up to $_tripLimit latest saved trips, across all dates and times.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          _buildSuggestionsSection(),
+          const SizedBox(height: 28),
           if (reports.isEmpty)
             const Card(
               child: Padding(
@@ -393,16 +404,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ],
           ],
-          const SizedBox(height: 28),
-          _SectionHeader('Driving Suggestions'),
-          const SizedBox(height: 8),
-          Text(
-            'Based on up to $_tripLimit latest saved trips, across all dates and times.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          _buildSuggestionsSection(),
-
           if (reports.isNotEmpty) ...[
             const SizedBox(height: 28),
             _SectionHeader('Trip Reports'),

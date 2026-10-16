@@ -25,7 +25,13 @@ void main() {
         () async {
           await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
           await tester.pumpAndSettle();
-          expect(find.text('Showing 10 matching trips.'), findsOneWidget);
+          expect(
+            tester
+                .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '100'))
+                .selected,
+            isTrue,
+          );
+          expect(find.text('Showing 30 matching trips.'), findsOneWidget);
           await tester.scrollUntilVisible(find.byType(LineChart), 300);
           expect(
             tester
@@ -35,7 +41,7 @@ void main() {
                 .first
                 .spots
                 .map((spot) => spot.y),
-            [for (var id = 21; id <= 30; id++) 60 + id],
+            [for (var id = 1; id <= 30; id++) 60 + id],
           );
 
           await _scrollToTop(tester);
@@ -53,12 +59,13 @@ void main() {
                 .map((spot) => spot.y),
             [for (var id = 6; id <= 30; id++) 60 + id],
           );
+          await _scrollToTop(tester);
           await tester.scrollUntilVisible(
             find.text('Advice for 25 trips'),
             300,
           );
           expect(historyRequests, 1);
-          expect(suggestionLimits, ['10', '25']);
+          expect(suggestionLimits, ['100', '25']);
           expect(tester.takeException(), isNull);
         },
         () => MockClient((request) async {
@@ -113,6 +120,8 @@ void main() {
             // describe the same two matching reports.
             final lastGrade = period == 'AM' ? '70%' : '90%';
             final averageGrade = period == 'AM' ? '65%' : '85%';
+            await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+            await tester.pumpAndSettle();
             await tester.scrollUntilVisible(find.text(lastGrade).first, 150);
             expect(find.text(lastGrade), findsWidgets);
             await tester.scrollUntilVisible(find.text(averageGrade), 150);
@@ -220,10 +229,15 @@ void main() {
           await tester.tap(find.text('OK'));
           await tester.pumpAndSettle();
           expect(find.text('Showing 0 matching trips.'), findsOneWidget);
+          await tester.scrollUntilVisible(
+            find.textContaining('No trips match these filters'),
+            150,
+          );
           expect(
             find.textContaining('No trips match these filters'),
             findsOneWidget,
           );
+          await _scrollToTop(tester);
           await tester.tap(find.byTooltip('Clear date range'));
           await tester.pumpAndSettle();
           expect(find.text('Showing 2 matching trips.'), findsOneWidget);
@@ -294,7 +308,7 @@ void main() {
       },
       () => MockClient((request) async {
         if (request.url.path == '/advanced-suggestion') {
-          if (request.url.queryParameters['limit'] == '10') {
+          if (request.url.queryParameters['limit'] == '100') {
             return oldResponse.future;
           }
           return http.Response('{"message":"New advice"}', 200);
@@ -324,12 +338,13 @@ void main() {
         await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
         await tester.pumpAndSettle();
 
-        expect(find.text('93%'), findsOneWidget);
-        expect(find.text('A'), findsOneWidget);
         expect(
           find.text('Based on your 3 most recent saved trips (up to 100).'),
           findsOneWidget,
         );
+        await tester.scrollUntilVisible(find.text('93%'), 200);
+        expect(find.text('93%'), findsOneWidget);
+        expect(find.text('A'), findsOneWidget);
         expect(find.text('Lifetime Stats'), findsNothing);
         await tester.scrollUntilVisible(find.byType(LineChart), 300);
         final chart = tester.widget<LineChart>(find.byType(LineChart));
@@ -531,6 +546,7 @@ void main() {
         );
         await tester.tap(find.text('Retry'));
         await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(find.text('Last Drive'), 200);
         expect(find.text('Last Drive'), findsOneWidget);
         expect(requests, 3);
         expect(tester.takeException(), isNull);
