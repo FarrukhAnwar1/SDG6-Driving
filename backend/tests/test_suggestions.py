@@ -267,19 +267,42 @@ def test_endpoint_and_prompt_use_only_token_users_complete_report_data(api, gemi
     assert "Treat every supplied grade and violation as accurate" in instruction
 
 
-def test_only_latest_100_trips_are_analyzed_with_stable_ties(api, gemini):
+@pytest.mark.parametrize("limit", [None, 6, 10, 25, 50, 75, 100])
+def test_only_requested_latest_trips_are_analyzed_with_stable_ties(api, gemini, limit):
     client, engine = api
     rows = [report(index, overall_grade=80, speed_grade=80, braking_grade=80,
                    acceleration_grade=80, turning_grade=80, focus_grade=80,
                    violations=[]) for index in range(102)]
     rows[0].report_date = rows[1].report_date = rows[2].report_date
     seed(engine, rows)
-    response = client.get("/advanced-suggestion", headers=auth())
+    query = "" if limit is None else f"?limit={limit}"
+    response = client.get(f"/advanced-suggestion{query}", headers=auth())
+    expected_count = 100 if limit is None else limit
     assert response.status_code == 200
-    assert response.json()["reportsAnalyzed"] == 100
+    assert response.json()["reportsAnalyzed"] == expected_count
     payload = json.loads(gemini["requests"][0].content)
     history = json.loads(payload["contents"][0]["parts"][0]["text"])
-    assert [row["id"] for row in history["reports"]] == list(range(1002, 1102))
+    assert [row["id"] for row in history["reports"]] == list(range(1102 - expected_count, 1102))
+
+
+@pytest.mark.parametrize("limit", ["0", "-1", "101", "1.5", "invalid"])
+def test_invalid_recent_limit_is_rejected_without_generation(api, gemini, limit):
+    client, _ = api
+    response = client.get(f"/advanced-suggestion?limit={limit}", headers=auth())
+    assert response.status_code == 422
+    assert gemini["requests"] == []
+
+
+def test_small_limit_checks_history_threshold_after_selecting_trips(api, gemini):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    response = client.get("/advanced-suggestion?limit=1", headers=auth())
+    assert response.status_code == 200
+    assert response.json()["status"] == "insufficient_history"
+    assert response.json()["reportsAnalyzed"] == 1
+    assert response.json()["analysisStartDate"] == "2026-08-10T12:00:00"
+    assert response.json()["analysisEndDate"] == "2026-08-10T12:00:00"
+    assert gemini["requests"] == []
 
 
 @pytest.mark.parametrize("count", [0, 1, 5])

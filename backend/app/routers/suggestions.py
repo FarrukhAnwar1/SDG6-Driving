@@ -1,7 +1,7 @@
 # This file contains the endpoint for generating advanced suggestions based on a user's driving history. 
 # It uses services from driving_reports and suggestions to fetch data and analyze it, 
 # returning feedback to the user.
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Query, Response
 from .. import schemas
 from ..dependencies import CurrentUser, DbSession
 from ..services.driving_reports import read_driving_reports
@@ -21,10 +21,20 @@ router = APIRouter(tags=["suggestions"])
         504: {"description": "Gemini request timed out"},
     },
 )
-def advanced_suggestion(current_user: CurrentUser, db: DbSession, response: Response):
-    """Blend motivation and actionable advice from the caller's latest 100 trips."""
+def advanced_suggestion(
+    current_user: CurrentUser,
+    db: DbSession,
+    response: Response,
+    limit: int = Query(
+        default=schemas.MAX_REPORT_LIMIT,
+        ge=1,
+        le=schemas.MAX_REPORT_LIMIT,
+        description="How many of the most recent reports to analyze",
+    ),
+):
+    """Blend motivation and actionable advice from the caller's latest `limit` trips."""
     response.headers["Cache-Control"] = "no-store"
-    rows = read_driving_reports(db, current_user.id, schemas.MAX_REPORT_LIMIT)
+    rows = read_driving_reports(db, current_user.id, limit)
     reports = [schemas.DrivingReportWithViolationsOut.model_validate(row) for row in rows]
     history = analyze_history(reports)
     metadata = {
