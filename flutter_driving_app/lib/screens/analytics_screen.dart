@@ -1,11 +1,11 @@
 // Analytics for the latest 100 saved reports and their recorded violations
-import 'dart:convert';//
+import 'dart:convert';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;//
-import '../widgets/api_config.dart';//
-import '../widgets/auth_storage.dart';//
+import 'package:http/http.dart' as http;
+import '../widgets/api_config.dart';
+import '../widgets/auth_storage.dart';
 import '../widgets/driving_report_api.dart';
 import '../widgets/driving_report_summary.dart';
 import '../widgets/error_banner.dart';
@@ -20,12 +20,17 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 enum AnalyticsRange {
-  last10,
-  last25,
-  last50,
-  last75,
-  last100,
+  last10(10),
+  last25(25),
+  last50(50),
+  last75(75),
+  last100(100);
+
+  const AnalyticsRange(this.limit);
+  final int limit;
 }
+
+enum AnalyticsTimeOfDay { all, am, pm }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _isLoading = true;
@@ -34,75 +39,83 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   String _selectedMetric = 'Overall';
   AnalyticsRange _selectedRange = AnalyticsRange.last10;
+  DateTimeRange? _dateRange;
+  AnalyticsTimeOfDay _timeOfDay = AnalyticsTimeOfDay.all;
 
   bool _isLoadingSuggestions = false;
   String? _suggestionsError;
   String? _suggestion;
-  
-  int getTripLimit(AnalyticsRange range) {
-  switch (range) {
-    case AnalyticsRange.last10:
-      return 10;
-    case AnalyticsRange.last25:
-      return 25;
-    case AnalyticsRange.last50:
-      return 50;
-    case AnalyticsRange.last75:
-      return 75;
-    case AnalyticsRange.last100:
-      return 100;
-    }
-  }
-  // Returns the most recent reports up to the selected range limit.
+  int _suggestionsRequestId = 0;
+
+  int get _tripLimit => _selectedRange.limit;
+
+  // Filter the cached history by local trip end date/time, then keep the latest
+  // matching trips. No filter change reloads report history from the backend.
   List<DrivingReportSummary> get _filteredReports {
-  final limit = getTripLimit(_selectedRange);
-
-  if (_reports.length <= limit) {
-    return _reports;
+    final matching = _reports.where((report) {
+      final date = report.reportDate?.toLocal();
+      if (_dateRange != null) {
+        if (date == null) return false;
+        final day = DateUtils.dateOnly(date);
+        if (day.isBefore(_dateRange!.start) || day.isAfter(_dateRange!.end)) {
+          return false;
+        }
+      }
+      if (_timeOfDay != AnalyticsTimeOfDay.all) {
+        if (date == null) return false;
+        final isAm = date.hour < 12;
+        if (isAm != (_timeOfDay == AnalyticsTimeOfDay.am)) return false;
+      }
+      return true;
+    }).toList();
+    return matching.skip(math.max(0, matching.length - _tripLimit)).toList();
   }
 
-  return _reports.sublist(_reports.length - limit);
-  }
-
-  //suggestions loaded from backend based on the selected range
+  // Suggestions use the recent-trip count independently of date/time filters
   Future<void> _loadSuggestions() async {
+    final requestId = ++_suggestionsRequestId;
+    final limit = _tripLimit;
     setState(() {
       _isLoadingSuggestions = true;
       _suggestionsError = null;
+      _suggestion = null;
     });
 
     try {
       final token = await AuthStorage.readToken();
 
       if (token == null) {
-        throw Exception('User is not autherized. Please log in.');
+        throw Exception('User is not authorized. Please log in.');
       }
 
-      final limit = getTripLimit(_selectedRange);
-
-      final response = await http.get(
-        Uri.parse(
-          '${ApiConfig.baseUrl}/suggestions?limit=$limit',
-        ),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await http
+          .get(
+            Uri.parse(
+              '${ApiConfig.baseUrl}/advanced-suggestion',
+            ).replace(queryParameters: {'limit': '$limit'}),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 60));
 
       if (response.statusCode != 200) {
         throw Exception('Failed to load suggestions');
       }
 
-      final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final message = data['message'] as String;
+      if (message.trim().isEmpty) {
+        throw const FormatException('Empty suggestion');
+      }
 
-      if (!mounted) return;
+      // A slower response for an old selection must not replace newer advice
+      if (!mounted || requestId != _suggestionsRequestId) return;
 
       setState(() {
-        _suggestion = data['message'] as String?;
+        _suggestion = message;
         _isLoadingSuggestions = false;
       });
-    } catch (e) {
-      if (!mounted) return;
+    } catch (_) {
+      if (!mounted || requestId != _suggestionsRequestId) return;
 
       setState(() {
         _suggestionsError = 'Suggestions could not be loaded.';
@@ -115,7 +128,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   void initState() {
     super.initState();
     _loadHistory();
-    _loadSuggestions();
   }
 
   Future<void> _loadHistory() async {
@@ -138,30 +150,135 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         _errorMessage = result.errorMessage;
       }
     });
+    if (result.success) await _loadSuggestions();
   }
 
   Widget _buildSuggestionsSection() {
     if (_isLoadingSuggestions) {
-      return const Center( child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_suggestionsError != null) {
-      return ErrorBanner(
-        message: _suggestionsError!,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ErrorBanner(message: _suggestionsError!),
+          TextButton(
+            onPressed: _loadSuggestions,
+            child: const Text('Retry suggestions'),
+          ),
+        ],
       );
     }
 
     if (_suggestion == null || _suggestion!.isEmpty) {
-      return const Text(
-        'No driving suggestions available yet.',
-      );
+      return const Text('No driving suggestions available yet.');
     }
 
     return Card(
       child: ListTile(
         leading: const Icon(Icons.lightbulb_outline),
         title: Text(_suggestion!),
+      ),
+    );
+  }
+
+  Future<void> _selectDateRange() async {
+    final dates = _reports
+        .map((report) => report.reportDate?.toLocal())
+        .whereType<DateTime>()
+        .map(DateUtils.dateOnly)
+        .toList();
+    // Keep an existing selection valid if refreshed history has newer bounds
+    if (_dateRange case final range?) dates.addAll([range.start, range.end]);
+    final today = DateUtils.dateOnly(DateTime.now());
+    final firstDate = dates.fold<DateTime>(
+      today,
+      (earliest, date) => date.isBefore(earliest) ? date : earliest,
+    );
+    final lastDate = dates.fold<DateTime>(
+      today,
+      (latest, date) => date.isAfter(latest) ? date : latest,
+    );
+    final selected = await showDateRangePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDateRange: _dateRange,
+    );
+    if (!mounted || selected == null) return;
+    setState(() => _dateRange = selected);
+  }
+
+  Widget _buildFilters(BuildContext context) {
+    final localizations = MaterialLocalizations.of(context);
+    final range = _dateRange;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Recent trips', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final range in AnalyticsRange.values)
+                  ChoiceChip(
+                    label: Text('${range.limit}'),
+                    selected: range == _selectedRange,
+                    onSelected: (selected) {
+                      if (!selected) return;
+                      setState(() => _selectedRange = range);
+                      _loadSuggestions();
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _selectDateRange,
+                  icon: const Icon(Icons.date_range),
+                  label: Text(
+                    range == null
+                        ? 'Date range'
+                        : '${localizations.formatShortDate(range.start)} – '
+                              '${localizations.formatShortDate(range.end)}',
+                  ),
+                ),
+                if (range != null)
+                  IconButton(
+                    onPressed: () => setState(() => _dateRange = null),
+                    icon: const Icon(Icons.clear),
+                    tooltip: 'Clear date range',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<AnalyticsTimeOfDay>(
+              segments: const [
+                ButtonSegment(
+                  value: AnalyticsTimeOfDay.all,
+                  label: Text('All day'),
+                ),
+                ButtonSegment(value: AnalyticsTimeOfDay.am, label: Text('AM')),
+                ButtonSegment(value: AnalyticsTimeOfDay.pm, label: Text('PM')),
+              ],
+              selected: {_timeOfDay},
+              showSelectedIcon: false,
+              onSelectionChanged: (selection) {
+                setState(() => _timeOfDay = selection.single);
+              },
+            ),
+            const SizedBox(height: 8),
+            const Text('Filters use each trip’s end date and local time.'),
+          ],
+        ),
       ),
     );
   }
@@ -220,11 +337,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
-    final lastTrip = _reports.last;
-    // Compared against prior trips only, so the last drive isn't measured
-    // against an average that includes itself.
-    final priorTrips = _reports.length > 1
-        ? _reports.sublist(0, _reports.length - 1)
+    final reports = _filteredReports;
+    // Compare the latest matching drive against earlier matching trips only
+    final priorTrips = reports.length > 1
+        ? reports.sublist(0, reports.length - 1)
         : const <DrivingReportSummary>[];
 
     return RefreshIndicator(
@@ -240,72 +356,60 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 20),
-          _SectionHeader('Last Drive'),
+          _buildFilters(context),
           const SizedBox(height: 12),
-          _LastDriveCard(trip: lastTrip, priorTrips: priorTrips),
-          const SizedBox(height: 28),
+          Text(
+            'Showing ${reports.length} matching trip${reports.length == 1 ? '' : 's'}.',
+          ),
+          const SizedBox(height: 20),
+          if (reports.isEmpty)
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text('No trips match these filters. Try another range.'),
+              ),
+            )
+          else ...[
+            _SectionHeader('Last Drive'),
+            const SizedBox(height: 12),
+            _LastDriveCard(trip: reports.last, priorTrips: priorTrips),
+            const SizedBox(height: 28),
 
-          _SectionHeader('Recent Trip Stats'),
-          const SizedBox(height: 12),
-          _RecentStatsGrid(reports: _reports),
-          const SizedBox(height: 28),
+            _SectionHeader('Recent Trip Stats'),
+            const SizedBox(height: 12),
+            _RecentStatsGrid(reports: reports),
+            const SizedBox(height: 28),
 
-          _SectionHeader('Grade History'),
-          SegmentedButton<AnalyticsRange>(
-            // Trip history range filtering buttons
-            segments: const [
-              ButtonSegment(
-                value: AnalyticsRange.last10,
-                label: Text('10'),
-              ),
-              ButtonSegment(
-                value: AnalyticsRange.last25,
-                label: Text('25'),
-              ),
-              ButtonSegment(
-                value: AnalyticsRange.last50,
-                label: Text('50'),
-              ),
-              ButtonSegment(
-                value: AnalyticsRange.last75,
-                label: Text('75'),
-              ),
-              ButtonSegment(
-                value: AnalyticsRange.last100,
-                label: Text('100'),
+            _SectionHeader('Grade History'),
+            const SizedBox(height: 16),
+            _HistoryChart(reports: reports, selectedMetric: _selectedMetric),
+            if (reports.length >= 2) ...[
+              const SizedBox(height: 16),
+              _MetricDropdown(
+                selectedMetric: _selectedMetric,
+                onChanged: (label) {
+                  setState(() => _selectedMetric = label);
+                },
               ),
             ],
-
-            selected: {_selectedRange},
-            onSelectionChanged: (selection) {
-              setState(() {
-                _selectedRange = selection.first;}
-                );
-              _loadSuggestions();
-            },
-          ),
-
-          const SizedBox(height: 16),
-          _HistoryChart(reports: _filteredReports, selectedMetric: _selectedMetric),
-          if (_reports.length >= 2) ...[
-            const SizedBox(height: 16),
-            _MetricDropdown(
-              selectedMetric: _selectedMetric,
-              onChanged: (label) {
-                setState(() => _selectedMetric = label);
-              },
-            ),
           ],
           const SizedBox(height: 28),
           _SectionHeader('Driving Suggestions'),
+          const SizedBox(height: 8),
+          Text(
+            'Based on up to $_tripLimit latest saved trips, across all dates and times.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 12),
           _buildSuggestionsSection(),
 
-          const SizedBox(height: 28),
-          _SectionHeader('Trip Reports'),
-          const SizedBox(height: 12),
-          for (final report in _reports.reversed)
-            _ReportCard(key: ValueKey(report.id), report: report),
+          if (reports.isNotEmpty) ...[
+            const SizedBox(height: 28),
+            _SectionHeader('Trip Reports'),
+            const SizedBox(height: 12),
+            for (final report in reports.reversed)
+              _ReportCard(key: ValueKey(report.id), report: report),
+          ],
         ],
       ),
     );

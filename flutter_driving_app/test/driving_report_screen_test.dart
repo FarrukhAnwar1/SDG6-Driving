@@ -69,8 +69,8 @@ void main() {
       await http.runWithClient(
         () async {
           for (final miles in [0.0, 0.5, 0.999999, 1.0, 1.2]) {
-           final result = await upload(miles);
-           expect(result.success, miles >= 1.0);
+            final result = await upload(miles);
+            expect(result.success, miles >= 1.0);
             if (miles < 1.0) {
               expect(result.errorMessage, contains('at least 1 mile'));
             }
@@ -257,7 +257,9 @@ void main() {
         expect(request.method, 'GET');
         expect(request.url.path, '/me');
         return http.Response(
-        '{"id":1,"username":"driver","email":"driver@example.com"}',200,);
+          '{"id":1,"username":"driver","email":"driver@example.com"}',
+          200,
+        );
       }),
     );
   });
