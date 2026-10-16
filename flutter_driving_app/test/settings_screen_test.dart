@@ -53,6 +53,30 @@ void main() {
     );
   });
 
+  Finder modeCard(DrivingMode mode) => find.ancestor(
+    of: find.text(
+      mode == DrivingMode.normal ? 'Regular Mode' : 'Navigation Mode',
+    ),
+    matching: find.byType(Card),
+  );
+
+  InkWell modeButton(WidgetTester tester, DrivingMode mode) =>
+      tester.widget<InkWell>(
+        find.descendant(of: modeCard(mode), matching: find.byType(InkWell)),
+      );
+
+  void expectSelected(DrivingMode mode) {
+    for (final candidate in DrivingMode.values) {
+      expect(
+        find.descendant(
+          of: modeCard(candidate),
+          matching: find.byIcon(Icons.check_circle),
+        ),
+        candidate == mode ? findsOneWidget : findsNothing,
+      );
+    }
+  }
+
   for (final initialMode in DrivingMode.values) {
     testWidgets(
       'failed save keeps ${initialMode.apiValue} selected and allows a retry',
@@ -60,42 +84,40 @@ void main() {
         storedValues['driving_mode'] = initialMode.apiValue;
         failWrites = true;
         final initiallyNavigation = initialMode == DrivingMode.navigation;
+        final savedMode = initiallyNavigation
+            ? DrivingMode.normal
+            : DrivingMode.navigation;
 
         await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
         await tester.pumpAndSettle();
-        expect(
-          tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-          initiallyNavigation,
-        );
+        expectSelected(initialMode);
+        expect(find.byType(Switch), findsNothing);
 
-        await tester.tap(find.byType(Switch));
+        await tester.tap(modeCard(savedMode));
         await tester.pumpAndSettle();
 
-        final switchAfterFailure = tester.widget<SwitchListTile>(
-          find.byType(SwitchListTile),
-        );
         expect(tester.takeException(), isNull);
-        expect(switchAfterFailure.value, initiallyNavigation);
-        expect(switchAfterFailure.onChanged, isNotNull);
+        expectSelected(initialMode);
+        expect(modeButton(tester, savedMode).onTap, isNotNull);
         expect(find.text(saveError), findsOneWidget);
         expect(storedValues['driving_mode'], initialMode.apiValue);
         expect(await tester.runAsync(loadDrivingMode), initialMode);
 
         failWrites = false;
-        await tester.tap(find.byType(Switch));
+        await tester.tap(modeCard(savedMode));
         await tester.pumpAndSettle();
 
-        final savedMode = initiallyNavigation
-            ? DrivingMode.normal
-            : DrivingMode.navigation;
-        expect(
-          tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-          !initiallyNavigation,
-        );
+        expectSelected(savedMode);
         expect(await tester.runAsync(loadDrivingMode), savedMode);
         expect(find.text(saveError), findsNothing);
         expect(writeCount, 2);
         expect(tester.takeException(), isNull);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+        await tester.pumpAndSettle();
+        expectSelected(savedMode);
+        expect(writeCount, 2);
       },
     );
   }
@@ -107,29 +129,27 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(modeCard(DrivingMode.navigation));
     await tester.pumpAndSettle();
 
-    final savingSwitch = tester.widget<SwitchListTile>(
-      find.byType(SwitchListTile),
-    );
-    expect(savingSwitch.onChanged, isNull);
-    expect(savingSwitch.value, isFalse);
+    for (final mode in DrivingMode.values) {
+      expect(modeButton(tester, mode).onTap, isNull);
+    }
+    expectSelected(DrivingMode.normal);
     expect(find.text('Saving driving mode...'), findsOneWidget);
     expect(await tester.runAsync(loadDrivingMode), DrivingMode.normal);
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(modeCard(DrivingMode.navigation));
     await tester.pump();
     expect(writeCount, 1);
 
     pendingWrite!.complete();
     await tester.pumpAndSettle();
 
-    final savedSwitch = tester.widget<SwitchListTile>(
-      find.byType(SwitchListTile),
-    );
-    expect(savedSwitch.value, isTrue);
-    expect(savedSwitch.onChanged, isNotNull);
+    expectSelected(DrivingMode.navigation);
+    for (final mode in DrivingMode.values) {
+      expect(modeButton(tester, mode).onTap, isNotNull);
+    }
     expect(await tester.runAsync(loadDrivingMode), DrivingMode.navigation);
     expect(find.text('Saving driving mode...'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -143,7 +163,7 @@ void main() {
       failWrites = saveFails;
       await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(Switch));
+      await tester.tap(modeCard(DrivingMode.navigation));
       await tester.pump();
 
       await tester.pumpWidget(const SizedBox.shrink());

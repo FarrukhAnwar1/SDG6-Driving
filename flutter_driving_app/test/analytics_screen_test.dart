@@ -120,6 +120,98 @@ void main() {
     );
   });
 
+  for (final scenario in [
+    (count: 7, width: 440.0, textScale: 1.0, unknownDates: false),
+    (count: 12, width: 320.0, textScale: 1.0, unknownDates: false),
+    (count: 100, width: 320.0, textScale: 1.5, unknownDates: false),
+    (count: 2, width: 320.0, textScale: 1.5, unknownDates: false),
+    (count: 7, width: 800.0, textScale: 1.0, unknownDates: false),
+    (count: 12, width: 320.0, textScale: 1.5, unknownDates: true),
+  ]) {
+    testWidgets('date labels stay apart for $scenario', (tester) async {
+      await tester.binding.setSurfaceSize(Size(scenario.width, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final firstDate = DateTime.utc(2026, 9, 27, 12);
+      final reports = [
+        for (var i = 0; i < scenario.count; i++)
+          reportJson(
+            id: i + 1,
+            reportDate: scenario.unknownDates
+                ? null
+                : firstDate.add(Duration(days: i)).toIso8601String(),
+          ),
+      ];
+
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(
+            MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scenario.textScale)),
+                child: child!,
+              ),
+              home: const AnalyticsScreen(),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(find.byType(LineChart), 300);
+          await tester.pumpAndSettle();
+
+          final titles = find.descendant(
+            of: find.byType(LineChart),
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is SideTitleWidget &&
+                  widget.meta.axisSide == AxisSide.bottom,
+            ),
+          );
+          final labels = find.descendant(
+            of: titles,
+            matching: find.byType(Text),
+          );
+          final texts = tester.widgetList<Text>(labels).toList();
+          expect(texts.length, greaterThanOrEqualTo(2));
+          if (!scenario.unknownDates) {
+            final firstLocalDate = firstDate.toLocal();
+            final lastDate = firstDate
+                .add(Duration(days: scenario.count - 1))
+                .toLocal();
+            expect(
+              texts.first.data,
+              '${firstLocalDate.month}/${firstLocalDate.day}',
+            );
+            expect(texts.last.data, '${lastDate.month}/${lastDate.day}');
+            expect(texts.map((text) => text.data).toSet().length, texts.length);
+          }
+
+          final chartBounds = tester.getRect(find.byType(LineChart));
+          Rect? previousBounds;
+          for (final text in texts) {
+            final bounds = tester.getRect(find.byWidget(text));
+            expect(bounds.left, greaterThanOrEqualTo(chartBounds.left));
+            expect(bounds.right, lessThanOrEqualTo(chartBounds.right));
+            if (previousBounds != null) {
+              expect(
+                bounds.left - previousBounds.right,
+                greaterThanOrEqualTo(8),
+              );
+            }
+            previousBounds = bounds;
+          }
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient(
+          (_) async => http.Response(
+            jsonEncode({'reports': reports.reversed.toList()}),
+            200,
+          ),
+        ),
+      );
+    });
+  }
+
   testWidgets('empty history can refresh and a failed refresh can retry', (
     tester,
   ) async {
