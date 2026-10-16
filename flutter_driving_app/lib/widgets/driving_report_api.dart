@@ -107,9 +107,9 @@ class DrivingReportApi {
           'Failed to send report. Please try again.',
         );
       }
-      } catch (_) {
-    return DrivingReportResult.failure('Could not connect to backend.');
-  }
+    } catch (_) {
+      return DrivingReportResult.failure('Could not connect to backend.');
+    }
   }
 
   static Future<DrivingReportHistoryResult> fetchHistory() async {
@@ -174,7 +174,9 @@ class DrivingReportApi {
         );
       }
     } catch (_) {
-      return DrivingReportHistoryResult.failure('Could not connect to backend.');
+      return DrivingReportHistoryResult.failure(
+        'Could not connect to backend.',
+      );
     }
   }
 
