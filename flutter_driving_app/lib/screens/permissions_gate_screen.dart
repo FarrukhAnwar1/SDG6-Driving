@@ -235,8 +235,9 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
     results[Permission.locationAlways] = alwaysStatus;
 
     if (_usesManageExternalStorage) {
-      results[Permission.manageExternalStorage] =
-          await Permission.manageExternalStorage.request();
+      results[Permission.manageExternalStorage] = await Permission
+          .manageExternalStorage
+          .request();
     }
 
     var accuracy = await _checkAccuracyIfLocationGranted(results);

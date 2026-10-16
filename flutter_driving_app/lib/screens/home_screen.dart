@@ -6,9 +6,12 @@ import 'login_screen.dart';
 import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
 import 'analytics_screen.dart';
+import 'driving_family_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
+import '../widgets/driving_mode.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,6 +25,8 @@ class _HomePageState extends State<HomePage> {
   bool _isLoading = true;
   bool _isDeleting = false;
   String? _username;
+  int? _userId;
+  String? _userEmail;
   String? _loadError;
 
   @override
@@ -51,6 +56,8 @@ class _HomePageState extends State<HomePage> {
         final data = jsonDecode(response.body);
         setState(() {
           _username = data['username'] as String?;
+          _userId = data['id'] as int;
+          _userEmail = data['email'] as String;
           _isLoading = false;
         });
       } else if (response.statusCode == 401) {
@@ -87,16 +94,43 @@ class _HomePageState extends State<HomePage> {
     _goToLogin();
   }
 
+  // Reads the driving mode from storage and starts the trip with that mode
   Future<void> _startTrip() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const LiveDashboardScreen()));
+    final drivingMode = await loadDrivingMode();
+
+    if (!mounted) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LiveDashboardScreen(drivingMode: drivingMode),
+      ),
+    );
   }
 
   Future<void> _openAnalytics() async {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AnalyticsScreen()));
+  }
+
+  Future<void> _openDrivingFamily() async {
+    final userId = _userId;
+    final userEmail = _userEmail;
+    if (userId == null || userEmail == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DrivingFamilyScreen(
+          currentUserId: userId,
+          currentUserEmail: userEmail,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
   }
 
   Future<void> _openChangePassword() async {
@@ -249,36 +283,58 @@ class _HomePageState extends State<HomePage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          FilledButton.icon(
-            onPressed: _startTrip,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Start Trip'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _openAnalytics,
-            icon: const Icon(Icons.insights),
-            label: const Text('View Analytics'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _openChangePassword,
-            child: const Text('Change Password'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+          IntrinsicWidth(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _startTrip,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Start Trip'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openAnalytics,
+                  icon: const Icon(Icons.insights),
+                  label: const Text('View Analytics'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openDrivingFamily,
+                  icon: const Icon(Icons.groups_outlined),
+                  label: const Text('Driving Family'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('Settings'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openChangePassword,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Change Password'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                  label: const Text('Delete Account'),
+                ),
+              ],
             ),
-            child: _isDeleting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Delete Account'),
           ),
         ],
       ),

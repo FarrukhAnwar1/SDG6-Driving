@@ -44,12 +44,18 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       startTime: summary.startTime,
       endTime: summary.endTime,
       milesDriven: summary.milesDriven,
+      drivingMode: summary.drivingMode,
       overallGrade: summary.overallGrade,
       properSpeedGrade: summary.properSpeedGrade,
       brakingGrade: summary.brakingGrade,
       acceleratingGrade: summary.acceleratingGrade,
       turningGrade: summary.turningGrade,
       focusedDrivingGrade: summary.focusedDrivingGrade,
+      speedingViolations: summary.speedingViolations,
+      brakingViolations: summary.brakingViolations,
+      acceleratingViolations: summary.acceleratingViolations,
+      turningViolations: summary.turningViolations,
+      focusedDrivingViolations: summary.focusedDrivingViolations,
     );
 
     if (!mounted) return;
@@ -74,12 +80,15 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
   }
 
   ({String category, double score}) _getLowestScore(TripSummary summary) {
+    final focusGrade = summary.focusedDrivingGrade;
+
+    // Focus is left out when this mode didn't measure it
     final scores = {
       'speed': summary.properSpeedGrade,
       'braking': summary.brakingGrade,
       'acceleration': summary.acceleratingGrade,
       'turning': summary.turningGrade,
-      'focusedDriving': summary.focusedDrivingGrade,
+      'focusedDriving': ?focusGrade,
     };
 
     final lowest = scores.entries.reduce((a, b) => a.value < b.value ? a : b);
@@ -198,6 +207,7 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
   Widget _buildReport(BuildContext context, TripSummary summary) {
     final lowestScore = _getLowestScore(summary);
     final suggestion = _getSuggestion(lowestScore.category, lowestScore.score);
+    final focusGrade = summary.focusedDrivingGrade;
 
     return Column(
       children: [
@@ -278,11 +288,13 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
               'Turning: ${summary.turningGrade.toStringAsFixed(0)}%',
         ),
 
-        _ReportItem(
-          icon: Icons.visibility_outlined,
-          title: 'Focused Driving Score',
-          value: '${summary.focusedDrivingGrade.toStringAsFixed(0)}%',
-        ),
+        // Hidden when this mode didn't measure focus
+        if (focusGrade != null)
+          _ReportItem(
+            icon: Icons.visibility_outlined,
+            title: 'Focused Driving Score',
+            value: '${focusGrade.toStringAsFixed(0)}%',
+          ),
 
         _ReportItem(
           icon: Icons.drive_eta,

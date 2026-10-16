@@ -1,6 +1,7 @@
 // Models a single saved report and its nested violations
 // returned by GET /driving-reports.
 import 'package:flutter/foundation.dart';
+import 'driving_mode.dart';
 
 @immutable
 class DrivingReportSummary {
@@ -10,13 +11,14 @@ class DrivingReportSummary {
   final double tripDurationMinutes;
   final double milesDriven;
   final List<DrivingReportViolation> violations;
+  final DrivingMode drivingMode;
 
   final double overallGrade;
   final double properSpeedGrade;
   final double brakingGrade;
   final double acceleratingGrade;
   final double turningGrade;
-  final double focusedDrivingGrade;
+  final double? focusedDrivingGrade;
 
   const DrivingReportSummary({
     required this.id,
@@ -30,6 +32,7 @@ class DrivingReportSummary {
     required this.acceleratingGrade,
     required this.turningGrade,
     required this.focusedDrivingGrade,
+    required this.drivingMode,
   });
 
   Duration get elapsed => Duration(
@@ -37,17 +40,15 @@ class DrivingReportSummary {
         .round(),
   );
 
-  // All six grades keyed by the label the Analytics screen displays, charts,
-  // and selects in its dropdown. Centralizing this mapping means the screen,
-  // the chart series, and the grade dropdown can't drift out of sync with each
-  // other. Add a grade here and it shows up everywhere automatically.
+  // Grades keyed by the labels Analytics displays, charts, and selects.
+  // Navigation trips omit Focused Driving because it was not measured.
   Map<String, double> get gradesByLabel => {
     'Overall': overallGrade,
     'Speed': properSpeedGrade,
     'Braking': brakingGrade,
     'Acceleration': acceleratingGrade,
     'Turning': turningGrade,
-    'Focused Driving': focusedDrivingGrade,
+    'Focused Driving': ?focusedDrivingGrade,
   };
 
   // Read responses contain reportDate and decimal minutes, not the write
@@ -60,6 +61,9 @@ class DrivingReportSummary {
           : _parseReportTime(json['reportDate'] as String),
       tripDurationMinutes: (json['tripDurationMinutes'] as num).toDouble(),
       milesDriven: (json['tripDistanceMiles'] as num).toDouble(),
+      drivingMode: json['drivingMode'] == 'navigation'
+          ? DrivingMode.navigation
+          : DrivingMode.normal,
       violations: List.unmodifiable(
         (json['violations'] as List<dynamic>).map(
           (item) =>
@@ -71,7 +75,7 @@ class DrivingReportSummary {
       brakingGrade: (json['brakingGrade'] as num).toDouble(),
       acceleratingGrade: (json['accelerationGrade'] as num).toDouble(),
       turningGrade: (json['turningGrade'] as num).toDouble(),
-      focusedDrivingGrade: (json['focusGrade'] as num).toDouble(),
+      focusedDrivingGrade: (json['focusGrade'] as num?)?.toDouble(),
     );
   }
 }

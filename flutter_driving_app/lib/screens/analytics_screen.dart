@@ -10,6 +10,7 @@ import '../widgets/driving_report_api.dart';
 import '../widgets/driving_report_summary.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/grade_utils.dart';
+import '../widgets/driving_mode.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -358,10 +359,19 @@ class _ReportCard extends StatelessWidget {
       child: ExpansionTile(
         key: PageStorageKey(report.id),
         title: Text(_formatReportDate(context, report.reportDate)),
-        subtitle: Text(
-          '${report.milesDriven.toStringAsFixed(1)} mi · '
-          '${_formatDuration(report.elapsed)}\n'
-          '$count recorded violation${count == 1 ? '' : 's'}',
+        // Subtitle shows the driving mode (retroactivly), distance, duration, and violation count.
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            _DrivingModeBadge(mode: report.drivingMode),
+            const SizedBox(height: 6),
+            Text(
+              '${report.milesDriven.toStringAsFixed(1)} mi · '
+              '${_formatDuration(report.elapsed)}\n'
+              '$count recorded violation${count == 1 ? '' : 's'}',
+            ),
+          ],
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
@@ -369,6 +379,7 @@ class _ReportCard extends StatelessWidget {
           for (final entry in report.gradesByLabel.entries)
             _GradeRow(label: entry.key, value: entry.value, averageValue: null),
           const Divider(height: 24),
+          if (report.focusedDrivingGrade == null) const _NotTrackedGradeRow(),
           Text(
             'Recorded Violations',
             style: Theme.of(context).textTheme.titleSmall,
@@ -385,6 +396,41 @@ class _ReportCard extends StatelessWidget {
   }
 }
 
+class _DrivingModeBadge extends StatelessWidget {
+  final DrivingMode mode;
+  const _DrivingModeBadge({required this.mode});
+  @override
+  Widget build(BuildContext context) {
+    final isNavigation = mode == DrivingMode.navigation;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isNavigation
+            ? Theme.of(context).colorScheme.primaryContainer
+            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isNavigation
+                ? Icons.navigation_outlined
+                : Icons.directions_car_outlined,
+            size: 16,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              isNavigation ? 'Navigation Mode' : 'Regular Mode',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _ViolationTile extends StatelessWidget {
   final DrivingReportViolation violation;
@@ -437,17 +483,16 @@ class _LastDriveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final priorAverages = priorTrips.isEmpty
-        ? null
-        : {
-            for (final label in metricColors.keys)
-              label:
-                  priorTrips.fold<double>(
-                    0,
-                    (sum, report) => sum + report.gradesByLabel[label]!,
-                  ) /
-                  priorTrips.length,
-          };
+    final priorAverages = <String, double>{};
+    for (final label in metricColors.keys) {
+      final values = priorTrips
+          .map((report) => report.gradesByLabel[label])
+          .whereType<double>()
+          .toList();
+      if (values.isNotEmpty) {
+        priorAverages[label] = values.reduce((a, b) => a + b) / values.length;
+      }
+    }
 
     return Card(
       child: Padding(
@@ -494,9 +539,10 @@ class _LastDriveCard extends StatelessWidget {
               _GradeRow(
                 label: entry.key,
                 value: entry.value,
-                averageValue: priorAverages?[entry.key],
+                averageValue: priorAverages[entry.key],
               ),
             const SizedBox(height: 12),
+            if (trip.focusedDrivingGrade == null) const _NotTrackedGradeRow(),
             Text(
               priorTrips.isEmpty
                   ? 'Complete another drive to start comparing trips.'
@@ -539,13 +585,33 @@ class _GradeRow extends StatelessWidget {
             child: Text(
               '${value.toStringAsFixed(0)}%',
               textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
           if (averageValue != null) ...[
             const SizedBox(width: 14),
             _GradeChange(delta: value - averageValue!),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+//Adds a row to the last drive card for grades that are not tracked,
+//such as focused driving in navigation mode.
+class _NotTrackedGradeRow extends StatelessWidget {
+  const _NotTrackedGradeRow();
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(Icons.remove_circle_outline, size: 12),
+          SizedBox(width: 10),
+          Expanded(child: Text('Focused Driving')),
+          Text('Not Tracked', style: TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -586,7 +652,7 @@ class _GradeChange extends StatelessWidget {
             style: TextStyle(
               color: color,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),
@@ -792,29 +858,71 @@ class _HistoryChartState extends State<_HistoryChart> {
       );
     }
 
+    final availableGrades = [
+      for (final report in reports)
+        if (report.gradesByLabel[selectedMetric] != null)
+          report.gradesByLabel[selectedMetric]!,
+    ];
+    if (availableGrades.isEmpty) {
+      return const SizedBox(
+        height: 120,
+        child: Center(child: Text('No grades available for this metric.')),
+      );
+    }
     final lastIndex = (reports.length - 1).toDouble();
-    final bottomInterval = (reports.length / 5)
-        .clamp(1, reports.length)
-        .toDouble();
+    const bottomLabelStyle = TextStyle(fontSize: 10);
+    final bottomLabels = [
+      for (final report in reports)
+        report.reportDate == null
+            ? 'Unknown'
+            : '${report.reportDate!.month}/${report.reportDate!.day}',
+    ];
+    final labelPainter = TextPainter(
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    );
+    final labelStyle = DefaultTextStyle.of(
+      context,
+    ).style.merge(bottomLabelStyle);
+    var widestLabel = 0.0;
+    var tallestLabel = 0.0;
+    for (final label in bottomLabels) {
+      labelPainter.text = TextSpan(text: label, style: labelStyle);
+      labelPainter.layout();
+      widestLabel = math.max(widestLabel, labelPainter.width);
+      tallestLabel = math.max(tallestLabel, labelPainter.height);
+    }
+    labelPainter.dispose();
+    // Edge labels shift inward, so leave extra room beside both endpoints
+    final minimumLabelSpacing = widestLabel * 1.5 + 12;
 
     final lineBars = <LineChartBarData>[
       LineChartBarData(
         spots: [
           for (var i = 0; i < reports.length; i++)
-            FlSpot(i.toDouble(), reports[i].gradesByLabel[selectedMetric]!),
+            reports[i].gradesByLabel[selectedMetric] == null
+                ? FlSpot.nullSpot
+                : FlSpot(
+                    i.toDouble(),
+                    reports[i].gradesByLabel[selectedMetric]!,
+                  ),
         ],
         isCurved: false,
         color: metricColors[selectedMetric],
         barWidth: 2.5,
         dotData: const FlDotData(show: true),
         belowBarData: BarAreaData(show: false),
-        showingIndicators: [?selectedTripIndex],
+        showingIndicators: [
+          if (selectedTripIndex != null &&
+              reports[selectedTripIndex].gradesByLabel[selectedMetric] != null)
+            selectedTripIndex,
+        ],
       ),
     ];
 
     // Recompute the scale for the selected grade. Padding keeps flat
     // histories readable, and rounded bounds give the axis clear tick marks.
-    final visibleGrades = lineBars.expand((line) => line.spots.map((s) => s.y));
+    final visibleGrades = availableGrades;
     final lowestGrade = visibleGrades.reduce(math.min);
     final highestGrade = visibleGrades.reduce(math.max);
     final padding = ((highestGrade - lowestGrade) * 0.1).clamp(2.5, 10.0);
@@ -905,7 +1013,7 @@ class _HistoryChartState extends State<_HistoryChart> {
                         const TextStyle(
                           color: Colors.black,
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.bold,
                         ),
                         children: [
                           TextSpan(
@@ -948,22 +1056,41 @@ class _HistoryChartState extends State<_HistoryChart> {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 26,
-                      interval: bottomInterval,
+                      reservedSize: math.max(26.0, tallestLabel + 8),
+                      interval: 1,
                       getTitlesWidget: (value, meta) {
                         final index = value.round();
-                        if (index < 0 || index >= reports.length) {
+                        if (index < 0 ||
+                            index >= reports.length ||
+                            meta.parentAxisSize <= 0) {
                           return const SizedBox.shrink();
                         }
-                        final date = reports[index].reportDate;
+                        final pixelsPerTrip = meta.parentAxisSize / lastIndex;
+                        final labelStride = math.max(
+                          1,
+                          (minimumLabelSpacing / pixelsPerTrip).ceil(),
+                        );
+                        final isLast = index == reports.length - 1;
+                        // Label actual trips only, and reserve room for the
+                        // final date instead of crowding it with a nearby tick.
+                        if (!isLast &&
+                            (meta.parentAxisSize < widestLabel * 2 + 12 ||
+                                (index != 0 &&
+                                    (index % labelStride != 0 ||
+                                        (lastIndex - index) * pixelsPerTrip <
+                                            minimumLabelSpacing)))) {
+                          return const SizedBox.shrink();
+                        }
                         return SideTitleWidget(
                           meta: meta,
                           space: 6,
+                          fitInside: SideTitleFitInsideData.fromTitleMeta(
+                            meta,
+                            distanceFromEdge: 0,
+                          ),
                           child: Text(
-                            date == null
-                                ? 'Unknown'
-                                : '${date.month}/${date.day}',
-                            style: const TextStyle(fontSize: 10),
+                            bottomLabels[index],
+                            style: bottomLabelStyle,
                           ),
                         );
                       },

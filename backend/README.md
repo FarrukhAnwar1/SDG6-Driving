@@ -31,6 +31,26 @@ DB_PASSWORD=...    # Password
 
 `.env` is git-ignored — it never gets committed.
 
+## Configure auth, email and CORS
+
+Also in `.env` (see `.env.example`):
+
+```
+CORS_ORIGINS=["http://localhost:3000"]   # JSON array of allowed frontend origins
+JWT_SECRET_KEY=...                       # signs access and email-verification tokens
+JWT_ALGORITHM=HS256
+VERIFICATION_TOKEN_EXPIRE_HOURS=24
+RESEND_API_KEY=...                       # Resend, for verification and reset emails
+FROM_EMAIL=onboarding@resend.dev         # Resend's sandbox sender until a domain is verified
+API_BASE_URL=http://localhost:8000       # where the verification link in the email points
+```
+
+`JWT_SECRET_KEY` falls back to a placeholder in `app/config.py` - always set a
+real one. Access tokens last 24 hours (`ACCESS_TOKEN_EXPIRE_MINUTES`), and
+password reset codes last 15 minutes with 5 attempts
+(`PASSWORD_RESET_CODE_EXPIRE_MINUTES`, `PASSWORD_RESET_MAX_ATTEMPTS`); those
+three have working defaults and don't need to be set.
+
 ## Configure the speed limits database (PostGIS)
 
 Speed limit data lives in a separate self hosted PostGIS database, loaded from OpenStreetMap road data via 'osm2pgsql'. Add these to the same '.env':
@@ -102,20 +122,36 @@ Between `"NN mph"`, a bare number and `"NN km/h"`, the parser covers all but 31
 of the extract's 210,340 tagged ways, so there is no long tail of tag formats
 left to handle.
 
-#### Turning assumptions on
+#### Turning assumptions off
 
-Assumed limits are **off by default** (`SPEED_LIMIT_INFERENCE_ENABLED=false`).
-The app grades every limit at a flat 5 mph tolerance and does not yet read
-`speedingThresholdMph`, so an assumed 25 would flag a driver legally doing 30 on
-a residential street actually posted 30. Once the app honours that field, set:
+Assumed limits are **on by default**. The switch is
+`speed_limit_inference_enabled` in `app/config.py`; to turn them off in one
+environment without a code change, set:
 
 ```dotenv
-SPEED_LIMIT_INFERENCE_ENABLED=true
+SPEED_LIMIT_INFERENCE_ENABLED=false
 ```
 
-Expect a step change in violation counts when you do — trips through
-neighbourhoods that previously graded clean will start producing violations,
-because ~91% of residential streets were being skipped rather than driven well.
+It is deliberately not in `.env.example`: pinning it there to the same value as
+the code default gives one flag two sources of truth, and they drift.
+
+Assumptions are only safe on while the app grades against the
+`speedingThresholdMph` sent with each limit rather than a flat tolerance of its
+own — an assumed 25 judged at 5 mph would flag a driver legally doing 30 on a
+residential street actually posted 30. `SpeedGradingService` uses that field and
+refuses to grade without it. **If a client ever stops honouring it, turn this
+back off.**
+
+Turning assumptions on is additive: a posted limit is returned either way, so it
+only fills in roads that previously answered `unknown` and cannot change a road
+that was already being graded.
+
+It does, however, cause a step change in violation counts — trips through
+neighbourhoods that previously graded clean start producing violations, because
+~91% of residential streets were being skipped rather than driven well. Grades
+recorded before and after the switch are not comparable, and nothing in the
+`violations` table marks which side of it a row came from.
+
 The numbers in the tables above came from the extract itself:
 
 ```sql
@@ -174,43 +210,72 @@ generation consumes quota.
 
 ## The driving_reports table
 
-This table exists in MySQL - `POST /driving-reports` writes to it,
-no schema change needed. `app/models.py` mirrors it exactly:
+This table exists in MySQL - `POST /driving-reports` writes to it.
+`app/models.py` mirrors it exactly, once the driving-modes migration under
+*Driving modes* below has been run:
 
 | Column | Type | Notes |
 | --- | --- | --- |
 | `id` | `int` | primary key, auto increment |
 | `user_id` | `int` | taken from the bearer token, never from the request body |
+| `driving_mode` | `enum('regular','navigation')` | `NOT NULL DEFAULT 'regular'`, see *Driving modes* below |
 | `overall_grade` | `decimal(5,2)` | |
-| `speed_grade` | `decimal(5,2)` | the only dimension the app grades today |
-| `braking_grade` | `decimal(5,2)` | not yet implemented, see below |
-| `acceleration_grade` | `decimal(5,2)` | not yet implemented, see below |
-| `turning_grade` | `decimal(5,2)` | not yet implemented, see below |
-| `focus_grade` | `decimal(5,2)` | not yet implemented, see below |
+| `speed_grade` | `decimal(5,2)` | from `SpeedGradingService` |
+| `braking_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
+| `acceleration_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
+| `turning_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
+| `focus_grade` | `decimal(5,2)` | from `FocusedDrivingGradingService`; nullable — `NULL` exactly when `driving_mode` is `navigation` |
 | `report_date` | `datetime` | set to the trip's end time, not the insert time |
 | `trip_duration_minutes` | `decimal(5,2)` | derived from the timestamps, caps at 999.99 |
 | `trip_distance_miles` | `decimal(6,2)` | caps at 9999.99 |
 
-Two things to check on the live table:
+Two things to know about the live table:
 
 - **Is there a foreign key on `user_id`?** `DESCRIBE` shows the index but not
   constraints - run `SHOW CREATE TABLE driving_reports` to see. The code doesn't
   depend on one either way (SQLAlchemy deletes a user's reports itself, so
   `DELETE /users/me` cleans up regardless), but without an FK nothing stops an
   orphaned report if rows are ever deleted outside the API.
-- **The four ungraded columns are `NOT NULL`.** The app can't compute braking,
-  acceleration, turning or focus yet, so the API fills them with `100.00`. That
-  is a placeholder standing in for "not measured", and it will look like real
-  full marks to anything that reads or averages these columns later. Making the
-  four columns nullable is the honest fix:
-  ```sql
-  ALTER TABLE driving_reports
-      MODIFY braking_grade      decimal(5,2) NULL,
-      MODIFY acceleration_grade decimal(5,2) NULL,
-      MODIFY turning_grade      decimal(5,2) NULL,
-      MODIFY focus_grade        decimal(5,2) NULL;
-  ```
-  If you run that, the API should send `NULL` for them instead of `100.00`.
+- **Reports saved before the other dimensions were graded hold `100.00`.**
+  The app used to grade speed alone, and the API filled braking, acceleration,
+  turning and focus with a `100.00` placeholder. Those rows are
+  indistinguishable from genuine full marks, so averages over older history
+  (including `GET /advanced-suggestion`'s) skew high on those four dimensions.
+  The app now sends all five grades; the API still defaults any that are
+  omitted to `100.00` so an older client can't fail the `NOT NULL` columns.
+
+### Driving modes
+
+A trip is driven in one of two modes, stored in `driving_mode`:
+
+- **`regular`** grades every dimension: speed, braking, acceleration, turning
+  and focus.
+- **`navigation`** grades every dimension *except focus*. A driver following
+  directions has to look at the phone, so focus isn't tracked: `focus_grade` is
+  `NULL` and no `Focused Driving` violations are recorded for the trip.
+
+Every report saved before modes existed was a regular drive, and the column's
+default backfills them as such. The migration, for an existing table:
+
+```sql
+ALTER TABLE driving_reports
+    ADD COLUMN driving_mode ENUM('regular', 'navigation') NOT NULL
+        DEFAULT 'regular' AFTER user_id,
+    MODIFY focus_grade decimal(5,2) NULL,
+    ADD CONSTRAINT chk_focus_grade_matches_mode CHECK (
+        (driving_mode = 'regular'    AND focus_grade IS NOT NULL) OR
+        (driving_mode = 'navigation' AND focus_grade IS NULL)
+    );
+```
+
+Adding a `NOT NULL` column with a default fills every existing row with
+`'regular'`, so no separate `UPDATE` is needed. The `CHECK` keeps a report from
+claiming to be one mode while graded as the other. The API validates the same
+pairing up front (see `POST /driving-reports`), so a mismatch comes back as a
+`422` rather than a constraint failure at `INSERT`.
+
+The mode labels are spelled out in `DRIVING_MODES` in `schemas.py`, matching
+the `ENUM` exactly.
 
 ## The violations table
 
@@ -260,7 +325,7 @@ with the violations saved unnamed. The failure is logged as a warning.
 ### Which label each grading service maps to
 
 The client sends the `ENUM` label directly. The backend does not infer it from
-the violation's shape. `TripSummary` keeps four lists, and they map like this:
+the violation's shape. `TripSummary` keeps five lists, and they map like this:
 
 | `TripSummary` field | `violation_type` |
 | --- | --- |
@@ -270,11 +335,120 @@ the violation's shape. `TripSummary` keeps four lists, and they map like this:
 | `turningViolations` | `Smooth Turning` |
 | `focusedDrivingViolations` | `Focused Driving` |
 
-Everything else the grading services attach to a violation. `speedLimitMph`
-and `peakSpeedMph` on a speeding streak, `peakGForce` on a smoothness
-violation, `speedAtStartMph` on a focus violation which has no column. Those fields
-are **ignored rather than rejected**, so the client can send a whole violation
-object unchanged, but they are not stored and can't be read back.
+The grading services also record details with no column: `speedLimitMph` and
+`peakSpeedMph` on a speeding streak, `peakGForce` on a smoothness violation,
+`speedAtStartMph` on a focus violation. The app leaves those out of the upload
+(see `driving_report_api.dart`), and sends `roadName` only on speeding
+violations. Any extra field like these is **ignored rather than rejected**, so
+it is never stored and can't be read back. The server always resolves its own
+road name from the coordinates.
+
+## The Driving Family tables
+
+A Driving Family is a group of drivers who can see each other's report
+summaries. The app's side, and the API contract the backend still has to
+implement, is in `flutter_driving_app/docs/driving_family.md`. These tables are
+mirrored by `DrivingFamily`, `FamilyInvitation` and `User.family_id` in
+`app/models.py`.
+
+### driving_families
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `admin_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), `UNIQUE` so one user can't create several families |
+| `created_at` | `datetime` | defaults to the insert time |
+
+A family has no name. The admin is the user who created it, and the only one
+who can invite or remove members.
+
+### users.family_id
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `family_id` | `int` | nullable FK → `driving_families.id` (`ON DELETE SET NULL`); `NULL` means no family, the default on signup |
+
+Membership lives on the user row, so a user belongs to at most one family. The
+admin's own `family_id` points at the family they administer, since they are
+listed among its members.
+
+### family_invitations
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `int` | primary key, auto increment |
+| `family_id` | `int` | FK → `driving_families.id` (`ON DELETE CASCADE`) |
+| `email` | `varchar(255)` | the invited recipient, stored trimmed and lowercased (`normalize_email` in `schemas.py`) |
+| `invited_by_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), always taken from the token |
+| `code_hash` | `char(64)` | `UNIQUE`, hex SHA-256 of the emailed join code |
+| `created_at` | `datetime` | defaults to the insert time |
+
+An invitation row lives only until it is redeemed: joining deletes it in the
+same transaction that sets the user's `family_id`, which is what makes a code
+single use. There are no redemption or expiry columns.
+
+`code_hash` is SHA-256, not bcrypt like `reset_code_hash`. Joining sends only
+the code, so the server has to find the invitation from the code alone, and a
+salted bcrypt hash of the same code is different every time. A deterministic
+hash is safe here because the code is long and random (for example
+`secrets.token_urlsafe(32)`), unlike a 6-digit reset code. The `UNIQUE` index
+doubles as the lookup index.
+
+### Creating them
+
+Check `SHOW CREATE TABLE users` first: the new FK columns must match `users.id`
+exactly (`int` vs `int unsigned` vs `bigint`), and the table must be InnoDB.
+
+```sql
+CREATE TABLE driving_families (
+    id            INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    admin_user_id INT NOT NULL,
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_driving_families_admin_user_id UNIQUE (admin_user_id),
+    CONSTRAINT fk_driving_families_admin_user_id
+        FOREIGN KEY (admin_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Existing accounts get NULL (no family) automatically, so no backfill UPDATE is needed
+ALTER TABLE users
+    ADD COLUMN family_id INT NULL DEFAULT NULL,
+    ADD CONSTRAINT fk_users_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE SET NULL;
+
+CREATE TABLE family_invitations (
+    id                 INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    family_id          INT NOT NULL,
+    email              VARCHAR(255) NOT NULL,
+    invited_by_user_id INT NOT NULL,
+    code_hash          CHAR(64) NOT NULL,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_family_invitations_code_hash UNIQUE (code_hash),
+    KEY ix_family_invitations_email (email),
+    CONSTRAINT fk_family_invitations_family_id
+        FOREIGN KEY (family_id) REFERENCES driving_families(id) ON DELETE CASCADE,
+    CONSTRAINT fk_family_invitations_invited_by_user_id
+        FOREIGN KEY (invited_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+```
+
+Afterwards, `SELECT COUNT(*) FROM users WHERE family_id IS NOT NULL` should
+return 0.
+
+### What deleting does
+
+- **An admin deletes their account.** Their family and its invitations are
+  deleted, and every other member drops back to `family_id = NULL`. Their
+  accounts and reports are untouched.
+- **A member deletes their account.** The family is unaffected.
+- **A family is deleted.** Its members' `family_id` becomes `NULL` and its
+  invitations are deleted.
+
+`DELETE /users/me` does all of this through the ORM, not the database: it
+clears the members' `family_id` first, then deletes the invitations, the
+family and the user, in that order. That matters because the two FKs point at
+each other, and an admin delete left to MySQL would have to cascade from
+`users` to `driving_families` and back into `users`, which MySQL can refuse.
+The `ON DELETE` rules are a backstop for rows deleted outside the API.
 
 ## Run
 
@@ -288,6 +462,22 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     the created user (same shape as above). The password is hashed with bcrypt
     into `password_hash`; the raw password and verification tokens are never returned.
   - `409` if the `username` or `email` already exists (both are `UNIQUE`).
+    On success a verification email is sent, with a link to `GET /verify-email`.
+  - `GET /verify-email?token=...` (the link in that email) →
+    `{"message": "Email verified successfully"}`, or
+    `{"message": "Email already verified"}`. `400` if the token is expired,
+    invalid, or superseded by a newer one; `404` if the user no longer exists.
+  - `POST /resend-verification` with `{"email": "..."}` → always the same
+    message, whether or not the email exists or is already verified. Issues a
+    new link, which invalidates the previous one.
+  - `POST /login` with `{"email": "...", "password": "..."}` →
+    `{"access_token": "...", "token_type": "bearer"}`. `401` with one generic
+    message for an unknown email or a wrong password. Unverified accounts can
+    currently log in (the check in `app/routers/auth.py` is commented out).
+  - `GET /me` (requires a valid access token) → the current user, same shape as
+    `GET /users` entries.
+  - `DELETE /users/me` (requires a valid access token) → `204`. Deletes the
+    account along with its driving reports and violations.
   - `POST /forgot-password` with `{"email": "..."}` → always
     `{"message": "If the email is registered, a password reset code has been sent."}`
     (same response whether or not the email exists, to avoid leaking which emails
@@ -340,8 +530,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
       "startedAt": "2026-07-30T10:00:00",
       "endedAt": "2026-07-30T10:30:00",
       "tripDistanceMiles": 12.4,
+      "drivingMode": "regular",
       "overallGrade": 87.0,
-      "speedGrade": 87.0,
+      "speedGrade": 92.0,
+      "brakingGrade": 85.0,
+      "accelerationGrade": 90.0,
+      "turningGrade": 88.0,
+      "focusGrade": 80.0,
       "violations": [
         {
           "violationType": "Proper Speed",
@@ -359,9 +554,9 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
     ```json
     {
-      "id": 1, "overallGrade": 87.0, "speedGrade": 87.0,
-      "brakingGrade": 100.0, "accelerationGrade": 100.0,
-      "turningGrade": 100.0, "focusGrade": 100.0,
+      "id": 1, "drivingMode": "regular", "overallGrade": 87.0, "speedGrade": 92.0,
+      "brakingGrade": 85.0, "accelerationGrade": 90.0,
+      "turningGrade": 88.0, "focusGrade": 80.0,
       "reportDate": "2026-07-30T10:30:00",
       "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4,
       "violations": [
@@ -373,11 +568,18 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     }
     ```
 
-    `brakingGrade`, `accelerationGrade`, `turningGrade` and `focusGrade` are
-    optional and default to `100.0`, since the app doesn't grade those dimensions
-    yet. `tripDurationMinutes` is derived from the two
-    timestamps rather than sent, so it can't disagree with them, and `reportDate`
-    is set from `endedAt` so a report that uploads late still dates to the drive.
+    The app sends all five grades. `brakingGrade`, `accelerationGrade`,
+    `turningGrade` and `focusGrade` are still optional and default to `100.0`,
+    left over from when the app graded speed alone.
+
+    `drivingMode` is optional and defaults to `"regular"`, so clients that
+    predate driving modes keep working unchanged. A `"navigation"` report must
+    leave focus out entirely: no `focusGrade` (it is stored and returned as
+    `null` rather than defaulted) and no `Focused Driving` violations.
+
+    `tripDurationMinutes` is derived from the two timestamps rather than sent,
+    so it can't disagree with them, and `reportDate` is set from `endedAt` so a
+    report that uploads late still dates to the drive.
 
     `violations` is optional and defaults to `[]`, so a client that sends only
     grades keeps working unchanged, and a clean trip legitimately has none. Each
@@ -396,12 +598,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     one of the five labels (it would fail the `ENUM` at `INSERT`), if its
     `endTime` is earlier than its `startTime` (it would fail
     `CHECK (end_time >= start_time)`), if a coordinate is out of range, or if
-    more than 500 violations are sent in one report.
+    more than 500 violations are sent in one report. Also `422` if
+    `drivingMode` isn't `"regular"` or `"navigation"`, or if a navigation
+    report carries a `focusGrade` or a `Focused Driving` violation.
 
-    Note the request has no home for `speedingOffenseCount` or
-    `totalSpeedingDuration` — `driving_reports` has no columns for them, so the
-    app computes them for the live dashboard but they are not saved. Both are
-    now derivable from the stored violations anyway.
+    `driving_reports` has no columns for per-trip counts or total violation
+    time (such as `SpeedGradingService.totalSpeedingDuration`); both can be
+    derived from the stored violations.
   - `GET /driving-reports?limit=n` (requires a valid access token,
     `Authorization: Bearer <token>`) returns the authenticated user's `n` most
     recent reports, newest trip first, each with the violations recorded during
@@ -411,7 +614,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     {
       "reports": [
         {
-          "id": 12, "overallGrade": 87.0, "speedGrade": 87.0,
+          "id": 12, "drivingMode": "regular", "overallGrade": 87.0, "speedGrade": 87.0,
           "brakingGrade": 90.0, "accelerationGrade": 92.0,
           "turningGrade": 88.0, "focusGrade": 95.0,
           "reportDate": "2026-07-30T10:30:00",
@@ -489,6 +692,9 @@ To support analysis over time, the backend also calculates:
   counts per driving hour and violation minutes per driving hour in each period.
   Rate changes account for differing amounts of driving. Rates are `null` when
   driving duration is zero; violation durations can overlap.
+- Navigation trips don't grade focus, so they are left out of the focus
+  average and the `Focused Driving` rates (whose driving hours count regular
+  trips only). Either is `null` for a period with no regular trips.
 
 Long-term feedback requires **at least six dated reports spanning 28 days**
 within the selected 100 reports. The returned date range describes that sample,
@@ -555,15 +761,18 @@ and provider errors without a live MySQL/PostGIS server or Gemini key.
 ## Notes
 
 - `app/models.py` mirrors the users table: `id, username, email, password_hash, created_at, email_verified,
-  verification_token, verification_token_expires_at`.
+  verification_token, verification_token_expires_at, reset_code_hash, reset_code_expires_at,
+  reset_code_attempts, family_id`.
 - Speed limit lookups query `planet_osm_line` directly (no ORM model — raw
   SQL via SQLAlchemy's `text()`), since the geometry column needs PostGIS
   functions (`ST_Transform`, `ST_DWithin`) rather than plain ORM queries.
   Road geometry is stored in SRID 3857 (meters); incoming lat/lng (SRID 4326)
   is transformed before distance comparisons.
-- Reports are graded on the client, not the server. `SpeedGradingService` in the
-  Flutter app computes the grade live during the trip (the dashboard displays a
-  running grade, so that computation has to happen there regardless), and
+- Reports are graded on the client, not the server. The Flutter app's grading
+  services (`SpeedGradingService`, `SmoothnessGradingService`,
+  `FocusedDrivingGradingService`) compute the grades live during the trip (the
+  dashboard displays running grades, so that computation has to happen there
+  regardless), and
   `POST /driving-reports` stores those numbers verbatim. Grading server-side as
   well would mean two implementations of the same rules in two languages, which
   would eventually disagree and make the report screen contradict the dashboard.
@@ -582,10 +791,11 @@ and provider errors without a live MySQL/PostGIS server or Gemini key.
   one query per report as the response model walks the rows.
 - `overall_grade` is sent by the client rather than averaged from the other five
   columns server-side, keeping the client the single source of truth on grading.
-  Today the app sets it equal to the speed grade (see the TODO at
-  `live_dashboard_screen.dart:239`); when it becomes a weighted average of all
-  five dimensions, no backend change is needed.
+  Today the app takes the equal-weight mean of all five grades (`_overallGrade`
+  in `live_dashboard_screen.dart`); if that weighting changes, no backend change
+  is needed.
 - Timestamps are stored as naive datetimes, matching the `datetime.utcnow()` used
-  elsewhere in the API. The app sends local times with no UTC offset; anything
-  tz-aware is converted to naive UTC on the way in, so the column never mixes
-  the two.
+  elsewhere in the API. The app sends UTC with a `Z` suffix
+  (`toUtc().toIso8601String()`), and anything tz-aware is converted to naive
+  UTC on the way in, so the column never mixes the two. A naive timestamp is
+  stored as-is.
