@@ -94,16 +94,15 @@ class _HomePageState extends State<HomePage> {
     _goToLogin();
   }
 
-  //Reads the driving mode from storage and starts the trip with that mode.
+  // Reads the driving mode from storage and starts the trip with that mode
   Future<void> _startTrip() async {
     final drivingMode = await loadDrivingMode();
 
     if (!mounted) return;
 
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => LiveDashboardScreen(
-        drivingMode: drivingMode,
-        ),
+      MaterialPageRoute(
+        builder: (_) => LiveDashboardScreen(drivingMode: drivingMode),
       ),
     );
   }
@@ -131,7 +130,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openSettings() async {
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SettingsPage(),),);
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
   }
 
   Future<void> _openChangePassword() async {
@@ -284,49 +283,58 @@ class _HomePageState extends State<HomePage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
-          FilledButton.icon(
-            onPressed: _startTrip,
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Start Trip'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _openAnalytics,
-            icon: const Icon(Icons.insights),
-            label: const Text('View Analytics'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _openDrivingFamily,
-            icon: const Icon(Icons.groups_outlined),
-            label: const Text('Driving Family'),
-          ),
-          
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _openChangePassword,
-            child: const Text('Change Password'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: _openSettings,
-            icon: const Icon(Icons.settings_outlined),
-            label: const Text('Settings'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
+          IntrinsicWidth(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FilledButton.icon(
+                  onPressed: _startTrip,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Start Trip'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openAnalytics,
+                  icon: const Icon(Icons.insights),
+                  label: const Text('View Analytics'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openDrivingFamily,
+                  icon: const Icon(Icons.groups_outlined),
+                  label: const Text('Driving Family'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('Settings'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _openChangePassword,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Change Password'),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                  icon: _isDeleting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                  label: const Text('Delete Account'),
+                ),
+              ],
             ),
-            child: _isDeleting
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Delete Account'),
           ),
         ],
       ),

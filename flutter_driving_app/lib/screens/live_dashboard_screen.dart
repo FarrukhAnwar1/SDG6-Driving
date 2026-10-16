@@ -43,7 +43,7 @@ class LiveDashboardScreen extends StatefulWidget {
 
   const LiveDashboardScreen({
     super.key,
-    this.drivingMode = DrivingMode.normal,//navigation,
+    this.drivingMode = DrivingMode.normal, //navigation,
   });
 
   @override
@@ -1028,19 +1028,16 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       ),
     );
   }
+
   // Driving mode indicator at the top of the dashboard, showing whether
   // the user is in navigation mode or regular mode.
   Widget _buildDrivingModeIndicator(BuildContext context) {
-    final isNavigationMode =
-        widget.drivingMode == DrivingMode.navigation;
+    final isNavigationMode = widget.drivingMode == DrivingMode.navigation;
 
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: isNavigationMode
             ? scheme.primaryContainer
@@ -1060,9 +1057,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               isNavigationMode
                   ? 'Navigation Mode Active'
                   : 'Regular Mode Active',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],

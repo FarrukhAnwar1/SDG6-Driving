@@ -62,8 +62,8 @@ class DrivingReportSummary {
       tripDurationMinutes: (json['tripDurationMinutes'] as num).toDouble(),
       milesDriven: (json['tripDistanceMiles'] as num).toDouble(),
       drivingMode: json['drivingMode'] == 'navigation'
-        ? DrivingMode.navigation
-        : DrivingMode.normal,
+          ? DrivingMode.navigation
+          : DrivingMode.normal,
       violations: List.unmodifiable(
         (json['violations'] as List<dynamic>).map(
           (item) =>
