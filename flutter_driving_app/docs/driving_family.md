@@ -2,8 +2,7 @@
 
 Home opens `DrivingFamilyScreen` with the ID and email from the existing
 `GET /me` profile. The screen uses the existing JWT storage and `ApiConfig.baseUrl`.
-All work is in the Flutter frontend; the family endpoints and email delivery
-must still be implemented by the backend.
+The Python backend implements the family endpoints and invitation email delivery.
 
 ## Assumed API contract
 
@@ -93,12 +92,13 @@ reported as an invalid invitation because its database row has been deleted.
 
 ## Required database and API support
 
-These are backend requirements for the frontend's invitation rules. No database
-migrations or backend handlers are changed by this frontend implementation.
+These are the backend requirements for the frontend's invitation rules.
 
-Keep an invitation row only until it is successfully redeemed. Enforce single
-use by deleting that row in the same transaction that adds the user to the
-family. Redemption-tracking columns are not required.
+Keep an invitation row only until it is successfully redeemed or revoked. Enforce
+single use by deleting that row in the same transaction that adds the user to the
+family. Also revoke other outstanding invitations for the same family and email
+when joining, leaving, or removing a member, so old codes cannot bypass removal.
+Redemption-tracking columns are not required.
 
 Add a unique index on `code_hash` to ensure each stored code identifies one
 invitation and support lookup when the hash scheme permits deterministic lookup.
@@ -121,19 +121,28 @@ rejoining requires a new invitation and code.
 `POST /families/join` must enforce both single use and email matching on the
 server. A recommended transactional flow is:
 
-1. Lock/reload the authenticated user and ensure they have no current family.
-   All membership-changing handlers must coordinate updates to this same user
-   row to prevent concurrent create/join operations from overwriting membership.
-2. Locate and lock the existing invitation using the supplied code/hash; ensure
-   its family still exists and the code is valid. A missing invitation returns
-   `invalid_invitation`, including when the code was previously redeemed.
+1. Look up the invitation's family without locking the invitation yet. Lock the
+   family first, then lock/reload the authenticated user and ensure they have no
+   current family. Existing-family mutations, including account deletion, use
+   family-before-user locking. Creation only locks its user and a new family.
+2. Reload and lock the invitation using the supplied code/hash after locking the
+   family and user. Ensure its family still exists and the code is valid. A
+   missing invitation returns `invalid_invitation`, including for used or revoked
+   codes. Do not trust the preliminary invitation lookup after waiting for locks.
 3. Compare the invitation's normalized email with the authenticated user's email.
    Do not trust an email submitted by the client. A mismatch must leave the
    invitation intact so its intended recipient can still join.
-4. Set `users.family_id` and delete the matching `family_invitations` row in
-   the same transaction. Roll back both changes on failure, restoring the
-   invitation and leaving membership unchanged. Return success only after the
-   transaction commits.
+4. Set `users.family_id` and delete all outstanding invitations for that family
+   and recipient in the same transaction. Roll back both changes on failure,
+   restoring the invitations and leaving membership unchanged. Return success
+   only after the transaction commits.
+
+The admin's last-member check uses a locking read after taking the family lock,
+so MySQL's authentication snapshot cannot hide a recently joined member. If a
+user's membership changes while waiting for locks, release the locks and retry
+with their current family. Deadlock victims and lock wait timeouts are retried
+up to three attempts; exhausted retries return HTTP 503 with `Retry-After: 1`.
+Invitation email is sent after commit, outside the retried transaction.
 
 For this project's MySQL/SQLAlchemy stack, row locking such as `SELECT ... FOR
 UPDATE` inside a transaction coordinates competing redemption requests. The
@@ -200,3 +209,7 @@ expiration is a separate policy and is not required by these changes.
 
 Mocked HTTP tests cover these contracts and interactions. They do not send
 emails or change real memberships.
+
+Backend API tests in `backend/tests/test_families.py` exercise the real handlers,
+rollback, revocation, and email failures. See `backend/tests/README.md` for the
+optional local MySQL tests that exercise concurrent requests under InnoDB.
