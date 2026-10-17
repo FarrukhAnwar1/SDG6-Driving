@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from .. import models, schemas
 from ..dependencies import CurrentUser, DbSession
 from ..security import hash_password, create_verification_token
@@ -46,6 +46,19 @@ def add_user(user: schemas.UserCreate, db: DbSession):
 
 @router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_current_user(current_user: CurrentUser, db: DbSession):
-    # Deletes the authenticated user's own account
+    # Deletes the authenticated user's own account. Reports and violations go through
+    # the ORM cascades on User
+    family = current_user.administered_family
+    if family is not None: 
+        # An admin leaving takes the family with them: every member (the admin included)
+        # drops back to no family first, because the users <-> driving_families FKs point 
+        # at each other. The family and its invitations are then deleted by the cascade below
+        db.execute(
+            update(models.User)
+            .where(models.User.family_id == family.id)
+            .values(family_id=None)
+        )
+        db.flush()
+
     db.delete(current_user)
     db.commit()

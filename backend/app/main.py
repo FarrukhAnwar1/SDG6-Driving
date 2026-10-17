@@ -3,7 +3,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .routers import users, auth, speed_limits, driving_reports, suggestions
+from .routers import users, auth, speed_limits, driving_reports, suggestions, families
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 
@@ -20,6 +20,7 @@ app.include_router(auth.router)
 app.include_router(speed_limits.router)
 app.include_router(driving_reports.router)
 app.include_router(suggestions.router)
+app.include_router(families.router)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
