@@ -1,6 +1,7 @@
 import secrets
 import bcrypt
 import jwt
+import hashlib
 from datetime import datetime, timedelta, timezone
 from .config import settings
 
@@ -52,3 +53,11 @@ def hash_reset_code(code: str) -> str:
 # Verifies a plaintext reset code against its stored bcrypt hash
 def verify_reset_code(code: str, code_hash: str) -> bool:
     return verify_password(code, code_hash)
+
+# Invitation codes are long and random, so a deterministic SHA-256 hash is safe and lets 
+# /families/join find the row from the code alone
+def generate_invitation_code() -> str:
+    return secrets.token_urlsafe(32)
+
+def hash_invitation_code(code: str) -> str:
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
