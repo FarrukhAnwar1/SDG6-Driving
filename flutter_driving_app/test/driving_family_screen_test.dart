@@ -232,11 +232,11 @@ void main() {
       await _withScreen(tester, (_) async => _family(), () async {
         final alex = find.byKey(const ValueKey('family-member-1'));
         expect(
-          find.descendant(of: alex, matching: find.text('88% (B)')),
+          find.descendant(of: alex, matching: find.text('88%')),
           findsOneWidget,
         );
         expect(
-          find.descendant(of: alex, matching: find.text('93% (A)')),
+          find.descendant(of: alex, matching: find.text('93%')),
           findsOneWidget,
         );
         for (final label in [
@@ -277,7 +277,7 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.descendant(of: sam, matching: find.text('0% (F)')),
+          find.descendant(of: sam, matching: find.text('0%')),
           findsNothing,
         );
       });
@@ -542,7 +542,7 @@ void main() {
             findsOneWidget,
           );
           expect(find.text('Alex'), findsOneWidget);
-          expect(find.text('88% (B)'), findsOneWidget);
+          expect(find.text('88%'), findsOneWidget);
           expect(
             tester
                 .widget<FilledButton>(
@@ -560,8 +560,8 @@ void main() {
             isNull,
           );
           await _tap(tester, find.text('Retry'));
-          expect(find.text('91% (A)'), findsOneWidget);
-          expect(find.text('88% (B)'), findsNothing);
+          expect(find.text('91%'), findsOneWidget);
+          expect(find.text('88%'), findsNothing);
           await _tap(tester, find.byTooltip('Refresh Driving Family'));
           expect(find.byKey(const ValueKey('family-member-1')), findsNothing);
           expect(find.text('No Driving Family yet'), findsOneWidget);
@@ -684,7 +684,7 @@ void main() {
           AppLifecycleState.resumed,
         );
         await tester.pumpAndSettle();
-        expect(find.text('99% (A)'), findsOneWidget);
+        expect(find.text('99%'), findsOneWidget);
         expect(requests, 2);
       },
     );

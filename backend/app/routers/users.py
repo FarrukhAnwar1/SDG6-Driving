@@ -4,6 +4,12 @@ from .. import models, schemas
 from ..dependencies import CurrentUser, DbSession
 from ..security import hash_password, create_verification_token
 from ..email import send_verification_email
+from ..services.family_transactions import (
+    delete_family,
+    lock_membership,
+    mutate_family,
+    revoke_invitations,
+)
 
 router = APIRouter(tags=["users"])
 
@@ -46,19 +52,21 @@ def add_user(user: schemas.UserCreate, db: DbSession):
 
 @router.delete("/users/me", status_code=status.HTTP_204_NO_CONTENT)
 def delete_current_user(current_user: CurrentUser, db: DbSession):
-    # Deletes the authenticated user's own account. Reports and violations go through
-    # the ORM cascades on User
-    family = current_user.administered_family
-    if family is not None: 
-        # An admin leaving takes the family with them: every member (the admin included)
-        # drops back to no family first, because the users <-> driving_families FKs point 
-        # at each other. The family and its invitations are then deleted by the cascade below
-        db.execute(
-            update(models.User)
-            .where(models.User.family_id == family.id)
-            .values(family_id=None)
-        )
-        db.flush()
+    def delete_account():
+        # Account deletion changes membership too: use the same family-first
+        # locking and retry policy as join/leave/remove.
+        family = lock_membership(db, current_user)
+        if family is not None:
+            if family.admin_user_id == current_user.id:
+                db.execute(
+                    update(models.User)
+                    .where(models.User.family_id == family.id)
+                    .values(family_id=None)
+                )
+                delete_family(db, family)
+            else:
+                revoke_invitations(db, family.id, current_user.email)
+        # Reports and violations are still removed by the ORM cascades.
+        db.delete(current_user)
 
-    db.delete(current_user)
-    db.commit()
+    mutate_family(db, delete_account)

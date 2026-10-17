@@ -679,7 +679,7 @@ class _FamilyMemberCard extends StatelessWidget {
   String _score(double? value) {
     if (value == null) return '\u2014';
     final precision = value == value.roundToDouble() ? 0 : 1;
-    return '${value.toStringAsFixed(precision)}% (${letterGradeFor(value)})';
+    return '${value.toStringAsFixed(precision)}%';
   }
 
   String _duration(double minutes) {
