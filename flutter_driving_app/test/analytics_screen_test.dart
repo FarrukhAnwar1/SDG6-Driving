@@ -16,6 +16,120 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
   });
 
+  for (final mode in ['regular', 'navigation']) {
+    final otherMode = mode == 'regular' ? 'navigation' : 'regular';
+
+    testWidgets(
+      'switching to $mode suppresses Overall comparison without same-mode history',
+      (tester) async {
+        Map<String, dynamic> trip(int id, String drivingMode) =>
+            _modeReport(id: id, mode: drivingMode, grade: 100)..addAll({
+              'overallGrade': drivingMode == 'regular' ? 80 : 100,
+              'focusGrade': drivingMode == 'regular' ? 0 : null,
+            });
+        await http.runWithClient(
+          () async {
+            await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+            await tester.pumpAndSettle();
+            await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+            await tester.scrollUntilVisible(
+              find.text(
+                'Overall comparison needs an earlier trip in this driving mode.',
+              ),
+              150,
+            );
+
+            final overallRow = find
+                .ancestor(
+                  of: find.text('Overall').first,
+                  matching: find.byType(Row),
+                )
+                .first;
+            expect(
+              find.descendant(
+                of: overallRow,
+                matching: find.textContaining('pts'),
+              ),
+              findsNothing,
+            );
+            final speedRow = find
+                .ancestor(
+                  of: find.text('Speed').first,
+                  matching: find.byType(Row),
+                )
+                .first;
+            expect(
+              find.descendant(of: speedRow, matching: find.text('0 pts')),
+              findsOneWidget,
+            );
+            expect(tester.takeException(), isNull);
+          },
+          () => _analyticsClient(
+            (_) async => http.Response(
+              jsonEncode({
+                'reports': [trip(2, mode), trip(1, otherMode)],
+              }),
+              200,
+            ),
+          ),
+        );
+      },
+    );
+
+    testWidgets('Overall uses only prior $mode trips in mixed history', (
+      tester,
+    ) async {
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+          await tester.scrollUntilVisible(
+            find.text(
+              'Overall is compared with your 2 prior trips in this driving mode.',
+            ),
+            150,
+          );
+
+          final overallRow = find
+              .ancestor(
+                of: find.text('Overall').first,
+                matching: find.byType(Row),
+              )
+              .first;
+          expect(
+            find.descendant(of: overallRow, matching: find.text('20 pts')),
+            findsOneWidget,
+          );
+          final speedRow = find
+              .ancestor(
+                of: find.text('Speed').first,
+                matching: find.byType(Row),
+              )
+              .first;
+          expect(
+            find.descendant(of: speedRow, matching: find.text('47 pts')),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        },
+        () => _analyticsClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'reports': [
+                _modeReport(id: 4, mode: mode, grade: 100),
+                _modeReport(id: 3, mode: mode, grade: 90),
+                _modeReport(id: 2, mode: otherMode, grade: 0),
+                _modeReport(id: 1, mode: mode, grade: 70),
+              ],
+            }),
+            200,
+          ),
+        ),
+      );
+    });
+  }
+
   testWidgets(
     'recent count filters cached history and updates suggestion limit',
     (tester) async {
@@ -568,6 +682,20 @@ void main() {
     );
   });
 }
+
+Map<String, dynamic> _modeReport({
+  required int id,
+  required String mode,
+  required double grade,
+}) => reportJson(id: id, overallGrade: grade)
+  ..addAll({
+    'drivingMode': mode,
+    'speedGrade': grade,
+    'brakingGrade': grade,
+    'accelerationGrade': grade,
+    'turningGrade': grade,
+    'focusGrade': mode == 'navigation' ? null : grade,
+  });
 
 MockClient _analyticsClient(
   Future<http.Response> Function(http.Request) historyHandler,
