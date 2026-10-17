@@ -12,6 +12,7 @@ import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/driving_mode.dart';
+import '../widgets/error_banner.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,10 +25,12 @@ class _HomePageState extends State<HomePage> {
   // State variables
   bool _isLoading = true;
   bool _isDeleting = false;
+  bool _isStartingTrip = false;
   String? _username;
   int? _userId;
   String? _userEmail;
   String? _loadError;
+  String? _startTripError;
 
   @override
   void initState() {
@@ -96,7 +99,24 @@ class _HomePageState extends State<HomePage> {
 
   // Reads the driving mode from storage and starts the trip with that mode
   Future<void> _startTrip() async {
-    final drivingMode = await loadDrivingMode();
+    if (!mounted || _isStartingTrip) return;
+    setState(() {
+      _isStartingTrip = true;
+      _startTripError = null;
+    });
+
+    final DrivingMode drivingMode;
+    try {
+      drivingMode = await loadDrivingMode();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _startTripError = 'Could not load your driving mode. Please try again.';
+      });
+      return;
+    } finally {
+      if (mounted) setState(() => _isStartingTrip = false);
+    }
 
     if (!mounted) return;
 
@@ -282,6 +302,11 @@ class _HomePageState extends State<HomePage> {
             style: Theme.of(context).textTheme.headlineSmall,
             textAlign: TextAlign.center,
           ),
+          if (_startTripError != null) ...[
+            const SizedBox(height: 16),
+            ErrorBanner(message: _startTripError!),
+            TextButton(onPressed: _startTrip, child: const Text('Retry')),
+          ],
           const SizedBox(height: 32),
           IntrinsicWidth(
             child: Column(
@@ -289,7 +314,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 FilledButton.icon(
-                  onPressed: _startTrip,
+                  onPressed: _isStartingTrip ? null : _startTrip,
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Start Trip'),
                 ),

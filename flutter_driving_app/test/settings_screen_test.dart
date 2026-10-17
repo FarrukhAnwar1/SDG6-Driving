@@ -13,16 +13,21 @@ void main() {
     'plugins.it_nomads.com/flutter_secure_storage',
   );
   const saveError = 'Could not save your driving mode. Please try again.';
+  const loadError = 'Could not load your driving mode. Please try again.';
 
   late Map<String, String> storedValues;
+  late bool failReads;
   late bool failWrites;
   late int writeCount;
+  Completer<void>? pendingRead;
   Completer<void>? pendingWrite;
 
   setUp(() {
     storedValues = {'driving_mode': 'regular'};
+    failReads = false;
     failWrites = false;
     writeCount = 0;
+    pendingRead = null;
     pendingWrite = null;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(storageChannel, (
       call,
@@ -31,6 +36,10 @@ void main() {
       final key = arguments['key'] as String;
       switch (call.method) {
         case 'read':
+          await pendingRead?.future;
+          if (failReads) {
+            throw PlatformException(code: 'read_failed');
+          }
           return storedValues[key];
         case 'write':
           writeCount++;
@@ -75,6 +84,54 @@ void main() {
         candidate == mode ? findsOneWidget : findsNothing,
       );
     }
+  }
+
+  testWidgets('failed load shows retry and recovers the saved mode', (
+    tester,
+  ) async {
+    storedValues['driving_mode'] = 'navigation';
+    failReads = true;
+    await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text(loadError), findsOneWidget);
+    expect(find.text('Regular Mode'), findsNothing);
+    expect(find.text('Navigation Mode'), findsNothing);
+    expect(writeCount, 0);
+
+    failReads = false;
+    pendingRead = Completer<void>();
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text(loadError), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+
+    pendingRead!.complete();
+    await tester.pumpAndSettle();
+    expectSelected(DrivingMode.navigation);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(writeCount, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final loadFails in [false, true]) {
+    testWidgets('load completion after leaving is safe, failure=$loadFails', (
+      tester,
+    ) async {
+      pendingRead = Completer<void>();
+      failReads = loadFails;
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      await tester.pump();
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      pendingRead!.complete();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(writeCount, 0);
+    });
   }
 
   for (final initialMode in DrivingMode.values) {

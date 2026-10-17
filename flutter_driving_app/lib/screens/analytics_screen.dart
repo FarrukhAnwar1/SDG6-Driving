@@ -588,9 +588,16 @@ class _LastDriveCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sameModePriorTrips = priorTrips
+        .where((report) => report.drivingMode == trip.drivingMode)
+        .toList();
     final priorAverages = <String, double>{};
     for (final label in metricColors.keys) {
-      final values = priorTrips
+      // Overall uses a different category set in each driving mode
+      final comparableTrips = label == 'Overall'
+          ? sameModePriorTrips
+          : priorTrips;
+      final values = comparableTrips
           .map((report) => report.gradesByLabel[label])
           .whereType<double>()
           .toList();
@@ -656,6 +663,16 @@ class _LastDriveCard extends StatelessWidget {
                 context,
               ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
             ),
+            if (sameModePriorTrips.length < priorTrips.length)
+              Text(
+                sameModePriorTrips.isEmpty
+                    ? 'Overall comparison needs an earlier trip in this driving mode.'
+                    : 'Overall is compared with your ${sameModePriorTrips.length} prior '
+                          'trip${sameModePriorTrips.length == 1 ? '' : 's'} in this driving mode.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+              ),
           ],
         ),
       ),

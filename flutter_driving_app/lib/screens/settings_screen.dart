@@ -13,6 +13,7 @@ class _SettingsPageState extends State<SettingsPage> {
   DrivingMode _drivingMode = DrivingMode.normal;
   bool _isLoading = true;
   bool _isSaving = false;
+  String? _loadError;
   String? _errorMessage;
 
   @override
@@ -22,14 +23,27 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadDrivingMode() async {
-    final mode = await loadDrivingMode();
-
-    if (!mounted) return;
-
     setState(() {
-      _drivingMode = mode;
-      _isLoading = false;
+      _isLoading = true;
+      _loadError = null;
     });
+
+    try {
+      final mode = await loadDrivingMode();
+      if (!mounted) return;
+
+      setState(() {
+        _drivingMode = mode;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadError = 'Could not load your driving mode. Please try again.';
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _updateDrivingMode(DrivingMode newMode) async {
@@ -69,6 +83,23 @@ class _SettingsPageState extends State<SettingsPage> {
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
+            : _loadError != null
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ErrorBanner(message: _loadError!),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        onPressed: _loadDrivingMode,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
             : ListView(
                 padding: const EdgeInsets.all(24),
                 children: [
