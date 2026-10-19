@@ -769,6 +769,17 @@ python -m pip install -r requirements.txt
 python -m pytest tests -q -p no:cacheprovider
 ```
 
+You can also use the test runners, which follow the development-server scripts:
+
+- Windows: `.\run_tests.bat`
+- macOS/Linux: `bash run_tests.sh`
+
+Both use the backend's `.venv`, run the full suite without pytest's cache, and
+accept extra pytest arguments, such as `-k password` or `-v`. They select the
+backend directory automatically, so they can also be launched from another
+directory using their paths. The Windows runner keeps the command prompt open
+afterward, like `start_dev_server.bat`.
+
 `requirements.txt` temporarily constrains AnyIO to `>=4.14.1,<4.15` because
 Starlette 1.6.0's test client references a `BlockingPortal` alias deprecated in
 AnyIO 4.15. Remove this constraint after upgrading to a Starlette release that
