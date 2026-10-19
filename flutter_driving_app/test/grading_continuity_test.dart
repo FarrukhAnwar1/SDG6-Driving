@@ -1,3 +1,5 @@
+// Verifies that GPS and motion-sensor gaps do not create or inflate violations.
+
 import 'package:flutter_driving_app/widgets/speed_grading_service.dart';
 import 'package:flutter_driving_app/widgets/smoothness_grading_service.dart';
 import 'package:flutter_test/flutter_test.dart';

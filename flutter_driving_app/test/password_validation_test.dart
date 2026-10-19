@@ -1,3 +1,5 @@
+// Tests UTF-8 password byte limits across authentication forms.
+
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/change_password_screen.dart';
 import 'package:flutter_driving_app/screens/login_screen.dart';

@@ -1,3 +1,5 @@
+// Generates secure UUID v4 identifiers for trip uploads and their retries.
+
 import 'dart:math';
 
 String newClientTripId() {

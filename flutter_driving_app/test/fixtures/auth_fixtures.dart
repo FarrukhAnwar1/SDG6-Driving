@@ -1,3 +1,5 @@
+// Creates mock access tokens for HTTP and account-isolation tests.
+
 import 'dart:convert';
 
 // Mock HTTP clients do not verify signatures. Keep real JWT claim shapes so

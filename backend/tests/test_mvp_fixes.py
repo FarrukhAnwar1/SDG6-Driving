@@ -1,3 +1,5 @@
+# Regression tests for authentication, password limits, and duplicate report prevention.
+
 """Regression coverage for authentication, password limits, and upload retries."""
 from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock

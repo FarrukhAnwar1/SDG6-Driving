@@ -1,3 +1,5 @@
+// Tests focus grading when the app is backgrounded before or during movement.
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_driving_app/widgets/focused_driving_grading_service.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,3 +1,5 @@
+// Tests report persistence, upload retries, account isolation, and safe navigation.
+
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';

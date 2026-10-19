@@ -1,3 +1,5 @@
+// Tests precise-location recovery and permission-request failures on Android and iOS.
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

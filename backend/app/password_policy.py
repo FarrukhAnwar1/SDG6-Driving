@@ -1,3 +1,5 @@
+# Validates passwords against bcrypt's 72-byte UTF-8 input limit.
+
 """The same bcrypt input limit applies to every password entry point."""
 
 MAX_PASSWORD_BYTES = 72

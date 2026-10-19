@@ -1,3 +1,5 @@
+// Securely stores pending reports in separate queues for each backend and account.
+
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_config.dart';
