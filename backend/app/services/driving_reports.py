@@ -1,10 +1,37 @@
 # Provides a single query to load a user's latest trips and their violations for both read endpoints
 # (GET /driving-reports and GET /advanced-suggestion).
+import hashlib
+import json
 from typing import Sequence
+from uuid import NAMESPACE_URL, uuid5
 
+from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 from .. import models, schemas
+
+
+def _upload_identity(user_id: int, payload: schemas.DrivingReportCreate) -> tuple[str, str]:
+    normalized = payload.model_dump(mode="json", exclude={"client_trip_id"})
+    digest = hashlib.sha256(json.dumps(
+        normalized, sort_keys=True, separators=(",", ":"), allow_nan=False,
+    ).encode("utf-8")).hexdigest()
+    trip_id = str(payload.client_trip_id or uuid5(NAMESPACE_URL, f"drive:{user_id}:{digest}"))
+    return trip_id, digest
+
+
+def find_existing_report(
+    db: Session, user_id: int, payload: schemas.DrivingReportCreate,
+) -> models.DrivingReport | None:
+    trip_id, digest = _upload_identity(user_id, payload)
+    existing = db.scalar(select(models.DrivingReport).where(
+        models.DrivingReport.user_id == user_id,
+        models.DrivingReport.client_trip_id == trip_id,
+    ))
+    if existing is not None and existing.upload_payload_hash != digest:
+        raise HTTPException(409, "This trip ID has already been used for a different report.")
+    return existing
 
 
 def read_driving_reports(
@@ -44,8 +71,14 @@ def write_driving_report(
     `road_names` lines up with payload.violations positionally, as returned by
     services/road_names.resolve_road_names.
     """
+    existing = find_existing_report(db, user_id, payload)
+    if existing is not None:
+        return existing
+    trip_id, digest = _upload_identity(user_id, payload)
     report = models.DrivingReport(
         user_id=user_id,
+        client_trip_id=trip_id,
+        upload_payload_hash=digest,
         driving_mode=payload.driving_mode,
         overall_grade=payload.overall_grade,
         speed_grade=payload.speed_grade,
@@ -74,6 +107,15 @@ def write_driving_report(
         )
 
     db.add(report)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A simultaneous retry may have passed the initial read. The unique
+        # constraint chooses one winner; rollback also ends a MySQL RR snapshot.
+        db.rollback()
+        existing = find_existing_report(db, user_id, payload)
+        if existing is None:
+            raise
+        return existing
     db.refresh(report)
     return report

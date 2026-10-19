@@ -13,6 +13,8 @@ import '../widgets/api_config.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/driving_mode.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/driving_report_api.dart';
+import '../widgets/pending_report_store.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,7 +23,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // State variables
   bool _isLoading = true;
   bool _isDeleting = false;
@@ -31,11 +33,51 @@ class _HomePageState extends State<HomePage> {
   String? _userEmail;
   String? _loadError;
   String? _startTripError;
+  int _pendingReportCount = 0;
+  bool _isRetryingReports = false;
+  String? _pendingReportsError;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadCurrentUser();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        (ModalRoute.of(context)?.isCurrent ?? false)) {
+      _retryPendingReports();
+    }
+  }
+
+  Future<void> _retryPendingReports() async {
+    if (!mounted || _isRetryingReports) return;
+    setState(() => _isRetryingReports = true);
+    try {
+      final result = await DrivingReportApi.retryPendingReports();
+      if (!mounted) return;
+      setState(() {
+        _pendingReportCount = result.remaining;
+        _pendingReportsError = result.errorMessage;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _pendingReportsError =
+              'Could not read saved reports on this device. Please retry.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRetryingReports = false);
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -63,6 +105,7 @@ class _HomePageState extends State<HomePage> {
           _userEmail = data['email'] as String;
           _isLoading = false;
         });
+        await _retryPendingReports();
       } else if (response.statusCode == 401) {
         // Token expired or invalid
         await AuthStorage.deleteToken();
@@ -122,7 +165,10 @@ class _HomePageState extends State<HomePage> {
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => LiveDashboardScreen(drivingMode: drivingMode),
+        builder: (_) => LiveDashboardScreen(
+          drivingMode: drivingMode,
+          ownerUserId: _userId?.toString(),
+        ),
       ),
     );
   }
@@ -208,6 +254,8 @@ class _HomePageState extends State<HomePage> {
       debugPrint('DELETE ACCOUNT STATUS: ${response.statusCode}');
 
       if (response.statusCode == 204) {
+        final owner = _userId?.toString() ?? AuthStorage.userIdFromToken(token);
+        if (owner != null) await PendingReportStore.clear(owner);
         await BackgroundLocationService.stop();
         await AuthStorage.deleteToken();
         _goToLogin();
@@ -306,6 +354,24 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 16),
             ErrorBanner(message: _startTripError!),
             TextButton(onPressed: _startTrip, child: const Text('Retry')),
+          ],
+          if (_pendingReportCount > 0 || _pendingReportsError != null) ...[
+            const SizedBox(height: 16),
+            if (_pendingReportCount > 0)
+              Text(
+                '$_pendingReportCount ${_pendingReportCount == 1 ? 'report is' : 'reports are'} '
+                'saved on this device and waiting to upload.',
+              ),
+            if (_pendingReportsError != null)
+              Text(_pendingReportsError!, textAlign: TextAlign.center),
+            TextButton(
+              onPressed: _isRetryingReports ? null : _retryPendingReports,
+              child: Text(
+                _isRetryingReports
+                    ? 'Uploading saved reports...'
+                    : 'Retry saved reports',
+              ),
+            ),
           ],
           const SizedBox(height: 32),
           IntrinsicWidth(

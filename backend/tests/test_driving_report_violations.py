@@ -100,6 +100,9 @@ class FakeDbSession:
     def add(self, row):
         self.added.append(row)
 
+    def scalar(self, statement):
+        return None
+
     def commit(self):
         self.committed = True
 

@@ -95,6 +95,7 @@ def api(family_engine, monkeypatch):
         for user_id, name in [(1, "admin"), (2, "member"), (3, "outsider"), (4, "otheradmin")]:
             db.add(models.User(
                 id=user_id, username=name, email=f"{name}@example.test", password_hash="unused",
+                email_verified=True,
             ))
         db.commit()
     with TestClient(app, raise_server_exceptions=False) as client:

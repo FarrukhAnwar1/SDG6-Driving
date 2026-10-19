@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Query, status
 from .. import schemas
 from ..dependencies import CurrentUser, DbSession, PgSession
-from ..services.driving_reports import read_driving_reports, write_driving_report
+from ..services.driving_reports import find_existing_report, read_driving_reports, write_driving_report
 from ..services.road_names import resolve_road_names
 
 router = APIRouter(tags=["driving-reports"])
@@ -32,6 +32,9 @@ def create_driving_report(
 
     pg_db opens no connection when the report carries no violations
     """
+    existing = find_existing_report(db, current_user.id, payload)
+    if existing is not None:
+        return existing
     road_names = resolve_road_names(
         pg_db,
         [(violation.latitude, violation.longitude) for violation in payload.violations],

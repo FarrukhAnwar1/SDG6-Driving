@@ -8,6 +8,7 @@ import '../widgets/auth_storage.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/api_config.dart';
 import '../widgets/post_auth_navigation.dart';
+import '../widgets/password_validation.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -59,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
     if (password.length < 8) {
       return 'Password must be at least 8 characters';
     }
-    return null;
+    return passwordByteLengthError(password);
   }
 
   Future<void> _submit() async {
@@ -85,7 +86,6 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       debugPrint('LOGIN STATUS: ${response.statusCode}');
-      debugPrint('LOGIN BODY: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

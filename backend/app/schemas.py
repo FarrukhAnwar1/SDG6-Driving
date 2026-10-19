@@ -2,15 +2,19 @@
 # response serialization in the FastAPI application.
 import re
 from datetime import datetime, timezone
-from typing import List, Literal, Optional, get_args
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing import Annotated, List, Literal, Optional, get_args
+from uuid import UUID
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
+from .password_policy import validate_password_byte_length
+
+BcryptPassword = Annotated[str, AfterValidator(validate_password_byte_length)]
 
 class UserCreate(BaseModel):
     # what POST /users accepts, password is hashed server-side before storing
     username: str
     email: str
-    password: str
+    password: BcryptPassword = Field(min_length=8)
 
 class UserOut(BaseModel):
     # what the API returns, password_hash and verification tokens are omitted
@@ -29,7 +33,7 @@ class EmailRequest(BaseModel):
 class LoginRequest(BaseModel):
     # what POST /login accepts
     email: str
-    password: str
+    password: BcryptPassword
 
 class Token(BaseModel):
     # what POST /login returns on success
@@ -40,13 +44,13 @@ class ResetPasswordRequest(BaseModel):
     # what POST /reset-password accepts, code is the 6-digit code emailed by /forgot-password
     email: str
     code: str
-    new_password: str = Field(min_length=8)
+    new_password: BcryptPassword = Field(min_length=8)
 
 class ChangePasswordRequest(BaseModel):
     # what POST /change-password accepts, current_password is the user's current password, 
     # new_password is the desired new password (>8 characters, different from current password)
-    current_password: str
-    new_password: str = Field(..., min_length=8, max_length=72)
+    current_password: BcryptPassword
+    new_password: BcryptPassword = Field(..., min_length=8)
 
     @field_validator("new_password")
     @classmethod
@@ -185,6 +189,9 @@ class DrivingReportCreate(BaseModel):
 
     model_config = _CAMEL_CONFIG
 
+    # Stable across local persistence and upload retries. Legacy clients without
+    # an ID receive a deterministic ID derived from their normalized request.
+    client_trip_id: Optional[UUID] = None
     started_at: datetime
     ended_at: datetime
     trip_distance_miles: float = Field(ge=0, le=MAX_TRIP_DISTANCE_MILES)

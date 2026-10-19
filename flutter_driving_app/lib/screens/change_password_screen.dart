@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/auth_storage.dart';
 import '../widgets/api_config.dart';
+import '../widgets/password_validation.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -138,7 +139,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     if (value == null || value.isEmpty) {
       return 'Please enter your current password.';
     }
-    return null;
+    return passwordByteLengthError(value);
   }
 
   String? _validateNewPassword(String? value) {
@@ -148,9 +149,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     if (value.length < 8) {
       return 'Password must be at least 8 characters.';
     }
-    if (value.length > 72) {
-      return 'Password must be 72 characters or fewer.';
-    }
+    final lengthError = passwordByteLengthError(value);
+    if (lengthError != null) return lengthError;
     if (value == _currentPasswordController.text) {
       return 'New password must be different from the current password.';
     }

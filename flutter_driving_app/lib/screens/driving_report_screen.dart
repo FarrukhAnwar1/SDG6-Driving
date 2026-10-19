@@ -19,7 +19,12 @@ class DrivingReportScreen extends StatefulWidget {
 class _DrivingReportScreenState extends State<DrivingReportScreen> {
   bool _isSending = false;
   bool _sentSuccessfully = false;
+  bool _savedLocally = false;
   String? _errorMessage;
+  bool get _canLeave =>
+      !canGenerateDrivingReport(widget.summary.milesDriven) ||
+      _savedLocally ||
+      _sentSuccessfully;
 
   @override
   void initState() {
@@ -41,6 +46,8 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
     });
 
     final result = await DrivingReportApi.sendReport(
+      clientTripId: summary.clientTripId,
+      ownerUserId: summary.ownerUserId,
       startTime: summary.startTime,
       endTime: summary.endTime,
       milesDriven: summary.milesDriven,
@@ -56,6 +63,9 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       acceleratingViolations: summary.acceleratingViolations,
       turningViolations: summary.turningViolations,
       focusedDrivingViolations: summary.focusedDrivingViolations,
+      onSavedLocally: () {
+        if (mounted) setState(() => _savedLocally = true);
+      },
     );
 
     if (!mounted) return;
@@ -63,6 +73,7 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
     setState(() {
       _isSending = false;
       _sentSuccessfully = result.success;
+      _savedLocally = _savedLocally || result.savedLocally;
       _errorMessage = result.errorMessage;
     });
   }
@@ -137,28 +148,33 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
   Widget build(BuildContext context) {
     final summary = widget.summary;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Your Driving Report')),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: canGenerateDrivingReport(summary.milesDriven)
-              ? _buildReport(context, summary)
-              : _buildShortTripNotice(context, summary),
+    return PopScope(
+      canPop: _canLeave,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Your Driving Report')),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: canGenerateDrivingReport(summary.milesDriven)
+                ? _buildReport(context, summary)
+                : _buildShortTripNotice(context, summary),
+          ),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: FilledButton(
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomePage()),
-                (route) => false,
-              );
-            },
-            child: const Text('Return Home'),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+            child: FilledButton(
+              onPressed: !_canLeave
+                  ? null
+                  : () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const HomePage()),
+                        (route) => false,
+                      );
+                    },
+              child: const Text('Return Home'),
+            ),
           ),
         ),
       ),
@@ -216,7 +232,17 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
           const SizedBox(height: 8),
           const Center(child: CircularProgressIndicator()),
           const SizedBox(height: 8),
-          const Center(child: Text('Sending report...')),
+          Center(
+            child: Text(
+              _savedLocally
+                  ? 'Uploading report...'
+                  : 'Saving report on this device...',
+            ),
+          ),
+          if (_savedLocally)
+            const Text(
+              'Your report is saved on this device. You can return Home while it uploads.',
+            ),
           const SizedBox(height: 16),
         ] else if (!_sentSuccessfully) ...[
           const SizedBox(height: 8),

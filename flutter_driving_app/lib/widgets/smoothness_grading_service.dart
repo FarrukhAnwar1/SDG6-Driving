@@ -111,6 +111,7 @@ class SmoothnessGradingService {
 
   // See COOLDOWN RULE above
   static const Duration violationCooldown = Duration(seconds: 5);
+  static const Duration maxSampleGap = Duration(milliseconds: 250);
 
   static const double _startingGrade = 100;
 
@@ -165,6 +166,16 @@ class SmoothnessGradingService {
     required double longitude,
     required DateTime timestamp,
   }) {
+    final previous = _lastSampleTime;
+    if (previous != null && !timestamp.isAfter(previous)) return;
+    if (previous != null && timestamp.difference(previous) > maxSampleGap) {
+      _breakContinuity(previous);
+    }
+    if (!forwardG.isFinite || !lateralG.isFinite) {
+      if (previous != null) _breakContinuity(previous);
+      _lastSampleTime = null;
+      return;
+    }
     _lastSampleTime = timestamp;
 
     _evaluate(
@@ -188,6 +199,17 @@ class SmoothnessGradingService {
       longitude: longitude,
       timestamp: timestamp,
     );
+  }
+
+  void _breakContinuity(DateTime lastObserved) {
+    for (final category in SmoothnessCategory.values) {
+      final open = _openViolations[category];
+      if (open != null) _closeViolation(category, open, lastObserved);
+      _openViolations[category] = null;
+      _candidates[category] = null;
+      _lastClosedViolation[category] = null;
+      _smoothedG[category] = 0;
+    }
   }
 
   void _evaluate({

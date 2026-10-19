@@ -17,6 +17,15 @@ import 'package:flutter_driving_app/widgets/speed_grading_service.dart';
 const double _latitude = 40.0;
 const double _longitude = -75.0;
 
+typedef _Sample = ({
+  double speed,
+  double? limit,
+  double? threshold,
+  String? road,
+  DateTime time,
+});
+final _lastSamples = Expando<_Sample>();
+
 extension _FixedPointSamples on SpeedGradingService {
   void addSampleAt({
     required double speedMph,
@@ -24,15 +33,50 @@ extension _FixedPointSamples on SpeedGradingService {
     double? speedingThresholdMph = 5,
     required DateTime timestamp,
     String? roadName,
-  }) => addSample(
-    speedMph: speedMph,
-    speedLimitMph: speedLimitMph,
-    speedingThresholdMph: speedingThresholdMph,
-    timestamp: timestamp,
-    latitude: _latitude,
-    longitude: _longitude,
-    roadName: roadName,
-  );
+  }) {
+    final previous = _lastSamples[this];
+    // Sustained-driving scenarios use one-second GPS fixes between unchanged
+    // endpoints. Dropout tests below use addSample directly without this helper.
+    if (previous != null &&
+        previous.speed == speedMph &&
+        previous.limit == speedLimitMph &&
+        previous.threshold == speedingThresholdMph &&
+        previous.road == roadName) {
+      for (
+        var time = previous.time.add(const Duration(seconds: 1));
+        time.isBefore(timestamp);
+        time = time.add(const Duration(seconds: 1))
+      ) {
+        addSample(
+          speedMph: speedMph,
+          speedLimitMph: speedLimitMph,
+          speedingThresholdMph: speedingThresholdMph,
+          timestamp: time,
+          latitude: _latitude,
+          longitude: _longitude,
+          roadName: roadName,
+        );
+      }
+    }
+    if (previous == null || timestamp.isAfter(previous.time)) {
+      _lastSamples[this] = (
+        speed: speedMph,
+        limit: speedLimitMph,
+        threshold: speedingThresholdMph,
+        road: roadName,
+        time: timestamp,
+      );
+    }
+    addSample(
+      speedMph: speedMph,
+      speedLimitMph: speedLimitMph,
+      speedingThresholdMph: speedingThresholdMph,
+      timestamp: timestamp,
+      latitude: _latitude,
+      longitude: _longitude,
+      roadName: roadName,
+    );
+  }
 }
 
 void main() {
@@ -242,6 +286,14 @@ void main() {
         // Faster later in the streak, and from a different place, so only the
         // peak speed should move and the coordinates should stay at the start
         service.addSample(
+          speedMph: 75,
+          speedLimitMph: 65,
+          speedingThresholdMph: 5,
+          timestamp: start.add(const Duration(seconds: 3)),
+          latitude: 40.1,
+          longitude: -75.1,
+        );
+        service.addSample(
           speedMph: 85,
           speedLimitMph: 65,
           speedingThresholdMph: 5,
@@ -397,6 +449,7 @@ void main() {
       expect(service.violationCount, greaterThan(0));
 
       service.reset();
+      _lastSamples[service] = null;
 
       expect(service.grade, 100);
       expect(service.violationCount, 0);
@@ -465,7 +518,7 @@ void main() {
       'a brief lookup gap groups same-road violations without grading it',
       () {
         final service = SpeedGradingService();
-        for (final seconds in [0, 10]) {
+        for (final seconds in [0, 5, 10]) {
           service.addSample(
             speedMph: 30,
             speedLimitMph: 25,
@@ -534,11 +587,12 @@ void main() {
     for (final gap in [10, 11]) {
       test('same-road streaks $gap seconds apart respect the merge window', () {
         final service = SpeedGradingService();
-        for (final seconds in [0, 10, 11, 10 + gap, 20 + gap]) {
+        for (var seconds = 0; seconds <= 20 + gap; seconds++) {
+          final missingLimit = seconds >= 11 && seconds < 10 + gap;
           service.addSampleAt(
             speedMph: 30,
-            speedLimitMph: seconds == 11 ? null : 25,
-            roadName: seconds == 11 ? null : 'Main Street',
+            speedLimitMph: missingLimit ? null : 25,
+            roadName: missingLimit ? null : 'Main Street',
             timestamp: start.add(Duration(seconds: seconds)),
           );
         }
@@ -616,6 +670,7 @@ void main() {
         expect(service.violationCount, 1);
         expect(service.grade, 95);
         service.reset();
+        _lastSamples[service] = null;
       }
     });
 

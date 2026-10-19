@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/error_banner.dart';
 import '../widgets/api_config.dart';
+import '../widgets/password_validation.dart';
 
 enum _ForgotPasswordStep { email, resetCode, success }
 
@@ -67,7 +68,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     final password = value ?? '';
     if (password.isEmpty) return 'Enter a new password';
     if (password.length < 8) return 'Password must be at least 8 characters';
-    return null;
+    return passwordByteLengthError(password);
   }
 
   String? _validateConfirmPassword(String? value) {

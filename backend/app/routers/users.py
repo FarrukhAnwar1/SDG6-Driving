@@ -13,11 +13,6 @@ from ..services.family_transactions import (
 
 router = APIRouter(tags=["users"])
 
-@router.get("/users", response_model=schemas.Users)
-def get_users(db: DbSession):
-    rows = db.scalars(select(models.User)).all()
-    return schemas.Users(users=rows)
-
 @router.post(
     "/users", response_model=schemas.UserOut, status_code=status.HTTP_201_CREATED
 )

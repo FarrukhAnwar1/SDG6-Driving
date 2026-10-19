@@ -40,10 +40,12 @@ Color gradeColor(double grade) {
 
 class LiveDashboardScreen extends StatefulWidget {
   final DrivingMode drivingMode;
+  final String? ownerUserId;
 
   const LiveDashboardScreen({
     super.key,
     this.drivingMode = DrivingMode.normal, //navigation,
+    this.ownerUserId,
   });
 
   @override
@@ -100,6 +102,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   bool _isFetchingSpeedLimit = false;
 
   bool _receivedFirstPosition = false;
+  bool _isStoppingTrip = false;
 
   // Focus is only graded in normal mode (e.g. not while using navigation)
   bool get _isFocusGraded => widget.drivingMode == DrivingMode.normal;
@@ -306,6 +309,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       speedMph: _smoothedSpeedMph,
       latitude: position.latitude,
       longitude: position.longitude,
+      timestamp: position.timestamp,
     );
 
     if (!mounted) return;
@@ -390,6 +394,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   }
 
   void _stopTrip() {
+    if (_isStoppingTrip) return;
+    setState(() => _isStoppingTrip = true);
     final now = DateTime.now();
     // Close out any in-progress streak so it's counted below
     _properSpeedGrading.finalizeTrip();
@@ -405,6 +411,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     }
 
     final summary = TripSummary(
+      ownerUserId: widget.ownerUserId,
       startTime: _tripStartTime,
       endTime: now,
       elapsed: now.difference(_tripStartTime),
@@ -559,7 +566,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                 const SizedBox(height: 16),
                 FilledButton.icon(
                   key: const ValueKey('stop-trip'),
-                  onPressed: _stopTrip,
+                  onPressed: _isStoppingTrip ? null : _stopTrip,
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,

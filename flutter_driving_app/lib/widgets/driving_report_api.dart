@@ -9,13 +9,25 @@ import 'driving_report_summary.dart';
 import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
+import 'pending_report_store.dart';
 
 class DrivingReportResult {
   final bool success;
   final String? errorMessage;
+  final bool savedLocally;
 
-  DrivingReportResult.success() : success = true, errorMessage = null;
-  DrivingReportResult.failure(this.errorMessage) : success = false;
+  DrivingReportResult.success()
+    : success = true,
+      errorMessage = null,
+      savedLocally = false;
+  DrivingReportResult.failure(this.errorMessage, {this.savedLocally = false})
+    : success = false;
+}
+
+class PendingReportRetryResult {
+  final int remaining;
+  final String? errorMessage;
+  const PendingReportRetryResult(this.remaining, [this.errorMessage]);
 }
 
 class DrivingReportHistoryResult {
@@ -35,8 +47,28 @@ class DrivingReportApi {
   DrivingReportApi._();
 
   static const int historyLimit = 100;
+  static final Map<String, Future<void>> _uploads = {};
+
+  static Future<T> _serializeUpload<T>(
+    String owner,
+    Future<T> Function() operation,
+  ) {
+    final result = (_uploads[owner] ?? Future<void>.value()).then(
+      (_) => operation(),
+    );
+    final tail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _uploads[owner] = tail;
+    return result.whenComplete(() {
+      if (identical(_uploads[owner], tail)) _uploads.remove(owner);
+    });
+  }
 
   static Future<DrivingReportResult> sendReport({
+    required String clientTripId,
+    String? ownerUserId,
     required DateTime startTime,
     required DateTime endTime,
     required double milesDriven,
@@ -52,17 +84,12 @@ class DrivingReportApi {
     List<SmoothnessViolation> acceleratingViolations = const [],
     List<SmoothnessViolation> turningViolations = const [],
     List<FocusedDrivingViolation> focusedDrivingViolations = const [],
+    void Function()? onSavedLocally,
   }) async {
     if (!canGenerateDrivingReport(milesDriven)) {
       return DrivingReportResult.failure(
         'Trip must be at least 1 mile to generate a report.',
       );
-    }
-
-    final token = await AuthStorage.readToken();
-
-    if (token == null) {
-      return DrivingReportResult.failure('Not logged in.');
     }
 
     final violations = [
@@ -73,43 +100,108 @@ class DrivingReportApi {
       ..._focusedDrivingViolationsJson(focusedDrivingViolations),
     ];
 
+    final payload = <String, dynamic>{
+      'clientTripId': clientTripId,
+      'startedAt': startTime.toUtc().toIso8601String(),
+      'endedAt': endTime.toUtc().toIso8601String(),
+      'tripDistanceMiles': milesDriven,
+      'drivingMode': drivingMode.apiValue,
+      'overallGrade': overallGrade,
+      'speedGrade': properSpeedGrade,
+      'brakingGrade': brakingGrade,
+      'accelerationGrade': acceleratingGrade,
+      'turningGrade': turningGrade,
+      'focusGrade': focusedDrivingGrade,
+      'violations': violations,
+    };
+    final String owner;
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/driving-reports'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'startedAt': startTime.toUtc().toIso8601String(),
-          'endedAt': endTime.toUtc().toIso8601String(),
-          'tripDistanceMiles': milesDriven,
-          'drivingMode': drivingMode.apiValue,
-          'overallGrade': overallGrade,
-          'speedGrade': properSpeedGrade,
-          'brakingGrade': brakingGrade,
-          'accelerationGrade': acceleratingGrade,
-          'turningGrade': turningGrade,
-          // Null means focus wasn't measured for this mode
-          'focusGrade': focusedDrivingGrade,
-          'violations': violations,
-        }),
+      final id =
+          ownerUserId ??
+          AuthStorage.userIdFromToken(await AuthStorage.readToken());
+      if (id == null) {
+        return DrivingReportResult.failure(
+          'Please log in to save this report.',
+        );
+      }
+      owner = id;
+      await PendingReportStore.put(owner, payload);
+    } catch (_) {
+      return DrivingReportResult.failure(
+        'Could not save this report on your device. Stay here and try again.',
       );
+    }
+    onSavedLocally?.call();
+    return _serializeUpload(owner, () => _uploadSavedReport(owner, payload));
+  }
+
+  static Future<DrivingReportResult> _uploadSavedReport(
+    String owner,
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final pending = await PendingReportStore.read(owner);
+      final tripId = payload['clientTripId'] as String;
+      if (!pending.any((report) => report['clientTripId'] == tripId)) {
+        return DrivingReportResult.success();
+      }
+      final token = await AuthStorage.readToken();
+      if (AuthStorage.userIdFromToken(token) != owner) {
+        return DrivingReportResult.failure(
+          'Report saved on this device. Sign in with the original account to upload it.',
+          savedLocally: true,
+        );
+      }
+      final response = await http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}/driving-reports'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        await PendingReportStore.remove(owner, tripId);
         return DrivingReportResult.success();
       } else if (response.statusCode == 401) {
         return DrivingReportResult.failure(
-          'Session expired. Please log in again.',
+          'Report saved on this device. Log in again to upload it.',
+          savedLocally: true,
         );
       } else {
         return DrivingReportResult.failure(
-          'Failed to send report. Please try again.',
+          'Report saved on this device. Upload failed; we will retry from Home.',
+          savedLocally: true,
         );
       }
     } catch (_) {
-      return DrivingReportResult.failure('Could not connect to backend.');
+      return DrivingReportResult.failure(
+        'Report saved on this device. We will retry uploading from Home.',
+        savedLocally: true,
+      );
     }
+  }
+
+  static Future<PendingReportRetryResult> retryPendingReports() async {
+    final owner = AuthStorage.userIdFromToken(await AuthStorage.readToken());
+    if (owner == null) return const PendingReportRetryResult(0);
+    return _serializeUpload(owner, () async {
+      String? error;
+      for (final payload in await PendingReportStore.read(owner)) {
+        final result = await _uploadSavedReport(owner, payload);
+        if (!result.success) {
+          error = result.errorMessage;
+          break;
+        }
+      }
+      return PendingReportRetryResult(
+        (await PendingReportStore.read(owner)).length,
+        error,
+      );
+    });
   }
 
   static Future<DrivingReportHistoryResult> fetchHistory() async {

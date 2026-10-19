@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 import '../widgets/api_config.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/password_validation.dart';
 
 class SignUpPage extends StatefulWidget {
   //sign up page
@@ -50,7 +51,7 @@ class _SignUpPageState extends State<SignUpPage> {
     final password = value ?? '';
     if (password.isEmpty) return 'Enter your password';
     if (password.length < 8) return 'Password must be at least 8 characters';
-    return null;
+    return passwordByteLengthError(password);
   }
 
   @override

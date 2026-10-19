@@ -6,6 +6,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     String,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -82,9 +83,14 @@ class DrivingReport(Base):
     """
 
     __tablename__ = "driving_reports"
+    __table_args__ = (
+        UniqueConstraint("user_id", "client_trip_id", name="uq_report_user_client_trip"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    client_trip_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    upload_payload_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     # The column is a MySQL ENUM('regular', 'navigation') - see DRIVING_MODES in
     # schemas.py. "regular" grades every dimension; "navigation" grades all but

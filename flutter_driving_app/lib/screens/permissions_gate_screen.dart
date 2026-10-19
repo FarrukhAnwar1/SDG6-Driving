@@ -4,12 +4,14 @@
 // Once everything is granted, it starts continuous background location
 // tracking before handing off to Home. Users who already granted everything
 // go through with no UI shown at all.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'home_screen.dart';
 import '../widgets/background_location_service.dart';
 import '../widgets/permissions_config.dart';
+import '../widgets/error_banner.dart';
 
 class _RequiredPermission {
   final Permission permission;
@@ -39,6 +41,7 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   bool _isChecking = true;
   bool _isRequesting = false;
   bool _hasRequestedOnce = false;
+  String? _permissionError;
   List<_RequiredPermission> _requiredPermissions = [];
 
   // The storage variant actually in _requiredPermissions - looked up rather
@@ -131,7 +134,9 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // If the user went to the OS Settings app to flip a permission on,
     // re-check as soon as they come back instead of making them tap again
-    if (state == AppLifecycleState.resumed && _requiredPermissions.isNotEmpty) {
+    if (state == AppLifecycleState.resumed &&
+        _requiredPermissions.isNotEmpty &&
+        !_isRequesting) {
       _refreshStatuses(proceedIfGranted: true);
     }
   }
@@ -203,7 +208,11 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
   }
 
   Future<void> _requestAll() async {
-    setState(() => _isRequesting = true);
+    if (_isRequesting) return;
+    setState(() {
+      _isRequesting = true;
+      _permissionError = null;
+    });
 
     // Request permissions one at a time, awaiting the result of each
     // dialog before requesting the next.
@@ -222,41 +231,52 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
         .toList();
 
     final results = <Permission, PermissionStatus>{};
-    for (final permission in sequentialPermissions) {
-      results[permission] = await permission.request();
+    LocationAccuracyStatus? accuracy;
+    var completed = false;
+    try {
+      for (final permission in sequentialPermissions) {
+        results[permission] = await permission.request();
+      }
+
+      results[Permission.locationAlways] =
+          (results[Permission.locationWhenInUse]?.isGranted ?? false)
+          ? await Permission.locationAlways.request()
+          : await Permission.locationAlways.status;
+
+      if (_usesManageExternalStorage) {
+        results[Permission.manageExternalStorage] = await Permission
+            .manageExternalStorage
+            .request();
+      }
+
+      accuracy = await _checkAccuracyIfLocationGranted(results);
+      // Android requires the user to enable Precise Location in Settings.
+      // Its geolocator plugin does not implement the iOS temporary request.
+      if (defaultTargetPlatform == TargetPlatform.iOS &&
+          accuracy == LocationAccuracyStatus.reduced) {
+        accuracy = await Geolocator.requestTemporaryFullAccuracy(
+          purposeKey: kPreciseLocationPurposeKey,
+        );
+      }
+      completed = true;
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _permissionError = 'Could not update permissions. Please try again.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _statuses = {..._statuses, ...results};
+          _accuracyStatus = accuracy;
+          _isRequesting = false;
+          _hasRequestedOnce = true;
+        });
+      }
     }
 
-    final PermissionStatus alwaysStatus;
-    if (results[Permission.locationWhenInUse]?.isGranted ?? false) {
-      alwaysStatus = await Permission.locationAlways.request();
-    } else {
-      alwaysStatus = await Permission.locationAlways.status;
-    }
-    results[Permission.locationAlways] = alwaysStatus;
-
-    if (_usesManageExternalStorage) {
-      results[Permission.manageExternalStorage] = await Permission
-          .manageExternalStorage
-          .request();
-    }
-
-    var accuracy = await _checkAccuracyIfLocationGranted(results);
-    if (accuracy != null && accuracy != LocationAccuracyStatus.precise) {
-      accuracy = await Geolocator.requestTemporaryFullAccuracy(
-        purposeKey: kPreciseLocationPurposeKey,
-      );
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _statuses = results;
-      _accuracyStatus = accuracy;
-      _isRequesting = false;
-      _hasRequestedOnce = true;
-    });
-
-    if (_allGranted) {
+    if (mounted && completed && _allGranted) {
       _proceedToHome();
     }
   }
@@ -347,6 +367,10 @@ class _PermissionsGateScreenState extends State<PermissionsGateScreen>
             ),
           ),
           const SizedBox(height: 16),
+          if (_permissionError != null) ...[
+            ErrorBanner(message: _permissionError!),
+            const SizedBox(height: 12),
+          ],
           if (_needsSettings) ...[
             Text(
               _anyPermanentlyDenied
