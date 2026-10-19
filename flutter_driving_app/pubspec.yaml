@@ -37,11 +37,17 @@ dependencies:
   flutter_secure_storage: ^10.3.1
   permission_handler: ^11.3.1
   geolocator: ^13.0.1
-  geolocator_android: ^4.6.2
+  geolocator_android: 4.5.5
   geolocator_apple: ^2.3.14
   device_info_plus: ^13.2.0
   sensors_plus: ^7.1.0
   fl_chart: ^1.2.0
+
+# geolocator 13 requires Android >=4.6.0, whose unconditional NMEA listener can
+# hang the Android main thread on cancellation. Keep the compatible 4.5.5 API
+# until this is fixed upstream: https://github.com/Baseflow/flutter-geolocator/issues/1795
+dependency_overrides:
+  geolocator_android: 4.5.5
 
 dev_dependencies:
   flutter_test:

@@ -36,12 +36,21 @@ class BackgroundLocationService {
   // start(), stop(), enterTripMode(), and exitTripMode() all cancel and/or
   // replace `_subscription`. Routing every one of them through this queue
   // makes sure only one such operation runs at a time.
-  static Future<void> _operationQueue = Future<void>.value();
+  static Future<void>? _operationQueue;
 
   static Future<void> _enqueue(Future<void> Function() operation) {
-    final result = _operationQueue.then((_) => operation());
-    _operationQueue = result.catchError((_) {});
-    return result;
+    final previous = _operationQueue;
+    final result = previous == null
+        ? operation()
+        : previous.then((_) => operation());
+    final tail = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _operationQueue = tail;
+    return result.whenComplete(() {
+      if (identical(_operationQueue, tail)) _operationQueue = null;
+    });
   }
 
   // Broadcast position to necessary listeners
@@ -149,6 +158,9 @@ class BackgroundLocationService {
             distanceFilter: distanceFilter,
             intervalDuration: interval,
             forceLocationManager: _forceLocationManagerFallback,
+            // With the pinned Android plugin, this also keeps the unused
+            // NMEA/GNSS listeners off the main-thread start/stop path.
+            useMSLAltitude: false,
             foregroundNotificationConfig: const ForegroundNotificationConfig(
               notificationTitle: 'Location tracking is on',
               notificationText: 'Tap to return to the app.',

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_driving_app/screens/live_dashboard_screen.dart';
+import 'package:flutter_driving_app/screens/driving_report_screen.dart';
 import 'package:flutter_driving_app/widgets/background_location_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,7 +24,7 @@ class _Locations extends GeolocatorPlatform {
   Stream<Position> getPositionStream({LocationSettings? locationSettings}) =>
       positions.stream;
 
-  void drive(double speedMph) {
+  void drive(double speedMph, {bool mocked = false}) {
     final metersPerSecond = speedMph / 2.23694;
     timestamp = timestamp.add(const Duration(seconds: 1));
     latitude += metersPerSecond / 111195;
@@ -37,8 +38,9 @@ class _Locations extends GeolocatorPlatform {
         altitudeAccuracy: 1,
         heading: 0,
         headingAccuracy: 1,
-        speed: metersPerSecond,
-        speedAccuracy: 0.1,
+        speed: mocked ? 0 : metersPerSecond,
+        speedAccuracy: mocked ? 0 : 0.1,
+        isMocked: mocked,
       ),
     );
   }
@@ -105,9 +107,14 @@ void main() {
     }
   }
 
-  Future<void> drive(WidgetTester tester, double speed, int samples) async {
+  Future<void> drive(
+    WidgetTester tester,
+    double speed,
+    int samples, {
+    bool mocked = false,
+  }) async {
     for (var i = 0; i < samples; i++) {
-      locations.drive(speed);
+      locations.drive(speed, mocked: mocked);
       await tester.pump();
       await tester.pump();
     }
@@ -220,6 +227,36 @@ void main() {
     tester.platformDispatcher.clearTextScaleFactorTestValue();
     await tester.pump();
   }
+
+  testWidgets(
+    'emulator-style fixes calculate speed and Stop Trip opens the report',
+    (tester) async {
+      setViewport(tester, const Size(360, 800));
+      await http.runWithClient(
+        () => onDashboard(tester, () async {
+          await drive(tester, 30, 5, mocked: true);
+          expect(
+            tester
+                .widget<Text>(find.byKey(const ValueKey('current-speed')))
+                .data,
+            '30',
+          );
+          await tester.tap(find.byKey(const ValueKey('stop-trip')));
+          await tester.pumpAndSettle();
+          expect(find.byType(DrivingReportScreen), findsOneWidget);
+          expect(find.text('Trip too short for a report'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        }),
+        () => MockClient(
+          (_) async => http.Response(
+            '{"speedLimitMph":55,"speedLimitSource":"posted",'
+            '"speedingThresholdMph":5,"roadName":"Test Road","distanceMeters":1}',
+            200,
+          ),
+        ),
+      );
+    },
+  );
 
   testWidgets(
     'dashboard colors estimated ranges and groups speeding after a lookup timeout',
