@@ -6,9 +6,12 @@ import 'driving_mode.dart';
 import 'speed_grading_service.dart';
 import 'smoothness_grading_service.dart';
 import 'focused_driving_grading_service.dart';
+import 'trip_id.dart';
 
 @immutable
 class TripSummary {
+  final String clientTripId;
+  final String? ownerUserId;
   // Basic trip information
   final DateTime startTime;
   final DateTime endTime;
@@ -36,7 +39,9 @@ class TripSummary {
   final double? focusedDrivingGrade;
   final List<FocusedDrivingViolation> focusedDrivingViolations;
 
-  const TripSummary({
+  TripSummary({
+    String? clientTripId,
+    this.ownerUserId,
     required this.startTime,
     required this.endTime,
     required this.elapsed,
@@ -53,7 +58,7 @@ class TripSummary {
     required this.turningViolations,
     required this.focusedDrivingGrade,
     required this.focusedDrivingViolations,
-  });
+  }) : clientTripId = clientTripId ?? newClientTripId();
 
   // Combined average of the three smoothness categories
   double get smoothnessGrade =>

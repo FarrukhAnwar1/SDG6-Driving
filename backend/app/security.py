@@ -4,9 +4,11 @@ import jwt
 import hashlib
 from datetime import datetime, timedelta, timezone
 from .config import settings
+from .password_policy import validate_password_byte_length
 
 # Hashes a plaintext password with bcrypt
 def hash_password(password: str) -> str:
+    validate_password_byte_length(password)
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 # Creates a signed, time-limited JWT used to prove ownership of an email address
@@ -27,19 +29,29 @@ def decode_verification_token(token: str) -> int:
 
 # Verifies a plaintext password against a stored bcrypt hash
 def verify_password(password: str, password_hash: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    try:
+        validate_password_byte_length(password)
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except ValueError:
+        return False
 
 # Creates a signed JWT access token, subject identifies the user (their id)
 def create_access_token(subject: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=settings.access_token_expire_minutes
     )
-    payload = {"sub": subject, "exp": expire}
+    payload = {"sub": subject, "purpose": "access", "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 # Decodes and validates a JWT, raises jwt.PyJWTError if invalid or expired
 def decode_access_token(token: str) -> dict:
-    return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    payload = jwt.decode(
+        token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm],
+        options={"require": ["sub", "exp", "purpose"]},
+    )
+    if payload["purpose"] != "access":
+        raise jwt.InvalidTokenError("Invalid token purpose")
+    return payload
 
 # Generates a random 6-digit code (e.g. "042917") for the forgot-password flow.
 # Codes are short so they're easy to type on mobile, secrets keeps them unguessable

@@ -52,6 +52,7 @@ def api(engine, monkeypatch):
 def user(user_id, name):
     return models.User(
         id=user_id, username=name, email=f"{name}@example.test", password_hash="unused",
+        email_verified=True,
     )
 
 

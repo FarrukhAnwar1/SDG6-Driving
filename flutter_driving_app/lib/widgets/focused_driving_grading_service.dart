@@ -53,6 +53,7 @@ class FocusedDrivingGradingService {
   final List<FocusedDrivingViolation> _violations = [];
 
   bool _isAwayFromApp = false;
+  bool _isAppBackgrounded = false;
   DateTime? _awayStartTime;
   double _speedAtAwayStartMph = 0;
   double? _latitudeAtAwayStart;
@@ -72,10 +73,14 @@ class FocusedDrivingGradingService {
     required double speedMph,
     required double latitude,
     required double longitude,
+    required DateTime timestamp,
   }) {
     _lastKnownSpeedMph = speedMph;
     _lastKnownLatitude = latitude;
     _lastKnownLongitude = longitude;
+    if (_isAppBackgrounded && !_isAwayFromApp) {
+      _handleAppBackgrounded(timestamp);
+    }
   }
 
   // Called from the screen's WidgetsBindingObserver whenever the app's
@@ -85,8 +90,10 @@ class FocusedDrivingGradingService {
   // state rather than trying to special-case each transition.
   void handleLifecycleStateChange(AppLifecycleState state, DateTime timestamp) {
     if (state == AppLifecycleState.resumed) {
+      _isAppBackgrounded = false;
       _handleAppForegrounded(timestamp);
     } else {
+      _isAppBackgrounded = true;
       _handleAppBackgrounded(timestamp);
     }
   }
@@ -97,8 +104,8 @@ class FocusedDrivingGradingService {
     if (_isAwayFromApp) return;
 
     // Not moving (or no update yet) so not a distraction risk, so don't start
-    // tracking. If the car starts moving before the app comes back to the
-    // foreground, the next backgrounded transition will pick it up.
+    // tracking. A later moving GPS update can start the period without
+    // waiting for another lifecycle transition.
     if (_lastKnownSpeedMph < _minSpeedForViolationMph) return;
     final latitude = _lastKnownLatitude;
     final longitude = _lastKnownLongitude;

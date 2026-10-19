@@ -106,8 +106,8 @@ def api(gemini):
     Base.metadata.create_all(engine)
     with Session(engine) as db:
         db.add_all([
-            models.User(id=1, username="first", email="first@example.test", password_hash="unused"),
-            models.User(id=2, username="second", email="second@example.test", password_hash="unused"),
+            models.User(id=1, username="first", email="first@example.test", password_hash="unused", email_verified=True),
+            models.User(id=2, username="second", email="second@example.test", password_hash="unused", email_verified=True),
         ])
         db.commit()
 

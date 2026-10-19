@@ -58,6 +58,7 @@ class SpeedingViolation {
 class SpeedGradingService {
   // Penalize if speeding for at least this long
   static const Duration graceDuration = Duration(seconds: 5);
+  static const Duration maxSampleGap = Duration(seconds: 5);
   // Base rate at the threshold; each additional 5 mph adds another base rate.
   static const double pointsPerSecondOverThreshold = 1;
   static const double mphPerPenaltyStep = 5;
@@ -123,7 +124,16 @@ class SpeedGradingService {
       return;
     }
 
-    final elapsedSeconds = _lastSampleTime == null
+    final hasGap =
+        _lastSampleTime != null &&
+        timestamp.difference(_lastSampleTime!) > maxSampleGap;
+    if (hasGap) {
+      // Close at the last observed speeding fix, never at the far side of a
+      // GPS outage. The next fix starts a new streak with a new grace window.
+      _endCurrentStreak();
+      _mergeCandidateIndex = null;
+    }
+    final elapsedSeconds = _lastSampleTime == null || hasGap
         ? 0.0
         : timestamp.difference(_lastSampleTime!).inMilliseconds / 1000.0;
 

@@ -210,6 +210,32 @@ generation consumes quota.
 
 ## The driving_reports table
 
+The report-upload schema update has already been applied to the shared
+`permit_grading_db` database. It adds two nullable columns and a unique key:
+
+```sql
+ALTER TABLE driving_reports
+    ADD COLUMN client_trip_id VARCHAR(36) NULL,
+    ADD COLUMN upload_payload_hash CHAR(64) NULL,
+    ADD CONSTRAINT uq_report_user_client_trip UNIQUE (user_id, client_trip_id);
+```
+
+Do not rerun this statement on the shared database. For another existing
+database, check its schema and apply only missing changes before deploying the
+updated backend. The deployment workflow and application startup do not apply
+schema changes automatically. Existing reports keep NULL in both new columns;
+their data is preserved, and historical reports are not deduplicated.
+
+New uploads use a stable trip ID and normalized payload hash. Retrying the same
+upload returns the original report; reusing its ID with different data returns
+HTTP 409. IDs are scoped to each user. Older clients without a trip ID receive
+one derived from the normalized request.
+
+Existing sessions need one fresh login because access tokens now require
+`purpose: access`; protected endpoints also require a verified account.
+The public `GET /users` directory has been removed; profiles use `GET /me`.
+Passwords are limited consistently to 72 UTF-8 bytes, including Unicode input.
+
 This table exists in MySQL - `POST /driving-reports` writes to it.
 `app/models.py` mirrors it exactly, once the driving-modes migration under
 *Driving modes* below has been run:
@@ -218,6 +244,8 @@ This table exists in MySQL - `POST /driving-reports` writes to it.
 | --- | --- | --- |
 | `id` | `int` | primary key, auto increment |
 | `user_id` | `int` | taken from the bearer token, never from the request body |
+| `client_trip_id` | `varchar(36)` | stable upload UUID; unique together with `user_id`; nullable on historical rows |
+| `upload_payload_hash` | `char(64)` | SHA-256 of normalized upload data, used to reject conflicting reuse of a trip ID; nullable on historical rows |
 | `driving_mode` | `enum('regular','navigation')` | `NOT NULL DEFAULT 'regular'`, see *Driving modes* below |
 | `overall_grade` | `decimal(5,2)` | |
 | `speed_grade` | `decimal(5,2)` | from `SpeedGradingService` |
@@ -740,6 +768,17 @@ Install the current requirements after recreating the virtual environment:
 python -m pip install -r requirements.txt
 python -m pytest tests -q -p no:cacheprovider
 ```
+
+You can also use the test runners, which follow the development-server scripts:
+
+- Windows: `.\run_tests.bat`
+- macOS/Linux: `bash run_tests.sh`
+
+Both use the backend's `.venv`, run the full suite without pytest's cache, and
+accept extra pytest arguments, such as `-k password` or `-v`. They select the
+backend directory automatically, so they can also be launched from another
+directory using their paths. The Windows runner keeps the command prompt open
+afterward, like `start_dev_server.bat`.
 
 `requirements.txt` temporarily constrains AnyIO to `>=4.14.1,<4.15` because
 Starlette 1.6.0's test client references a `BlockingPortal` alias deprecated in
