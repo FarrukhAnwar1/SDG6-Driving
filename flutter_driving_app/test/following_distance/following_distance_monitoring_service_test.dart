@@ -57,7 +57,7 @@ void main() {
       );
       service.resume();
       drive(0, 6);
-      expect(service.grade, closeTo(97, 0.00001));
+      expect(service.grade, closeTo(95, 0.00001));
       expect(service.headwaySeconds, closeTo(1, 0.00001));
       service.finalizeTrip();
       expect(service.violations, hasLength(1));
@@ -104,14 +104,14 @@ void main() {
     drive(0, 6);
     service.pause();
     drive(7, 10);
-    expect(service.grade, closeTo(97, 0.00001));
+    expect(service.grade, closeTo(95, 0.00001));
     service.resume();
     now = start.add(const Duration(seconds: 11));
     frame();
     expect(service.status, FollowingDistanceStatus.unavailable);
     drive(12, 18);
     service.finalizeTrip();
-    expect(service.grade, closeTo(94, 0.00001));
+    expect(service.grade, closeTo(90, 0.00001));
     expect(service.violations, hasLength(2));
     expect(
       service.violations.first.endTime,
@@ -138,7 +138,7 @@ void main() {
       frame(status: FollowingDistanceStatus.unreliable);
       drive(13, 17);
       service.finalizeTrip();
-      expect(service.grade, closeTo(97, 0.00001));
+      expect(service.grade, closeTo(95, 0.00001));
       expect(service.violations, hasLength(1));
     },
   );
@@ -156,7 +156,7 @@ void main() {
     );
     drive(9, 13);
     service.finalizeTrip();
-    expect(service.grade, closeTo(97, 0.00001));
+    expect(service.grade, closeTo(95, 0.00001));
   });
 
   test('stale and future frames cannot supply a new streak', () {
@@ -178,7 +178,7 @@ void main() {
     frame();
     drive(8, 12);
     service.finalizeTrip();
-    expect(service.grade, closeTo(97, 0.00001));
+    expect(service.grade, closeTo(95, 0.00001));
     expect(service.violations, hasLength(1));
   });
 
@@ -188,7 +188,7 @@ void main() {
     service.resume();
     drive(7, 20);
     service.finalizeTrip();
-    expect(service.grade, closeTo(97, 0.00001));
+    expect(service.grade, closeTo(95, 0.00001));
     expect(service.violations, hasLength(1));
     expect(service.isActive, isFalse);
   });
@@ -203,12 +203,16 @@ void main() {
       );
       final focal = geometry.normalizedFocalLengthFor(const Size(480, 640))!;
       final estimator = VehicleDistanceEstimator(normalizedFocalLength: focal);
-      // A 1.8m-wide car at 30m spans 8% of this portrait frame. At 30 mph this
-      // is about 2.24s; the previous 60-degree guess would report about 1.45s.
-      const detection = VehicleDetection(
+      // A 1.8m-wide car at 45m spans about 5.33% of this portrait frame. At
+      // 30 mph this is a safe 3.36s; the old 60-degree guess reports 2.18s.
+      final detection = VehicleDetection(
         label: 'car',
         confidence: 0.4,
-        normalizedBox: Rect.fromLTRB(0.46, 0.32, 0.54, 0.42),
+        normalizedBox: Rect.fromCenter(
+          center: const Offset(0.5, 0.37),
+          width: 1.8 * focal / 45,
+          height: 0.1,
+        ),
       );
       for (var index = 0; index <= 60; index++) {
         now = start.add(Duration(milliseconds: index * 200));
@@ -218,7 +222,7 @@ void main() {
         );
       }
       expect(service.status, FollowingDistanceStatus.tracking);
-      expect(service.headwaySeconds, closeTo(30 / 13.4112, 1e-9));
+      expect(service.headwaySeconds, closeTo(45 / 13.4112, 1e-9));
       service.finalizeTrip();
       expect(service.grade, 100);
       expect(service.violations, isEmpty);
@@ -279,7 +283,7 @@ void main() {
         estimator.estimate(detections: [detection], timestamp: now),
       );
       service.finalizeTrip();
-      expect(service.grade, closeTo(99.4, 1e-9));
+      expect(service.grade, closeTo(99, 1e-9));
       expect(
         service.violations.single.startTime,
         start.add(const Duration(milliseconds: 400)),

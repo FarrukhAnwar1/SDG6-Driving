@@ -111,11 +111,11 @@ using these estimates as a validated driver-assessment metric.
 
 - Begin at 100 with no recovery, consistent with the existing graders. A score
   of 100 means no confirmed penalty; it does not certify camera coverage.
-- At speeds below 3 mph, do not grade following distance.
-- Headway is `distanceMeters / (speedMph * 0.44704)`. Exactly 2 seconds is safe.
+- At speeds below 25 mph, do not grade following distance.
+- Headway is `distanceMeters / (speedMph * 0.44704)`. Exactly 3 seconds is safe.
   An unsafe streak must continue **past 5 seconds** before it costs points.
 - Charge only observed time after grace. Points per second are
-  `1 + (2 - headwaySeconds) / 0.5`, so a 1-second gap costs 3 points/second after
+  `1 + (3 - headwaySeconds) / 0.5`, so a 1-second gap costs 5 points/second after
   grace. Clamp the grade to 0-100. Grace-only candidates are not violations.
 - Frames must be no more than 1 second old and use a trusted GPS fix no more
   than 2 seconds old. Frame/fix timestamps must be within 2 seconds of each

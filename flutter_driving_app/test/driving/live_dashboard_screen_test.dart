@@ -171,7 +171,7 @@ void main() {
                 const ValueKey('grade-Adequate Following Distance'),
               );
               expect(
-                find.descendant(of: row, matching: find.text('70')),
+                find.descendant(of: row, matching: find.text('50')),
                 findsOneWidget,
               );
               expect(find.text('Smoothness'), findsOneWidget);
@@ -184,10 +184,10 @@ void main() {
                   .widget<DrivingReportScreen>(find.byType(DrivingReportScreen))
                   .summary;
               expect(summary.drivingMode, mode);
-              expect(summary.followingDistanceGrade, closeTo(70, 0.00001));
+              expect(summary.followingDistanceGrade, closeTo(50, 0.00001));
               expect(
                 summary.overallGrade,
-                closeTo(mode == DrivingMode.normal ? 95 : 94, 0.00001),
+                closeTo(mode == DrivingMode.normal ? 550 / 6 : 90, 0.00001),
               );
               expect(summary.followingDistanceViolations, hasLength(1));
               expect(
