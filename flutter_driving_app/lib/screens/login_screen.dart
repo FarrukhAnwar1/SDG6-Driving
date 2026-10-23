@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
-import '../widgets/auth_storage.dart';
-import '../widgets/error_banner.dart';
-import '../widgets/api_config.dart';
-import '../widgets/post_auth_navigation.dart';
-import '../widgets/password_validation.dart';
+import '../widgets/auth/auth_storage.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/auth/post_auth_navigation.dart';
+import '../widgets/auth/password_validation.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

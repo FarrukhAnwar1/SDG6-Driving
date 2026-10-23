@@ -2,9 +2,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../widgets/auth_storage.dart';
-import '../widgets/api_config.dart';
-import '../widgets/password_validation.dart';
+import '../widgets/auth/auth_storage.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/auth/password_validation.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});

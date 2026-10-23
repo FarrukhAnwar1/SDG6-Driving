@@ -42,6 +42,7 @@ dependencies:
   device_info_plus: ^13.2.0
   sensors_plus: ^7.1.0
   fl_chart: ^1.2.0
+  ultralytics_yolo: 0.6.16
 
 # geolocator 13 requires Android >=4.6.0, whose unconditional NMEA listener can
 # hang the Android main thread on cancellation. Keep the compatible 4.5.5 API
@@ -70,6 +71,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/models/yolo11n.tflite
+    - assets/models/yolo11n.mlpackage.zip
 
   # To add assets to your application, add an assets section, like this:
   # assets:

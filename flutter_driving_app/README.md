@@ -1,5 +1,28 @@
 # flutter_driving_app
 
+See [Live following-distance grading](docs/following_distance.md) for the
+camera baseline, grading thresholds, trip modes, summary/report handoff,
+testing, and the separate backend/Settings integration work.
+
+## Source and test layout
+
+Widgets and supporting code are grouped one level below `lib/widgets/` by
+feature. Related tests use the same feature folders under `test/`.
+
+| Folder | Contents |
+| --- | --- |
+| `auth/` | Session handling, password validation, and authentication navigation. |
+| `driving/` | Driving modes, location tracking, orientation calibration, and speed limits. |
+| `driving_family/` | Family APIs, models, and forms. |
+| `driving_reports/` | Trip results, report APIs, upload queues, and report policies. |
+| `following_distance/` | Road camera, vehicle detection, distance estimation, and following-distance grading. |
+| `grading/` | Speed, smoothness, focus, overall grades, and grade presentation. |
+| `permissions/` | Required platform permissions. |
+| `shared/` | API configuration and reusable error messages. |
+
+Shared test data lives in `test/fixtures/`. Run all tests with `flutter test`, or
+run one feature with, for example, `flutter test test/following_distance/`.
+
 A new Flutter project.
 
 ## Getting Started

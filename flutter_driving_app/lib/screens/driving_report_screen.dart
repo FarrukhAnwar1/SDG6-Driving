@@ -1,10 +1,11 @@
 // Post driving report screen displaying results and feedback,
 // and sending the report to the backend.
 import 'package:flutter/material.dart';
-import '../widgets/driving_report_api.dart';
-import '../widgets/driving_report_policy.dart';
-import '../widgets/grade_utils.dart';
-import '../widgets/trip_summary.dart';
+import '../widgets/driving_reports/driving_report_api.dart';
+import '../widgets/driving/driving_mode.dart';
+import '../widgets/driving_reports/driving_report_policy.dart';
+import '../widgets/grading/grade_utils.dart';
+import '../widgets/driving_reports/trip_summary.dart';
 import 'home_screen.dart';
 
 class DrivingReportScreen extends StatefulWidget {
@@ -58,11 +59,13 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       acceleratingGrade: summary.acceleratingGrade,
       turningGrade: summary.turningGrade,
       focusedDrivingGrade: summary.focusedDrivingGrade,
+      followingDistanceGrade: summary.followingDistanceGrade,
       speedingViolations: summary.speedingViolations,
       brakingViolations: summary.brakingViolations,
       acceleratingViolations: summary.acceleratingViolations,
       turningViolations: summary.turningViolations,
       focusedDrivingViolations: summary.focusedDrivingViolations,
+      followingDistanceViolations: summary.followingDistanceViolations,
       onSavedLocally: () {
         if (mounted) setState(() => _savedLocally = true);
       },
@@ -100,6 +103,7 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
       'acceleration': summary.acceleratingGrade,
       'turning': summary.turningGrade,
       'focusedDriving': ?focusGrade,
+      'followingDistance': ?summary.followingDistanceGrade,
     };
 
     final lowest = scores.entries.reduce((a, b) => a.value < b.value ? a : b);
@@ -138,6 +142,10 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
         return score >= 90
             ? 'Great focus! Keep your attention on the road and avoid using your phone.'
             : 'Set up your phone before driving and avoid switching apps while moving.';
+      case 'followingDistance':
+        return score >= 90
+            ? 'Keep leaving plenty of space behind the vehicle ahead.'
+            : 'Leave a longer gap behind the vehicle ahead and allow extra space when conditions change.';
 
       default:
         return 'Keep practicing safe driving habits.';
@@ -299,6 +307,15 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
 
         // Display trip summary information
         _ReportItem(
+          icon: Icons.directions_car_outlined,
+          title: 'Driving Mode',
+          value: switch (summary.drivingMode) {
+            DrivingMode.normal => 'Regular',
+            DrivingMode.navigation => 'Navigation',
+            DrivingMode.pocket => 'Pocket',
+          },
+        ),
+        _ReportItem(
           icon: Icons.speed,
           title: 'Proper Speed Score',
           value: '${summary.properSpeedGrade.toStringAsFixed(0)}%',
@@ -320,6 +337,15 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
             icon: Icons.visibility_outlined,
             title: 'Focused Driving Score',
             value: '${focusGrade.toStringAsFixed(0)}%',
+          ),
+
+        if (summary.drivingMode.tracksFollowingDistance)
+          _ReportItem(
+            icon: Icons.social_distance_outlined,
+            title: 'Adequate Following Distance Score',
+            value: summary.followingDistanceGrade == null
+                ? 'Unavailable'
+                : '${summary.followingDistanceGrade!.toStringAsFixed(0)}%',
           ),
 
         _ReportItem(

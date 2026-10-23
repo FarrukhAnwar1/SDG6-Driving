@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
-import '../widgets/api_config.dart';
-import '../widgets/error_banner.dart';
-import '../widgets/password_validation.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/auth/password_validation.dart';
 
 class SignUpPage extends StatefulWidget {
   //sign up page

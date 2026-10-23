@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'home_screen.dart';
-import '../widgets/background_location_service.dart';
-import '../widgets/permissions_config.dart';
-import '../widgets/error_banner.dart';
+import '../widgets/driving/background_location_service.dart';
+import '../widgets/permissions/permissions_config.dart';
+import '../widgets/shared/error_banner.dart';
 
 class _RequiredPermission {
   final Permission permission;

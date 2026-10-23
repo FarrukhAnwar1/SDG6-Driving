@@ -43,3 +43,10 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Match the detector's CameraX versions. Read its default rear camera's
+    // metadata without opening or binding a second camera.
+    implementation("androidx.camera:camera-camera2:1.6.0")
+    implementation("androidx.camera:camera-lifecycle:1.6.0")
+}
