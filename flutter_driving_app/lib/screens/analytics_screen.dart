@@ -4,13 +4,13 @@ import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../widgets/api_config.dart';
-import '../widgets/auth_storage.dart';
-import '../widgets/driving_report_api.dart';
-import '../widgets/driving_report_summary.dart';
-import '../widgets/error_banner.dart';
-import '../widgets/grade_utils.dart';
-import '../widgets/driving_mode.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/auth/auth_storage.dart';
+import '../widgets/driving_reports/driving_report_api.dart';
+import '../widgets/driving_reports/driving_report_summary.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/grading/grade_utils.dart';
+import '../widgets/driving/driving_mode.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});

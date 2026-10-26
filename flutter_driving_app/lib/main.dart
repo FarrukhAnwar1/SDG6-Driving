@@ -1,7 +1,7 @@
 // App Root
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'widgets/auth_gate.dart';
+import 'widgets/auth/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

@@ -1,3 +1,4 @@
+﻿// Registers the Flutter plugins used by the driving dashboard.
 import Flutter
 import UIKit
 

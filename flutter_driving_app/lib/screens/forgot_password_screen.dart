@@ -2,9 +2,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../widgets/error_banner.dart';
-import '../widgets/api_config.dart';
-import '../widgets/password_validation.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/auth/password_validation.dart';
 
 enum _ForgotPasswordStep { email, resetCode, success }
 

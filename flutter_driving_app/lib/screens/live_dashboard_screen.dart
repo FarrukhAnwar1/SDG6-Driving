@@ -4,15 +4,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
-import '../widgets/background_location_service.dart';
-import '../widgets/driving_mode.dart';
-import '../widgets/speed_grading_service.dart';
-import '../widgets/speed_limit_service.dart';
-import '../widgets/smoothness_grading_service.dart';
-import '../widgets/focused_driving_grading_service.dart';
-import '../widgets/orientation_calibration_service.dart';
-import '../widgets/trip_summary.dart';
-import '../widgets/auth_storage.dart';
+import '../widgets/driving/background_location_service.dart';
+import '../widgets/driving/driving_mode.dart';
+import '../widgets/grading/speed_grading_service.dart';
+import '../widgets/driving/speed_limit_service.dart';
+import '../widgets/grading/smoothness_grading_service.dart';
+import '../widgets/grading/focused_driving_grading_service.dart';
+import '../widgets/following_distance/following_distance_camera.dart';
+import '../widgets/following_distance/following_distance_monitoring_service.dart';
+import '../widgets/grading/overall_driving_grade.dart';
+import '../widgets/following_distance/vehicle_distance_estimator.dart';
+import '../widgets/driving/orientation_calibration_service.dart';
+import '../widgets/driving_reports/trip_summary.dart';
+import '../widgets/auth/auth_storage.dart';
 import 'driving_report_screen.dart';
 
 // Formats a duration as mm:ss, or hh:mm:ss if over an hour
@@ -41,11 +45,15 @@ Color gradeColor(double grade) {
 class LiveDashboardScreen extends StatefulWidget {
   final DrivingMode drivingMode;
   final String? ownerUserId;
+  final FollowingDistanceCameraBuilder? followingDistanceCameraBuilder;
+  final DateTime Function()? clock;
 
   const LiveDashboardScreen({
     super.key,
     this.drivingMode = DrivingMode.normal, //navigation,
     this.ownerUserId,
+    this.followingDistanceCameraBuilder,
+    this.clock,
   });
 
   @override
@@ -76,7 +84,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   // Smoothing factor for displayed speed. 0 = never update, 1 = no smoothing.
   static const double _speedSmoothingAlpha = 1;
 
-  final DateTime _tripStartTime = DateTime.now();
+  late final DateTime _tripStartTime;
+  DateTime get _now => widget.clock?.call() ?? DateTime.now();
   final SpeedGradingService _properSpeedGrading = SpeedGradingService();
   final SmoothnessGradingService _smoothnessGrading =
       SmoothnessGradingService();
@@ -84,6 +93,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       OrientationCalibrationService();
   final FocusedDrivingGradingService _focusedDrivingGrading =
       FocusedDrivingGradingService();
+  late final FollowingDistanceMonitoringService _followingDistanceMonitoring;
+  final _followingDistanceCameraKey = GlobalKey<FollowingDistanceCameraState>();
+  bool _cameraResumed = true;
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
@@ -105,15 +117,27 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   bool _isStoppingTrip = false;
 
   // Focus is only graded in normal mode (e.g. not while using navigation)
-  bool get _isFocusGraded => widget.drivingMode == DrivingMode.normal;
+  bool get _isFocusGraded => widget.drivingMode.tracksFocus;
+  bool get _isFollowingDistanceGraded =>
+      widget.drivingMode.tracksFollowingDistance;
 
   @override
   void initState() {
     super.initState();
+    _tripStartTime = _now;
+    _followingDistanceMonitoring = FollowingDistanceMonitoringService(
+      drivingMode: widget.drivingMode,
+      clock: widget.clock,
+    );
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _cameraResumed =
+        lifecycle == null || lifecycle == AppLifecycleState.resumed;
+    if (_cameraResumed) _followingDistanceMonitoring.resume();
     WidgetsBinding.instance.addObserver(this);
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() => _elapsed = DateTime.now().difference(_tripStartTime));
+      if (!mounted || _isStoppingTrip) return;
+      _followingDistanceMonitoring.checkForInterruption();
+      setState(() => _elapsed = _now.difference(_tripStartTime));
     });
     _startListening();
     _startAccelerometer();
@@ -124,8 +148,20 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    if (_isStoppingTrip) return;
     if (_isFocusGraded) {
-      _focusedDrivingGrading.handleLifecycleStateChange(state, DateTime.now());
+      _focusedDrivingGrading.handleLifecycleStateChange(state, _now);
+    }
+    final resumed = state == AppLifecycleState.resumed;
+    if (_isFollowingDistanceGraded && resumed != _cameraResumed) {
+      _cameraResumed = resumed;
+      if (resumed) {
+        _followingDistanceMonitoring.resume();
+        unawaited(_followingDistanceCameraKey.currentState?.resume());
+      } else {
+        _followingDistanceMonitoring.pause();
+        unawaited(_followingDistanceCameraKey.currentState?.pause());
+      }
     }
     // Coming back to "resumed" may have just closed out a violation and
     // changed the grade, so refresh the displayed numbers.
@@ -170,6 +206,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   //    data at full rate.
   // See orientation_calibration_service.dart for the full explanation.
   void _handleUserAccelerometerEvent(UserAccelerometerEvent event) {
+    if (_isStoppingTrip) return;
     // Always feed the orientation service, even before the first usable GPS
     // fix. GPS is needed only to label calibration intervals, not to obtain
     // the gravity-removed linear acceleration itself.
@@ -203,12 +240,18 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   Future<void> _startListening() async {
     // Bump GPS to its faster trip-active interval
     await BackgroundLocationService.enterTripMode();
+    if (!mounted || _isStoppingTrip) return;
 
     if (!BackgroundLocationService.isTracking) {
       await BackgroundLocationService.start();
     }
+    if (!mounted || _isStoppingTrip) return;
     _positionSubscription = BackgroundLocationService.positionStream.listen(
       _handlePosition,
+      onError: (Object _) {
+        if (!mounted || _isStoppingTrip) return;
+        setState(_followingDistanceMonitoring.invalidatePosition);
+      },
     );
   }
 
@@ -220,12 +263,25 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _accelerometerSubscription?.cancel();
     _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
+    _followingDistanceMonitoring.finalizeTrip();
+    unawaited(_followingDistanceCameraKey.currentState?.stop());
     // Drop back to the idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
     super.dispose();
   }
 
   void _handlePosition(Position position) {
+    if (!mounted || _isStoppingTrip) return;
+    if (!position.accuracy.isFinite ||
+        position.accuracy < 0 ||
+        position.accuracy > _maxTrustedHorizontalAccuracyMeters ||
+        !position.latitude.isFinite ||
+        position.latitude.abs() > 90 ||
+        !position.longitude.isFinite ||
+        position.longitude.abs() > 180) {
+      setState(_followingDistanceMonitoring.invalidatePosition);
+      return;
+    }
     // Cache fix
     if (!_receivedFirstPosition) {
       _receivedFirstPosition = true;
@@ -233,13 +289,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       return;
     }
 
-    // Skip updates GPS flags as unreliable
-    if (position.accuracy > _maxTrustedHorizontalAccuracyMeters) {
-      return;
-    }
-
     final previous = _lastPosition;
     if (previous == null) return;
+    if (!position.timestamp.isAfter(previous.timestamp)) return;
 
     final rawSpeedMph = _resolveSpeedMph(position, previous);
     double speedMph = rawSpeedMph;
@@ -305,7 +357,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     // Keep this fresh regardless of "mounted" below, so a background period
     // that started (or that's about to start) always has an up-to-date
     // speed/location to attribute to it, even while the app isn't visible.
-    _focusedDrivingGrading.updateLiveState(
+    if (_isFocusGraded) {
+      _focusedDrivingGrading.updateLiveState(
+        speedMph: _smoothedSpeedMph,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        timestamp: position.timestamp,
+      );
+    }
+    _followingDistanceMonitoring.updatePosition(
       speedMph: _smoothedSpeedMph,
       latitude: position.latitude,
       longitude: position.longitude,
@@ -393,13 +453,15 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     }
   }
 
-  void _stopTrip() {
+  Future<void> _stopTrip() async {
     if (_isStoppingTrip) return;
     setState(() => _isStoppingTrip = true);
-    final now = DateTime.now();
+    _elapsedTimer?.cancel();
+    final now = _now;
     // Close out any in-progress streak so it's counted below
     _properSpeedGrading.finalizeTrip();
     _smoothnessGrading.finalizeTrip();
+    _followingDistanceMonitoring.finalizeTrip();
 
     // Focus is left null (not 100) when this mode doesn't measure it
     double? focusGrade;
@@ -434,8 +496,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       ),
       focusedDrivingGrade: focusGrade,
       focusedDrivingViolations: focusViolations,
+      followingDistanceGrade: _followingDistanceMonitoring.grade,
+      followingDistanceViolations: _followingDistanceMonitoring.violations,
     );
 
+    await _followingDistanceCameraKey.currentState?.stop();
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => DrivingReportScreen(summary: summary)),
     );
@@ -478,15 +544,51 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
 
   // Overall Grade is the average of every graded category for this mode
   double get _overallGrade {
-    final grades = [
-      _properSpeedGrading.grade,
-      _smoothnessGrading.brakingGrade,
-      _smoothnessGrading.acceleratingGrade,
-      _smoothnessGrading.turningGrade,
-      if (_isFocusGraded) _focusedDrivingGrading.grade,
-    ];
-    return grades.reduce((a, b) => a + b) / grades.length;
+    return overallDrivingGrade(
+      properSpeedGrade: _properSpeedGrading.grade,
+      brakingGrade: _smoothnessGrading.brakingGrade,
+      acceleratingGrade: _smoothnessGrading.acceleratingGrade,
+      turningGrade: _smoothnessGrading.turningGrade,
+      focusedDrivingGrade: _isFocusGraded ? _focusedDrivingGrading.grade : null,
+      followingDistanceGrade: _followingDistanceMonitoring.grade,
+    );
   }
+
+  void _handleFollowingDistance(FollowingDistanceMeasurement measurement) {
+    if (!mounted || _isStoppingTrip) return;
+    setState(() => _followingDistanceMonitoring.addMeasurement(measurement));
+  }
+
+  void _handleCameraUnavailable() {
+    if (!mounted || _isStoppingTrip) return;
+    setState(_followingDistanceMonitoring.cameraUnavailable);
+  }
+
+  void _handleRoadProcessingStarted(DateTime timestamp) {
+    if (!mounted || _isStoppingTrip) return;
+    setState(() => _followingDistanceMonitoring.beginMeasurement(timestamp));
+  }
+
+  String get _followingDistanceGapNote {
+    final gap = _followingDistanceMonitoring.headwaySeconds!.toStringAsFixed(1);
+    final age = _followingDistanceMonitoring.measurementAge;
+    return age != null && age > const Duration(seconds: 2)
+        ? 'Last gap: $gap s (${age.inSeconds} s ago)'
+        : 'Estimated gap: $gap s';
+  }
+
+  String get _followingDistanceNote =>
+      switch (_followingDistanceMonitoring.status) {
+        FollowingDistanceStatus.tracking => _followingDistanceGapNote,
+        FollowingDistanceStatus.processing => 'Processing road view',
+        FollowingDistanceStatus.confirming => 'Confirming lead vehicle',
+        FollowingDistanceStatus.noVehicle => 'No lead vehicle detected',
+        FollowingDistanceStatus.unreliable =>
+          'Vehicle detected; distance uncertain',
+        FollowingDistanceStatus.unavailable => 'Monitoring unavailable',
+        FollowingDistanceStatus.paused => 'Monitoring paused',
+        FollowingDistanceStatus.waiting => 'Waiting for road view and movement',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -941,19 +1043,25 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                 _focusedDrivingGrading.grade,
               ),
             ),
-          for (final category in [
-            SmoothnessCategory.braking,
-            SmoothnessCategory.accelerating,
-            SmoothnessCategory.turning,
-          ]) ...[
+          Expanded(
+            child: _buildGradeRow(
+              context,
+              'Smoothness',
+              (_smoothnessGrading.brakingGrade +
+                      _smoothnessGrading.acceleratingGrade +
+                      _smoothnessGrading.turningGrade) /
+                  3,
+            ),
+          ),
+          if (_isFollowingDistanceGraded)
             Expanded(
               child: _buildGradeRow(
                 context,
-                category.label,
-                _smoothnessGrading.gradeFor(category),
+                'Adequate Following Distance',
+                _followingDistanceMonitoring.grade!,
+                note: _followingDistanceNote,
               ),
             ),
-          ],
         ],
       ),
     );
@@ -1036,10 +1144,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // Driving mode indicator at the top of the dashboard, showing whether
-  // the user is in navigation mode or regular mode.
+  // Mode and a small road preview for positioning the mounted rear camera.
   Widget _buildDrivingModeIndicator(BuildContext context) {
     final isNavigationMode = widget.drivingMode == DrivingMode.navigation;
+    final (modeLabel, modeIcon) = switch (widget.drivingMode) {
+      DrivingMode.normal => (
+        'Regular Mode Active',
+        Icons.directions_car_outlined,
+      ),
+      DrivingMode.navigation => (
+        'Navigation Mode Active',
+        Icons.navigation_outlined,
+      ),
+      DrivingMode.pocket => (
+        'Pocket Mode Active',
+        Icons.phone_android_outlined,
+      ),
+    };
 
     final scheme = Theme.of(context).colorScheme;
 
@@ -1053,20 +1174,34 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       ),
       child: Row(
         children: [
-          Icon(
-            isNavigationMode
-                ? Icons.navigation_outlined
-                : Icons.directions_car_outlined,
-          ),
+          Icon(modeIcon),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              isNavigationMode
-                  ? 'Navigation Mode Active'
-                  : 'Regular Mode Active',
+              modeLabel,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
+          if (_isFollowingDistanceGraded) ...[
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 64,
+              height: 44,
+              child:
+                  widget.followingDistanceCameraBuilder?.call(
+                    context,
+                    _handleFollowingDistance,
+                    _handleCameraUnavailable,
+                  ) ??
+                  FollowingDistanceCamera(
+                    key: _followingDistanceCameraKey,
+                    active: _cameraResumed && !_isStoppingTrip,
+                    onMeasurement: _handleFollowingDistance,
+                    onUnavailable: _handleCameraUnavailable,
+                    onProcessingStarted: _handleRoadProcessingStarted,
+                  ),
+            ),
+          ],
         ],
       ),
     );

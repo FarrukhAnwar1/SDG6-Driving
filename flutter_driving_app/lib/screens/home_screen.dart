@@ -8,13 +8,13 @@ import 'live_dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'driving_family_screen.dart';
 import 'settings_screen.dart';
-import '../widgets/auth_storage.dart';
-import '../widgets/api_config.dart';
-import '../widgets/background_location_service.dart';
-import '../widgets/driving_mode.dart';
-import '../widgets/error_banner.dart';
-import '../widgets/driving_report_api.dart';
-import '../widgets/pending_report_store.dart';
+import '../widgets/auth/auth_storage.dart';
+import '../widgets/shared/api_config.dart';
+import '../widgets/driving/background_location_service.dart';
+import '../widgets/driving/driving_mode.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/driving_reports/driving_report_api.dart';
+import '../widgets/driving_reports/pending_report_store.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

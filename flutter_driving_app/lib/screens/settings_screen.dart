@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/driving_mode.dart';
-import '../widgets/error_banner.dart';
+import '../widgets/driving/driving_mode.dart';
+import '../widgets/shared/error_banner.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

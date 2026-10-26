@@ -1,11 +1,11 @@
 // Driving Family Hub Screen including the main family view, form, and related widgets
 import 'package:flutter/material.dart';
 
-import '../widgets/driving_family_api.dart';
-import '../widgets/driving_family_form.dart';
-import '../widgets/driving_family_summary.dart';
-import '../widgets/error_banner.dart';
-import '../widgets/grade_utils.dart';
+import '../widgets/driving_family/driving_family_api.dart';
+import '../widgets/driving_family/driving_family_form.dart';
+import '../widgets/driving_family/driving_family_summary.dart';
+import '../widgets/shared/error_banner.dart';
+import '../widgets/grading/grade_utils.dart';
 
 class DrivingFamilyScreen extends StatefulWidget {
   const DrivingFamilyScreen({
