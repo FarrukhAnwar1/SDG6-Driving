@@ -168,7 +168,7 @@ void main() {
                 await tester.pump();
               }
               final row = find.byKey(
-                const ValueKey('grade-Adequate Following Distance'),
+                const ValueKey('grade-Following Distance'),
               );
               expect(
                 find.descendant(of: row, matching: find.text('80')),
@@ -227,7 +227,7 @@ void main() {
           tester,
           () async {
             expect(find.text('Pocket Mode Active'), findsOneWidget);
-            expect(find.text('Adequate Following Distance'), findsNothing);
+            expect(find.text('Following Distance'), findsNothing);
             expect(find.text('Focused Driving'), findsNothing);
             expect(find.text('Smoothness'), findsOneWidget);
             await drive(tester, 30, 17);
@@ -378,7 +378,7 @@ void main() {
     for (final label in [
       'Proper Speed',
       'Focused Driving',
-      'Adequate Following Distance',
+      'Following Distance',
       'Smoothness',
     ]) {
       final row = find.byKey(ValueKey('grade-$label'));

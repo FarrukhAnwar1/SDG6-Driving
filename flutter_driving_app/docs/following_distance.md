@@ -14,6 +14,7 @@ Analytics, and Driving Family remain separate tasks.
 | Pocket | Yes | All three | No | No | 4 |
 
 The dashboard shows one averaged Smoothness row, followed by Following Distance.
+Following Distance shows its grade and progress bar without status or gap subtext.
 All three smoothness grades still contribute separately to the overall grade,
 summary and upload. Navigation entirely hides Focus; Pocket entirely hides Focus
 and Following Distance on both the dashboard and report. Excluded categories
@@ -96,8 +97,8 @@ app timestamps its raw-frame callback before preprocessing and keeps that time
 through inference and grading. Results older than five seconds are unavailable.
 The watchdog distinguishes an in-flight model job from camera silence. It
 establishes one cutoff per outage, so repeated ticks cannot keep rejecting
-fresh delayed results after recovery. Delayed estimates show their age on the
-dashboard instead of presenting an old gap as a current reading.
+fresh delayed results after recovery. These timing checks apply to grading;
+the dashboard grade rows display labels and scores without monitoring subtext.
 One FPS is a maximum target, not a guaranteed throughput: this CPH2655 took
 about two seconds with a fixed test image and about 3.2 seconds with its live
 rear-camera stream in the parked debug check. A longer allowance accepts those

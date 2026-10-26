@@ -569,27 +569,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     setState(() => _followingDistanceMonitoring.beginMeasurement(timestamp));
   }
 
-  String get _followingDistanceGapNote {
-    final gap = _followingDistanceMonitoring.headwaySeconds!.toStringAsFixed(1);
-    final age = _followingDistanceMonitoring.measurementAge;
-    return age != null && age > const Duration(seconds: 2)
-        ? 'Last gap: $gap s (${age.inSeconds} s ago)'
-        : 'Estimated gap: $gap s';
-  }
-
-  String get _followingDistanceNote =>
-      switch (_followingDistanceMonitoring.status) {
-        FollowingDistanceStatus.tracking => _followingDistanceGapNote,
-        FollowingDistanceStatus.processing => 'Processing road view',
-        FollowingDistanceStatus.confirming => 'Confirming lead vehicle',
-        FollowingDistanceStatus.noVehicle => 'No lead vehicle detected',
-        FollowingDistanceStatus.unreliable =>
-          'Vehicle detected; distance uncertain',
-        FollowingDistanceStatus.unavailable => 'Monitoring unavailable',
-        FollowingDistanceStatus.paused => 'Monitoring paused',
-        FollowingDistanceStatus.waiting => 'Waiting for road view and movement',
-      };
-
   @override
   Widget build(BuildContext context) {
     final overallGrade = _overallGrade;
@@ -1057,9 +1036,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             Expanded(
               child: _buildGradeRow(
                 context,
-                'Adequate Following Distance',
+                'Following Distance',
                 _followingDistanceMonitoring.grade!,
-                note: _followingDistanceNote,
               ),
             ),
         ],
@@ -1067,12 +1045,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  Widget _buildGradeRow(
-    BuildContext context,
-    String label,
-    double grade, {
-    String? note,
-  }) {
+  Widget _buildGradeRow(BuildContext context, String label, double grade) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
     final color = gradeColor(grade);
@@ -1091,25 +1064,12 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          label,
-                          style: textTheme.titleMedium?.copyWith(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        if (note != null)
-                          Text(
-                            note,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
+                    child: Text(
+                      label,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
