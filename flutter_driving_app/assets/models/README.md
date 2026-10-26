@@ -1,22 +1,45 @@
-# YOLO11n COCO detection baseline
+# Pretrained road-perception assets
 
-These are unmodified official Ultralytics detection assets from the
-[v0.2.0 release](https://github.com/ultralytics/yolo-flutter-app/releases/tag/v0.2.0).
-They are bundled so inference does not require a first-use model download.
+The app bundles both networks for local inference, with no first-use download.
+See [pipeline behavior and limitations](../../docs/following_distance.md).
 
-| Asset | Upstream source | Bytes | SHA-256 |
-| --- | --- | --- | --- |
-| `yolo11n.tflite` | [Android model](https://github.com/ultralytics/yolo-flutter-app/releases/download/v0.2.0/yolo11n.tflite) | 5406462 | `555249e028f51955da4435595c00cb87bddcace79177132a00c5b4edc0842f66` |
-| `yolo11n.mlpackage.zip` | [iOS model](https://github.com/ultralytics/yolo-flutter-app/releases/download/v0.2.0/yolo11n.mlpackage.zip) | 2500209 | `e5bdbf4950f468f401d1cf06c2859148fe26b7499fe75b4ddbd0a8ef840ec1e0` |
+| Asset | Source | License |
+| --- | --- | --- |
+| `yolop_640.onnx` | Official [YOLOP 640 export](https://github.com/hustvl/YOLOP/blob/8d8f68df318c71f01d6f813c024df646c7d1978f/weights/yolop-640-640.onnx), unchanged BDD100K pretrained detector/road/lane network | [MIT](YOLOP_LICENSE) |
+| `unidepth_v2_small.onnx` | [UniDepthV2 Small pretrained weights](https://huggingface.co/lpiccinelli/unidepth-v2-vits14/tree/038c238f06c87b6c2f5b3749fd51fbf442b1f218), exported with [pinned upstream code](https://github.com/lpiccinelli-eth/UniDepth/tree/8d8cfe4c7ee15297099983607febf0d4f32eb3d6) | [CC BY-NC 4.0](UNIDEPTH_LICENSE), Luigi Piccinelli and contributors |
 
-The TFLite file's embedded `metadata.json` identifies Ultralytics 8.3.122,
-COCO training, task `detect`, input 320x320, and AGPL-3.0 licensing. Vehicle
-classes are car (2), motorcycle (3), bus (5), and truck (7). The Core ML ZIP
-contains `yolo11n.mlpackage` with its manifest, model, and weights; the plugin
-extracts and compiles it on iOS.
+Both license texts are included as Flutter assets. Lead selection uses a simple
+comparison with the last observed vehicle box; it requires no tracking model.
 
-The accompanying [AGPL-3.0 license](LICENSE) is copied from the pinned
-Ultralytics Flutter package. See the [upstream licensing page](https://ultralytics.com/license).
+UniDepth's exported input is ImageNet-normalized RGB `[1,3,532,392]`. Outputs
+are `depth_meters` (camera-forward Z, `[1,1,532,392]`), `confidence` of the same
+shape, and predicted `[1,3,3]` `intrinsics`. The export wraps upstream's
+`points = rays * radius` and selects Z without changing its learned scale.
+Large weights are stored in float16 with explicit casts back to float32.
+Operators and input/output remain float32 for CPU portability. This reduces
+the bundled depth asset to about 71MB; it does not imply
+half the inference memory or a GPU speedup. Smaller storage is checked against
+the original float32 PyTorch predictions.
 
-These assets have not been fine-tuned on BDD100K or validated against
-KITTI/nuScenes. See [baseline assumptions and grading rules](../../docs/following_distance.md).
+`validation.json` records SHA-256 checksums, sizes, input/output contracts,
+pinned source/weight revisions, build-package versions, and a numerical check
+on an official YOLOP road image. Its CPU timings are development-machine smoke
+measurements, not phone benchmarks. Export agreement is not measured road
+distance accuracy or KITTI/nuScenes validation.
+
+Rebuild from the Flutter app directory using Python with CPU PyTorch and the
+versions in `tool/vision_model_requirements.txt` (prefer an isolated virtual
+environment). Run:
+
+```text
+python tool/build_following_distance_models.py
+```
+
+Downloads and temporary source/weights remain in ignored `build/vision_models/`.
+The script loads safetensors with strict state-dict matching and bypasses only
+unused upstream package initializers that eagerly import training visualizers.
+It uses upstream inference modules without modifications, sets the upstream
+export option to avoid memory-efficient attention, and fixes batch/spatial
+dimensions. ONNX validation checks output finiteness, positive depth, and
+99th-percentile relative agreement with PyTorch. No model is trained or
+fine-tuned by this build.

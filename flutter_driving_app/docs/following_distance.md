@@ -1,13 +1,11 @@
 # Live following-distance grading
 
-This change covers the Live Dashboard, completed `TripSummary`, immediate
-Driving Report, and transfer of those finalized results into the existing
-upload queue. Database changes, backend endpoints, the Pocket Settings card,
-saved-report parsing, Analytics, and Driving Family are separate tasks.
-The shared driving-mode enum includes Pocket so the dashboard can be started
-with that mode and correctly finalize its results.
+This frontend work covers the Live Dashboard, completed `TripSummary`, immediate
+Driving Report, and finalized results in the existing upload queue. Database
+changes, backend endpoints, the Pocket Settings card, saved-report parsing,
+Analytics, and Driving Family remain separate tasks.
 
-## Modes and grades
+## Modes and presentation
 
 | Mode | Speed | Braking / acceleration / turning | Focus | Following distance | Overall divisor |
 | --- | --- | --- | --- | --- | --- |
@@ -15,175 +13,179 @@ with that mode and correctly finalize its results.
 | Navigation | Yes | All three | No | Yes | 5 |
 | Pocket | Yes | All three | No | No | 4 |
 
-The dashboard presents the arithmetic mean of the three smoothness grades as
-one Smoothness row. All three remain separate inputs to the overall grade,
-summary, violations, and upload. Untracked categories contribute neither a
-score nor a divisor entry; Pocket has explicit null focus/following scores and
-neither violation type. Navigation has null focus and no focus violations.
-Actual zero scores remain zero.
+The dashboard shows one averaged Smoothness row, followed by Following Distance.
+All three smoothness grades still contribute separately to the overall grade,
+summary and upload. Navigation entirely hides Focus; Pocket entirely hides Focus
+and Following Distance on both the dashboard and report. Excluded categories
+have null grades and no corresponding violations. Actual zero scores stay zero.
+The report's following-distance card uses the same icon, label and percentage
+presentation as the other grade cards, without an estimate or violation breakdown.
 
-The dashboard and completed Driving Report hide categories excluded by the
-driving mode entirely: Navigation omits Focus, and Pocket omits both Focus and
-Following Distance. Neither screen shows a "Not tracked" placeholder for them.
+## Pretrained perception pipeline
 
-## Detector and distance baseline
+One normal rear camera at 1x supplies both the preview and raw frames through
+Flutter's `camera` plugin. Frames stay on the device; they are not recorded,
+uploaded or retained in the trip. Audio is disabled. Android YUV420 plane
+strides and sensor rotation, and iOS's already-oriented BGRA output, are handled
+before either network sees the image. Model inputs preserve aspect ratio with
+letterboxing; preview cropping never changes inference coordinates.
 
-`FollowingDistanceCamera` runs the bundled COCO-pretrained YOLO11n detection
-model on the rear camera through pinned `ultralytics_yolo` 0.6.16. Android uses
-TFLite and iOS uses Core ML. Both inference and delivery are capped at 5 FPS.
-No original images are requested, recorded, stored with the trip, or uploaded.
-The small preview helps check that the mounted camera faces the road. The
-existing permissions gate must already have granted camera permission; this
-component checks permission without opening a dialog during a trip.
+1. [YOLOP](https://github.com/hustvl/YOLOP) supplies pretrained BDD100K vehicle
+   detections, drivable-surface segmentation and lane segmentation at 640x640.
+   Its single vehicle class uses objectness multiplied by class score, followed
+   by nonmaximum suppression. Padding is removed from boxes and mask lookups.
+2. [UniDepthV2 Small](https://huggingface.co/lpiccinelli/unidepth-v2-vits14)
+   supplies learned metric depth and camera intrinsics. Its fixed 532x392 input
+   contains 208,544 pixels, within the upstream 200k–600k range, with dimensions
+   divisible by 14. The export returns camera-forward Z in metres from the
+   predicted 3D points. No assumed vehicle width, guessed focal length, or
+   arbitrary distance multiplier is used.
+3. Simple lead selection uses the current ego-lane detections and learned
+   distances, without a separate tracking stage. A new lead needs confidence
+   of at least 0.25 and can supply distance on its first sighting. A box matching
+   the last observed lead can continue at confidence 0.10. Matching tolerates
+   center movement of 75% of the larger box dimension (at least 6% of the image)
+   and width/height ratios from 0.4 to 2.5, accommodating slow processing and box
+   jitter. If the previous lead remains visible, a newly selected closer car
+   gets a different identity and fresh grading grace. Identity can survive a
+   miss for six seconds, but missing frames never supply a distance or continue
+   a grading streak. There is no second-sighting confirmation requirement.
 
-See [model provenance and checksums](../assets/models/README.md). The Android
-model has a 320x320 input, 80 COCO labels, and embedded metadata. Car,
-motorcycle, bus, and truck detections are eligible. Native inference and the
-estimator both use a 0.30 confidence floor. Detections at 0.60 or higher can
-start tracking immediately; lower-confidence candidates require three
-overlapping observations spanning at least 300 ms. Pending confirmation has no
-distance and cannot start a violation's grace period. Missing frames or a
-different vehicle restart confirmation. A confirmed vehicle can continue at
-the lower floor without flickering each time confidence crosses 0.60.
+Lane boundaries and the drivable mask select an ego-lane candidate. Markings
+are sampled at several rows near and below the tyres, including across dashed
+line gaps, and projected back to tyre height using median slopes. A single
+visible boundary still excludes traffic on its other side. Without a usable
+pair, a centered fallback narrows for distant vehicles instead of using the
+same horizontal window at every distance. The center and at least 60% of the
+vehicle box must lie within the corridor; visible boundaries allow 1% of image
+width for mask jitter. Cut-ins become eligible once most of the box is inside.
+At least 12 of 200 lower-image road samples must be drivable, with additional
+road evidence below or beside the vehicle's tyres, searched up to 12% of image
+height below the box to tolerate occlusion and mask holes. Missing markings,
+sharp curves, and off-center mounting can still make lane membership ambiguous.
+Distance is the median of an interior body patch; clipped/tiny boxes,
+nonfinite or out-of-range depth,
+insufficient valid pixels, and excessive spatial depth spread produce an
+uncertain result. UniDepth confidence is a relative uncertainty signal, not a
+calibrated probability. A closer vehicle with uncertain depth prevents grading
+a farther vehicle behind it. An abrupt distance jump breaks grading rather
+than retaining an old distance. There is no multi-second temporal distance
+average that would lag a vehicle moving away.
 
-Boxes must be finite, complete/non-clipped, at least 0.02 of frame width, and
-centered in the horizontal 0.35-0.65 corridor. There is no fixed vertical
-cutoff: the road's position in the image changes with the phone mount. Adjacent
-vehicles are excluded before checking confidence/clipping, so uncertain cars
-in another lane do not generate a misleading unclear-road status. Select the
-nearest eligible vehicle. The UI distinguishes confirmation, an uncertain
-distance, and no *detected* lead vehicle; it cannot certify an empty road.
+The app uses pinned `flutter_onnxruntime` 1.9.0 with bounded CPU thread pools
+(four intra-op, one inter-op) and sequential network execution. Android and iOS
+use the same ONNX assets. **The runtime requires iOS 16 or newer**; the Xcode
+deployment targets reflect this. Android release rules preserve ONNX JNI names.
+See [model sources, licenses, build instructions and validation](../assets/models/README.md).
 
-The estimate uses `distance = assumed vehicle width * normalized focal length
-/ normalized box width`. Assumed widths are 1.8 m for cars, 0.8 m for
-motorcycles, and 2.5 m for buses/trucks. Estimates outside 1-120 m are rejected.
+These are pretrained components, not a validated following-distance product.
+Monocular metric depth can still have scale bias, especially with unusual
+mounts, poor light, small/distant vehicles, curves, or occlusion. Synthetic
+regressions and export comparisons do not establish physical distance accuracy.
+There is no claim of a fixed accuracy percentage, phone latency, or RAM target.
+Recorded drives with measured distances/headways are needed to assess this
+phone and mounting arrangement; BDD100K fine-tuning and KITTI/nuScenes validation
+are not part of this frontend task.
 
-The previous assumed 60-degree horizontal FOV has been removed. A small app
-platform channel reads the same default rear camera used by the pinned
-detector, without opening a second camera or changing its capture session:
+## One-FPS timing and grading
 
-- Android uses CameraX's default back-camera selector, Camera2 physical sensor
-  dimensions, active/full pixel-array sizes, a single reported focal length,
-  and the current zoom ratio. Multi-focal devices whose active focal length
-  cannot be established from this metadata return unavailable rather than
-  guessing. See [Android camera characteristics](https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics).
-- iOS matches the detector's triple/dual-wide/dual/wide rear-device preference
-  and reads the active format's horizontal FOV, pixel dimensions, and zoom
-  *after* inference starts. See [Apple's format FOV documentation](https://developer.apple.com/documentation/avfoundation/avcapturedevice/format/videofieldofview).
+The preview remains live. Analysis starts at most once per second. While a
+frame is being processed, incoming frames are discarded: there is no inference
+backlog. The camera plugin does not expose a hardware capture timestamp; the
+app timestamps its raw-frame callback before preprocessing and keeps that time
+through inference and grading. Results older than five seconds are unavailable.
+The watchdog distinguishes an in-flight model job from camera silence. It
+establishes one cutoff per outage, so repeated ticks cannot keep rejecting
+fresh delayed results after recovery. Delayed estimates show their age on the
+dashboard instead of presenting an old gap as a current reading.
+One FPS is a maximum target, not a guaranteed throughput: this CPH2655 took
+about two seconds with a fixed test image and about 3.2 seconds with its live
+rear-camera stream in the parked debug check. A longer allowance accepts those
+results; it does not make inference faster.
+One FPS responds more slowly to braking or cut-ins; it is a trip-grading setting,
+not a collision-warning rate.
 
-Android retains the detector's default rear-camera binding at native 1x;
-calling the plugin's zoom setter there can switch physical lenses. iOS sets
-display zoom to 1x on its virtual device before reading metadata.
-`RoadCameraGeometry` uses the
-upright analysis frame's `imageWidth`/`imageHeight` to rotate the image plane
-and account for center aspect-ratio cropping. In portrait the sensor's short
-side is the horizontal axis. For example, a 6 x 4.5 mm sensor with a 4 mm lens
-has normalized horizontal focal length 4/6 in landscape and 4/4.5 in portrait.
-Applying the landscape value to portrait would shorten estimated distances
-by 25%. No constant time offset or empirical multiplier is added.
+- Start at 100 with no recovery. A score of 100 means no confirmed penalty;
+  it does not certify camera coverage.
+- Grade only at or above **25 mph**. Headway is
+  `distanceMeters / (speedMph * 0.44704)`. Exactly **1.5 seconds** is safe.
+- A shorter gap must persist **past five seconds** before points are deducted.
+  Grace is never charged. After grace, points per observed second are
+  `1 + (1.5 - headwaySeconds) / 0.5`; a one-second gap costs two points/second.
+  Scores are clamped to 0–100. Grace-only candidates are not violations.
+- Use actual elapsed timestamps, not frame counts. At one FPS, up to 1.5 seconds
+  between observations accommodates scheduling jitter. If a confirmed previous
+  job took longer than one second, its measured processing time plus 500ms
+  defines the next observation's deadline. Only a matching processing-start
+  event can establish this allowance; a slow current result cannot excuse an
+  earlier missing observation. A gap beyond that deadline, invalid distance/GPS,
+  a safe gap, low speed,
+  changed target or explicit interruption ends the streak at its last unsafe
+  observation. Reacquisition gets fresh grace even when the track ID survives.
+- Match each frame to a recent GPS fix at its observation time (within two
+  seconds), while also requiring current GPS delivery to remain fresh. Keep
+  eight seconds of fixes for inference latency. Future times beyond 100ms are
+  rejected. A late result from before a GPS/camera fault cannot revive a streak.
+- A one-second dashboard watchdog detects silent camera/GPS outages. Camera
+  silence uses result delivery time and the five-second in-flight budget.
+  Independently, raw camera callbacks continue while the model is busy: more
+  than 1.5 seconds without a camera frame resets the tracker and grace and
+  discards any pre-gap result. GPS faults and lifecycle interruptions do the
+  same. Duplicate and out-of-order observations cannot charge.
 
-No distance is graded while metadata is loading or unavailable, or when frame
-dimensions are missing/invalid. A measured upright FOV can be explicitly
-supplied with `FollowingDistanceCamera.horizontalFieldOfViewDegrees`; it is
-never an automatic fallback. Preview size/cropping does not affect geometry.
-Metadata is refreshed on resume, and a frame-size change starts a new target
-identity so it cannot carry an unsafe streak across an orientation change.
-Native channel changes require stopping and rerunning the app; hot reload
-cannot register them.
+The dashboard displays estimated headway or its existing waiting, confirming,
+uncertain or unavailable status. Interruptions preserve earned grades. Speed
+and smoothness continue through camera interruptions. Backgrounding closes the
+camera and pauses following-distance grading; resume requires fresh GPS and a
+new observation. Pocket never creates a road camera or depth session. Stopping
+a trip freezes the graders, releases the camera before navigation, and waits
+for in-flight inference before disposing native tensors and sessions. Late
+callbacks cannot mutate the finalized result.
 
-Adjacent/off-axis vehicles are excluded by the corridor heuristic. Class and
-box overlap associate a lead vehicle between frames; a changed target or lost
-view resets its grace period. An implausible distance jump (ratio below 0.6 or
-above 1.6 for overlapping boxes) is rejected. A three-frame median smooths
-accepted distances to reduce isolated bounding-box width spikes, using only
-the currently visible target. No distance is reused across a missing frame.
-
-Camera metadata corrects the projection scale, but this remains an approximate
-monocular baseline, not measured depth or lane detection. Vehicle sizes,
-camera metadata errors, optical distortion/stabilization, mount angle, curves, hills,
-occlusions, lighting, and nearby lanes affect estimates. No BDD100K fine-tuning,
-KITTI/nuScenes validation, 70-75% accuracy, device RAM usage, or 20-50 ms
-inference latency is claimed. Those require a separate model/dataset and
-physical-device validation. Tune/calibrate against measured distances before
-using these estimates as a validated driver-assessment metric.
-
-## Grading and interruptions
-
-- Begin at 100 with no recovery, consistent with the existing graders. A score
-  of 100 means no confirmed penalty; it does not certify camera coverage.
-- At speeds below 25 mph, do not grade following distance.
-- Headway is `distanceMeters / (speedMph * 0.44704)`. Exactly 3 seconds is safe.
-  An unsafe streak must continue **past 5 seconds** before it costs points.
-- Charge only observed time after grace. Points per second are
-  `1 + (3 - headwaySeconds) / 0.5`, so a 1-second gap costs 5 points/second after
-  grace. Clamp the grade to 0-100. Grace-only candidates are not violations.
-- Frames must be no more than 1 second old and use a trusted GPS fix no more
-  than 2 seconds old. Frame/fix timestamps must be within 2 seconds of each
-  other. Reject future timestamps beyond a 100 ms rounding allowance.
-- More than 1 second between graded observations, missing/invalid GPS,
-  unavailable or unreliable camera output, no lead vehicle, a safe gap, or a
-  different lead vehicle ends the streak at the **last unsafe observation**.
-  Never penalize an unobserved interval or merge across it. Ignore duplicate
-  and out-of-order observations. A one-second dashboard watchdog also closes
-  events when frames/fixes cease arriving entirely.
-- The dashboard shows estimated headway or a waiting/unavailable/paused status.
-  Interruptions preserve earned grades; they do not award or deduct points.
-  The enabled category stays in its mode's average throughout interruptions.
-- Leaving the foreground immediately pauses following-distance grading and
-  the camera. Resuming clears the old GPS association and starts fresh grace.
-  In Navigation the road camera cannot operate while another app is in front;
-  those intervals are ungraded. Focus behavior remains specific to Regular.
-- Stop Trip freezes the graders first, then stops the camera before opening
-  the report. View disposal also releases the native model/camera and stream.
-  Late callbacks cannot mutate a finalized summary. All summary violation
-  lists are immutable snapshots.
-
-Confirmed violations record start/end, starting GPS coordinates, starting
-speed, minimum estimated headway/distance, and the duration actually penalized.
-The report presents following distance in the same simple card style as the
-other grades: an icon, category label, and percentage. It omits the estimate
-note and violation breakdown. Recorded violation details remain in the trip
-summary and upload payload.
+Violations retain start/end, starting coordinates and speed, minimum estimated
+headway/distance, and actually penalized duration. Summary violation lists are
+immutable snapshots.
 
 ## Upload handoff
 
-New live reports pass `followingDistanceGrade` and
-`followingDistanceViolations` from the same immutable summary that is displayed.
-The existing queue serializes the score as `followingDistanceGrade` and each
-event as `violationType: "Adequate Following Distance"` with UTC `startTime`,
-`endTime`, `latitude`, and `longitude`. Pocket sends explicit null focus and
-following scores and no corresponding events. Retries preserve the entire
-request body and `clientTripId`; queue cleanup/account isolation are unchanged.
-
-The backend/schema tasks must support this new field, enum value, and Pocket
-mode before these new reports can be accepted. No backend compatibility
-fallback strips the category, changes grades, or substitutes scores. A rejected
-upload remains in the existing secure pending queue for retry.
+The displayed immutable summary also supplies `followingDistanceGrade` and
+`followingDistanceViolations` to the existing queue. Uploads use
+`violationType: "Adequate Following Distance"` with UTC start/end and starting
+coordinates. Pocket sends explicit null focus/following scores and neither
+violation type; Navigation excludes only focus. Retries preserve the complete
+body and `clientTripId`. No compatibility fallback strips this category or
+substitutes a score. The separate API/schema work must accept these fields;
+otherwise the existing queue retains the rejected upload for retry.
 
 ## Verification
 
-The detector is disabled on web and displays an unavailable-camera placeholder.
-Its first unavailable callback is deferred until after the parent widget builds,
-so the browser fallback can update dashboard state safely. Browser UI debugging
-can use `flutter run -d edge --dart-define=ENVIRONMENT=dev_browser`; the existing
-post-authentication flow bypasses native permission setup for that debug preset.
-The existing live-trip GPS/sensor setup still requires a mobile device.
+Run `flutter analyze` and `flutter test`. Feature tests live under
+`test/following_distance/` and cover preprocessing, output contracts, lane
+selection, metric-depth quality, track association, one-FPS jitter and dropped
+frames, GPS/inference synchronization, lifecycle cancellation, mode averages,
+summary/report/upload transfer and retry preservation. Camera/model fakes keep
+these tests deterministic; they do not establish model accuracy.
 
-Check browser compilation with `flutter build web --debug`. Browser smoke tests
-run with `flutter test --platform chrome test/following_distance/following_distance_web_test.dart`.
-On Windows, `CHROME_EXECUTABLE` can point to Chromium-based Edge for these tests.
-The installed Flutter 3.44.1 browser-test server returned 404 for its local
-CanvasKit assets on Windows. The two browser smoke tests passed after the SDK's
-unchanged CanvasKit files were temporarily served to the automated test tab.
-This was a test-harness workaround; the normal web build succeeded directly.
+`flutter build apk --debug --target-platform android-arm64` checks Android
+integration. `flutter build web --debug` checks browser compilation. Web and
+other unsupported platforms display an unavailable camera placeholder without
+loading native models; ordinary browser UI debugging remains available.
+Use `flutter run -d edge --dart-define=ENVIRONMENT=dev_browser` for the existing
+browser permission bypass. Live GPS/sensor trips still require a phone.
+Browser smoke tests are in `following_distance_web_test.dart`; on Windows,
+`CHROME_EXECUTABLE` may point to Edge. The installed Flutter 3.44.1 test server
+has previously needed an SDK CanvasKit asset-serving workaround on Windows.
 
-Run `flutter analyze` and `flutter test`. Following-distance tests cover portrait
-and landscape geometry, aspect-ratio cropping, unavailable metadata, stale
-metadata after pause, confidence confirmation, box/target filtering, median
-smoothing, thresholds, grace, severity, coordinates,
-invalid readings, silent camera/GPS outages, background transitions, finalization,
-all three mode averages, null versus zero, summary/report/upload transfer, and
-unchanged retry bodies. Existing dashboard tests also check narrow screens and
-larger text. `flutter build apk --debug --target-platform android-arm64` checks
-native Android integration. iOS building and real road/camera accuracy,
-permission revocation, heat, RAM, and latency need physical-device checks.
+Windows cannot build iOS. Physical-phone checks must verify lens selection,
+upright pixels, permissions/background resume, sustained cadence, heat/memory,
+and measured headway before making accuracy or performance claims.
+
+For a parked on-device integration check, `tool/road_monitoring_probe.dart`
+runs the actual models, camera coordinator, timestamp/GPS join, watchdog and
+grader with a fixed public road-image fixture and synthetic 90mph GPS. Its
+default fixture path is the Android app's cache `road_probe_yuv420.bin` (640x480
+I420, sensor oriented); override it with `ROAD_PROBE_INPUT`. Setting
+`ROAD_PROBE_LIVE_CAMERA=true` checks the physical rear stream with the same
+synthetic GPS. Both modes keep results local and create no trip or upload.
+Restore the normal `lib/main.dart` entrypoint afterwards. These checks prove
+runtime and timing behavior, not measured road-distance accuracy.

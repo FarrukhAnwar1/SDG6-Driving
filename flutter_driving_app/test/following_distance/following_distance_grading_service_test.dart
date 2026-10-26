@@ -14,6 +14,7 @@ void main() {
     String vehicle = 'lead',
     double latitude = 40,
     double longitude = -75,
+    Duration processingDuration = Duration.zero,
   }) => service.addSample(
     speedMph: speed,
     distanceMeters: headway == null ? null : speed * 0.44704 * headway,
@@ -21,6 +22,7 @@ void main() {
     latitude: latitude,
     longitude: longitude,
     leadVehicleId: vehicle,
+    processingDuration: processingDuration,
   );
 
   void unsafe(FollowingDistanceGradingService service, int through) {
@@ -31,20 +33,34 @@ void main() {
 
   test('headway threshold scales distance with speed; equality is safe', () {
     for (final speed in [25.0, 30.0, 70.0]) {
+      for (final headway in [1.5, 2.0, 3.0]) {
+        final service = FollowingDistanceGradingService();
+        for (var second = 0; second <= 15; second++) {
+          sample(service, second.toDouble(), speed: speed, headway: headway);
+        }
+        service.finalizeTrip();
+        expect(service.grade, 100);
+        expect(service.violations, isEmpty);
+      }
+    }
+  });
+
+  test('headways just below 1.5 seconds are penalized after grace', () {
+    for (final speed in [25.0, 30.0, 70.0]) {
       final service = FollowingDistanceGradingService();
-      for (var second = 0; second <= 15; second++) {
-        sample(service, second.toDouble(), speed: speed, headway: 3);
+      for (var second = 0; second <= 6; second++) {
+        sample(service, second.toDouble(), speed: speed, headway: 1.49);
       }
       service.finalizeTrip();
-      expect(service.grade, 100);
-      expect(service.violations, isEmpty);
+      expect(service.grade, closeTo(98.98, 1e-9));
+      expect(service.violations, hasLength(1));
     }
   });
 
   test('25 mph is the inclusive minimum grading speed', () {
     for (final (speed, expectedGrade, violationCount) in [
       (24.9, 100, 0),
-      (25.0, 95, 1),
+      (25.0, 98, 1),
     ]) {
       final service = FollowingDistanceGradingService();
       for (var second = 0; second <= 6; second++) {
@@ -61,9 +77,9 @@ void main() {
     unsafe(service, 5);
     expect(service.grade, 100);
     sample(service, 5.2);
-    expect(service.grade, closeTo(99, 0.00001));
+    expect(service.grade, closeTo(99.6, 0.00001));
     sample(service, 6);
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
     service.finalizeTrip();
     final violation = service.violations.single;
     expect(violation.startTime, start);
@@ -84,14 +100,14 @@ void main() {
     final close = FollowingDistanceGradingService();
     final closer = FollowingDistanceGradingService();
     for (var second = 0; second <= 6; second++) {
-      sample(close, second.toDouble(), headway: 1.5);
+      sample(close, second.toDouble(), headway: 1);
       sample(closer, second.toDouble(), headway: 0.5);
     }
-    expect(close.grade, closeTo(96, 0.00001));
-    expect(closer.grade, closeTo(94, 0.00001));
-    sample(closer, 7, headway: 3);
-    sample(closer, 8, headway: 3);
-    expect(closer.grade, closeTo(94, 0.00001));
+    expect(close.grade, closeTo(98, 0.00001));
+    expect(closer.grade, closeTo(97, 0.00001));
+    sample(closer, 7, headway: 1.5);
+    sample(closer, 8, headway: 1.5);
+    expect(closer.grade, closeTo(97, 0.00001));
     expect(
       closer.violations.single.endTime,
       start.add(const Duration(seconds: 6)),
@@ -139,7 +155,7 @@ void main() {
         sample(service, second.toDouble());
       }
       service.finalizeTrip();
-      expect(service.grade, closeTo(95, 0.00001));
+      expect(service.grade, closeTo(98, 0.00001));
       expect(service.violations, hasLength(1));
       expect(
         service.violations.single.endTime,
@@ -157,7 +173,7 @@ void main() {
         sample(service, second.toDouble());
       }
       service.finalizeTrip();
-      expect(service.grade, closeTo(90, 0.00001));
+      expect(service.grade, closeTo(96, 0.00001));
       expect(service.violations, hasLength(2));
       expect(
         service.violations.first.endTime,
@@ -170,9 +186,9 @@ void main() {
     },
   );
 
-  test('one second is the inclusive continuity boundary', () {
+  test('a missed one-FPS observation breaks continuity beyond 1500ms', () {
     final service = FollowingDistanceGradingService();
-    for (var ms = 0; ms <= 7007; ms += 1001) {
+    for (var ms = 0; ms <= 10507; ms += 1501) {
       sample(service, ms / 1000);
     }
     service.finalizeTrip();
@@ -180,14 +196,79 @@ void main() {
     expect(service.violations, isEmpty);
   });
 
+  test('one-FPS timing jitter is charged by actual elapsed time', () {
+    final service = FollowingDistanceGradingService();
+    for (final seconds in [0.0, 1.1, 2.0, 3.1, 4.0, 5.1, 6.0]) {
+      sample(service, seconds);
+    }
+    service.finalizeTrip();
+    expect(service.grade, closeTo(98, 1e-9));
+    expect(
+      service.violations.single.penalizedDuration,
+      const Duration(seconds: 1),
+    );
+  });
+
+  test('1500ms is the inclusive continuity boundary', () {
+    final service = FollowingDistanceGradingService();
+    for (final seconds in [0.0, 1.5, 3.0, 4.5, 6.0]) {
+      sample(service, seconds);
+    }
+    service.finalizeTrip();
+    expect(service.grade, closeTo(98, 1e-9));
+  });
+
+  test(
+    'missing one scheduled frame restarts grace without charging the gap',
+    () {
+      final service = FollowingDistanceGradingService();
+      unsafe(service, 6);
+      for (var second = 8; second <= 13; second++) {
+        sample(service, second.toDouble());
+      }
+      expect(service.grade, closeTo(98, 1e-9));
+      sample(service, 14);
+      service.finalizeTrip();
+      expect(service.grade, closeTo(96, 1e-9));
+      expect(service.violations, hasLength(2));
+      expect(
+        service.violations.first.endTime,
+        start.add(const Duration(seconds: 6)),
+      );
+      expect(
+        service.violations.last.startTime,
+        start.add(const Duration(seconds: 8)),
+      );
+    },
+  );
+
   test('duplicates and out-of-order frames cannot double charge', () {
     final service = FollowingDistanceGradingService();
     unsafe(service, 6);
     sample(service, 6);
     sample(service, 2);
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
     sample(service, 7);
-    expect(service.grade, closeTo(90, 0.00001));
+    expect(service.grade, closeTo(96, 0.00001));
+  });
+
+  test('a slow current job cannot excuse a missed previous observation', () {
+    final service = FollowingDistanceGradingService();
+    unsafe(service, 6);
+    sample(service, 8, processingDuration: const Duration(seconds: 3));
+    sample(service, 11, processingDuration: const Duration(seconds: 3));
+    expect(service.grade, closeTo(98, 1e-9));
+    sample(service, 14, processingDuration: const Duration(seconds: 3));
+    service.finalizeTrip();
+    expect(service.grade, closeTo(96, 1e-9));
+    expect(
+      service.violations.first.endTime,
+      start.add(const Duration(seconds: 6)),
+    );
+    expect(
+      service.violations.last.startTime,
+      start.add(const Duration(seconds: 8)),
+    );
   });
 
   test('a changed lead vehicle gets a fresh grace window', () {

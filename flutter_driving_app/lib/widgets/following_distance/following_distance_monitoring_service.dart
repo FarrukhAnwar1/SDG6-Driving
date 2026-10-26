@@ -13,7 +13,10 @@ class FollowingDistanceMonitoringService {
   }) : _clock = clock ?? DateTime.now;
 
   static const Duration maxPositionAge = Duration(seconds: 2);
-  static const Duration maxMeasurementAge = Duration(seconds: 1);
+  // A frame retains its capture/delivery timestamp through native inference.
+  static const Duration maxMeasurementAge =
+      FollowingDistanceGradingService.maxProcessingDuration;
+  static const Duration positionHistoryAge = Duration(seconds: 8);
   final DrivingMode drivingMode;
   final DateTime Function() _clock;
   final FollowingDistanceGradingService _grading =
@@ -23,7 +26,19 @@ class FollowingDistanceMonitoringService {
   bool _finalized = false;
   ({double speedMph, double latitude, double longitude, DateTime timestamp})?
   _position;
+  final _positions =
+      <
+        ({
+          double speedMph,
+          double latitude,
+          double longitude,
+          DateTime timestamp,
+        })
+      >[];
   DateTime? _lastMeasurementTime;
+  DateTime? _lastMeasurementReceivedAt;
+  DateTime? _processingTimestamp;
+  DateTime? _acceptFrom;
   FollowingDistanceStatus _status = FollowingDistanceStatus.waiting;
   double? _headwaySeconds;
 
@@ -34,17 +49,27 @@ class FollowingDistanceMonitoringService {
       drivingMode.tracksFollowingDistance ? _grading.violations : const [];
   FollowingDistanceStatus get status => _status;
   double? get headwaySeconds => _headwaySeconds;
+  Duration? get measurementAge => _lastMeasurementTime == null
+      ? null
+      : _clock().difference(_lastMeasurementTime!);
 
   void resume() {
     if (_finalized || !drivingMode.tracksFollowingDistance) return;
     _active = true;
     _position = null;
+    _positions.clear();
+    _lastMeasurementTime = null;
+    _lastMeasurementReceivedAt = null;
+    _processingTimestamp = null;
+    _acceptFrom = _clock();
     _status = FollowingDistanceStatus.waiting;
   }
 
   void pause() {
     _active = false;
     _position = null;
+    _positions.clear();
+    _processingTimestamp = null;
     _interrupt(FollowingDistanceStatus.paused);
   }
 
@@ -72,33 +97,78 @@ class FollowingDistanceMonitoringService {
       longitude: longitude,
       timestamp: timestamp,
     );
+    _positions.add(_position!);
+    _positions.removeWhere(
+      (position) =>
+          timestamp.difference(position.timestamp) > positionHistoryAge,
+    );
     if (speedMph < FollowingDistanceGradingService.minimumSpeedMph) {
+      _acceptFrom = timestamp;
       _interrupt(FollowingDistanceStatus.waiting);
     }
   }
 
   void invalidatePosition() {
     _position = null;
+    _positions.clear();
+    _lastMeasurementReceivedAt = null;
+    _processingTimestamp = null;
+    _acceptFrom = _clock();
     _interrupt(FollowingDistanceStatus.unavailable);
+  }
+
+  void beginMeasurement(DateTime timestamp) {
+    if (!isActive ||
+        !_isFresh(timestamp, _clock(), maxMeasurementAge) ||
+        (_acceptFrom != null && timestamp.isBefore(_acceptFrom!))) {
+      return;
+    }
+    _processingTimestamp = timestamp;
+    // Keep a recent "no vehicle" or "confirming" result visible while the
+    // next job runs, rather than flickering back to processing every frame.
+    if ((_lastMeasurementTime == null ||
+            _status == FollowingDistanceStatus.unavailable) &&
+        _position != null &&
+        _position!.speedMph >=
+            FollowingDistanceGradingService.minimumSpeedMph) {
+      _status = FollowingDistanceStatus.processing;
+    }
   }
 
   void addMeasurement(FollowingDistanceMeasurement measurement) {
     if (!isActive) return;
     final timestamp = measurement.timestamp;
+    final processingDuration = _processingTimestamp == timestamp
+        ? _clock().difference(timestamp)
+        : Duration.zero;
+    if (_processingTimestamp == timestamp) _processingTimestamp = null;
+    // Late model results cannot revive a streak from before a GPS/camera fault
+    // or a lifecycle restart.
+    if (_acceptFrom != null && timestamp.isBefore(_acceptFrom!)) return;
     if (_lastMeasurementTime != null &&
         !timestamp.isAfter(_lastMeasurementTime!)) {
       return;
     }
     final now = _clock();
-    final position = _position;
+    final latestPosition = _position;
+    final eligible = _positions.where(
+      (position) =>
+          !position.timestamp.isAfter(
+            timestamp.add(const Duration(milliseconds: 100)),
+          ) &&
+          timestamp.difference(position.timestamp) <= maxPositionAge,
+    );
+    final position = eligible.isEmpty ? null : eligible.last;
     if (!_isFresh(timestamp, now, maxMeasurementAge) ||
         position == null ||
-        !_isFresh(position.timestamp, now, maxPositionAge) ||
+        latestPosition == null ||
+        !_isFresh(latestPosition.timestamp, now, maxPositionAge) ||
         timestamp.difference(position.timestamp).abs() > maxPositionAge) {
       _interrupt(FollowingDistanceStatus.unavailable);
       return;
     }
     _lastMeasurementTime = timestamp;
+    _lastMeasurementReceivedAt = now;
     if (measurement.status != FollowingDistanceStatus.tracking ||
         measurement.distanceMeters == null ||
         !measurement.distanceMeters!.isFinite ||
@@ -126,21 +196,45 @@ class FollowingDistanceMonitoringService {
       latitude: position.latitude,
       longitude: position.longitude,
       leadVehicleId: measurement.leadVehicleId,
+      processingDuration: processingDuration,
     );
   }
 
   void cameraUnavailable() {
-    if (isActive) _interrupt(FollowingDistanceStatus.unavailable);
+    if (isActive) {
+      _acceptFrom = _clock();
+      // One outage establishes one cutoff. Retaining the expired delivery time
+      // would make every watchdog tick advance the cutoff again, permanently
+      // rejecting even fresh frames that arrive with normal inference latency.
+      _lastMeasurementReceivedAt = null;
+      _processingTimestamp = null;
+      _interrupt(FollowingDistanceStatus.unavailable);
+    }
   }
 
   void checkForInterruption() {
     if (!isActive) return;
     final now = _clock();
-    if ((_lastMeasurementTime != null &&
-            !_isFresh(_lastMeasurementTime!, now, maxMeasurementAge)) ||
-        (_position != null &&
-            !_isFresh(_position!.timestamp, now, maxPositionAge))) {
-      _interrupt(FollowingDistanceStatus.unavailable);
+    // Silence is measured from delivery, while grading always uses capture
+    // timestamps. Valid inference latency must not trigger a false outage.
+    if (_position != null &&
+        !_isFresh(_position!.timestamp, now, maxPositionAge)) {
+      invalidatePosition();
+    } else if (_processingTimestamp != null) {
+      if (!_isFresh(_processingTimestamp!, now, maxMeasurementAge)) {
+        cameraUnavailable();
+      } else if (measurementAge != null &&
+          measurementAge! > maxMeasurementAge) {
+        _headwaySeconds = null;
+        _status = FollowingDistanceStatus.processing;
+      }
+    } else if (_lastMeasurementReceivedAt != null &&
+        !_isFresh(
+          _lastMeasurementReceivedAt!,
+          now,
+          FollowingDistanceGradingService.maxSampleGap,
+        )) {
+      cameraUnavailable();
     }
   }
 
@@ -162,5 +256,7 @@ class FollowingDistanceMonitoringService {
     _active = false;
     _finalized = true;
     _position = null;
+    _positions.clear();
+    _processingTimestamp = null;
   }
 }

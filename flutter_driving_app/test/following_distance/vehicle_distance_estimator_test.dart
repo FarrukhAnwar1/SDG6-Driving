@@ -1,296 +1,319 @@
-// Tests vehicle filtering, confirmation, distance estimates, and target continuity.
+// Tests metric lead selection, identity continuity and uncertain observations.
 
 import 'dart:ui';
 
 import 'package:flutter_driving_app/widgets/following_distance/vehicle_distance_estimator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../fixtures/road_vision_fixtures.dart';
+
 void main() {
-  VehicleDistanceEstimator estimator() =>
-      VehicleDistanceEstimator.fromHorizontalFieldOfView(60);
-  final start = DateTime.utc(2026, 10, 22, 10);
-  const car = VehicleDetection(
-    label: 'car',
-    confidence: 0.9,
-    normalizedBox: Rect.fromLTRB(0.4, 0.4, 0.6, 0.8),
+  final start = DateTime.utc(2026, 10, 23);
+  late VehicleDistanceEstimator estimator;
+  setUp(() => estimator = VehicleDistanceEstimator());
+
+  test(
+    'learned depth supplies distance independent of assumed vehicle width',
+    () {
+      expect(
+        estimator.estimate(roadScene(start)).status,
+        FollowingDistanceStatus.tracking,
+      );
+      final observation = estimator.estimate(
+        roadScene(start.add(const Duration(seconds: 1))),
+      );
+      expect(observation.status, FollowingDistanceStatus.tracking);
+      expect(observation.distanceMeters, 26.8224);
+      final smallerBox = estimator.estimate(
+        roadScene(
+          start.add(const Duration(seconds: 2)),
+          vehicles: [
+            roadVehicle(box: const Rect.fromLTRB(0.44, 0.4, 0.56, 0.6)),
+          ],
+        ),
+      );
+      expect(smallerBox.distanceMeters, 26.8224);
+      expect(smallerBox.leadVehicleId, observation.leadVehicleId);
+    },
   );
 
-  test('pinhole geometry uses class width and configurable camera FOV', () {
-    final estimate = estimator().estimate(detections: [car], timestamp: start);
-    expect(estimate.status, FollowingDistanceStatus.tracking);
-    expect(estimate.distanceMeters, closeTo(7.79423, 0.0001));
-    final widerLens = VehicleDistanceEstimator.fromHorizontalFieldOfView(90);
+  test(
+    'a moderate-confidence first sighting supplies the current distance',
+    () {
+      final result = estimator.estimate(
+        roadScene(start, vehicles: [roadVehicle(confidence: 0.25)]),
+      );
+      expect(result.status, FollowingDistanceStatus.tracking);
+      expect(result.distanceMeters, 26.8224);
+      expect(result.leadVehicleId, isNotNull);
+    },
+  );
+
+  test('weak detections need a matching observed lead', () {
     expect(
-      widerLens.estimate(detections: [car], timestamp: start).distanceMeters,
-      closeTo(4.5, 0.0001),
-    );
-    final truck = VehicleDetection(
-      label: 'truck',
-      confidence: 0.9,
-      normalizedBox: car.normalizedBox,
-    );
-    expect(
-      estimator()
-          .estimate(detections: [truck], timestamp: start)
+      estimator
+          .estimate(roadScene(start, vehicles: [roadVehicle(confidence: 0.2)]))
           .distanceMeters,
-      closeTo(10.8253, 0.0001),
+      isNull,
     );
-  });
-
-  test('selects the nearest central vehicle and ignores adjacent traffic', () {
-    const adjacent = VehicleDetection(
-      label: 'car',
-      confidence: 0.99,
-      normalizedBox: Rect.fromLTRB(0.02, 0.3, 0.45, 0.95),
+    final initial = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1))),
     );
-    const far = VehicleDetection(
-      label: 'car',
-      confidence: 0.99,
-      normalizedBox: Rect.fromLTRB(0.46, 0.4, 0.54, 0.55),
-    );
-    final measurement = estimator().estimate(
-      detections: [adjacent, far, car],
-      timestamp: start,
-    );
-    expect(measurement.distanceMeters, closeTo(7.79423, 0.0001));
-  });
-
-  test('empty scenes and non-vehicles produce no distance', () {
-    for (final detections in [
-      <VehicleDetection>[],
-      [
-        VehicleDetection(
-          label: 'person',
-          confidence: 0.99,
-          normalizedBox: car.normalizedBox,
-        ),
-      ],
-    ]) {
-      final measurement = estimator().estimate(
-        detections: detections,
-        timestamp: start,
-      );
-      expect(measurement.status, FollowingDistanceStatus.noVehicle);
-      expect(measurement.distanceMeters, isNull);
-    }
-  });
-
-  test('clipped, tiny and non-finite boxes are ungraded', () {
-    for (final detection in [
-      VehicleDetection(
-        label: 'car',
-        confidence: double.nan,
-        normalizedBox: car.normalizedBox,
-      ),
-      const VehicleDetection(
-        label: 'car',
-        confidence: 0.99,
-        normalizedBox: Rect.fromLTRB(0, 0.4, 0.9, 0.8),
-      ),
-      const VehicleDetection(
-        label: 'car',
-        confidence: 0.99,
-        normalizedBox: Rect.fromLTRB(0.4, 0.4, 0.6, 1),
-      ),
-      const VehicleDetection(
-        label: 'car',
-        confidence: 0.99,
-        normalizedBox: Rect.fromLTRB(0.5, 0.4, 0.51, 0.8),
-      ),
-      const VehicleDetection(
-        label: 'car',
-        confidence: 0.99,
-        normalizedBox: Rect.fromLTRB(double.nan, 0.4, 0.6, 0.8),
-      ),
-      const VehicleDetection(
-        label: 'car',
-        confidence: 0.99,
-        normalizedBox: Rect.fromLTRB(0.4, 0.8, 0.6, 0.5),
-      ),
-    ]) {
-      final measurement = estimator().estimate(
-        detections: [detection],
-        timestamp: start,
-      );
-      expect(measurement.status, FollowingDistanceStatus.unreliable);
-      expect(measurement.distanceMeters, isNull);
-    }
-  });
-
-  test(
-    'stable boxes retain identity, a different vehicle restarts tracking',
-    () {
-      final estimator = VehicleDistanceEstimator.fromHorizontalFieldOfView(60);
-      final first = estimator.estimate(detections: [car], timestamp: start);
-      final second = estimator.estimate(
-        detections: [car],
-        timestamp: start.add(const Duration(milliseconds: 200)),
-      );
-      expect(second.leadVehicleId, first.leadVehicleId);
-      final third = estimator.estimate(
-        detections: [
-          VehicleDetection(
-            label: 'bus',
-            confidence: 0.99,
-            normalizedBox: car.normalizedBox,
+    final result = estimator.estimate(
+      roadScene(
+        start.add(const Duration(seconds: 2)),
+        vehicles: [
+          roadVehicle(
+            confidence: 0.2,
+            distance: 10,
+            box: const Rect.fromLTRB(0.35, 0.64, 0.65, 0.9),
           ),
         ],
-        timestamp: start.add(const Duration(milliseconds: 400)),
-      );
-      expect(third.leadVehicleId, isNot(first.leadVehicleId));
-    },
-  );
-
-  test(
-    'loss of sight and long gaps cannot preserve the old vehicle identity',
-    () {
-      final estimator = VehicleDistanceEstimator.fromHorizontalFieldOfView(60);
-      final first = estimator.estimate(detections: [car], timestamp: start);
-      estimator.estimate(
-        detections: [],
-        timestamp: start.add(const Duration(milliseconds: 200)),
-      );
-      final second = estimator.estimate(
-        detections: [car],
-        timestamp: start.add(const Duration(milliseconds: 400)),
-      );
-      expect(second.leadVehicleId, isNot(first.leadVehicleId));
-      final third = estimator.estimate(
-        detections: [car],
-        timestamp: start.add(const Duration(seconds: 3)),
-      );
-      expect(third.leadVehicleId, isNot(second.leadVehicleId));
-    },
-  );
-
-  test('an implausible distance jump is rejected and resets tracking', () {
-    final estimator = VehicleDistanceEstimator.fromHorizontalFieldOfView(60);
-    estimator.estimate(detections: [car], timestamp: start);
-    const jump = VehicleDetection(
-      label: 'car',
-      confidence: 0.99,
-      normalizedBox: Rect.fromLTRB(0.3, 0.4, 0.7, 0.8),
+      ),
     );
-    final measurement = estimator.estimate(
-      detections: [jump],
-      timestamp: start.add(const Duration(milliseconds: 200)),
+    expect(result.status, FollowingDistanceStatus.confirming);
+    expect(result.distanceMeters, isNull);
+    final returned = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 3))),
     );
-    expect(measurement.status, FollowingDistanceStatus.unreliable);
-    expect(measurement.distanceMeters, isNull);
+    expect(returned.leadVehicleId, initial.leadVehicleId);
   });
 
-  test('a lead vehicle above the old fixed horizon is eligible', () {
-    final result = estimator().estimate(
-      detections: const [
-        VehicleDetection(
-          label: 'car',
-          confidence: 0.8,
-          normalizedBox: Rect.fromLTRB(0.46, 0.3, 0.54, 0.42),
-        ),
-      ],
-      timestamp: start,
+  test('low-confidence matching retains the observed lead', () {
+    estimator.estimate(roadScene(start));
+    final confirmed = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1))),
     );
-    expect(result.status, FollowingDistanceStatus.tracking);
-    expect(result.distanceMeters, closeTo(19.4856, 0.0001));
+    final weak = estimator.estimate(
+      roadScene(
+        start.add(const Duration(seconds: 2)),
+        vehicles: [roadVehicle(confidence: 0.1)],
+      ),
+    );
+    expect(weak.status, FollowingDistanceStatus.tracking);
+    expect(weak.leadVehicleId, confirmed.leadVehicleId);
   });
 
-  test('moderate confidence requires repeated sightings before grading', () {
-    final subject = estimator();
-    final detection = VehicleDetection(
-      label: 'car',
-      confidence: 0.35,
-      normalizedBox: car.normalizedBox,
-    );
-    for (final ms in [0, 200]) {
-      final result = subject.estimate(
-        detections: [detection],
-        timestamp: start.add(Duration(milliseconds: ms)),
-      );
-      expect(result.status, FollowingDistanceStatus.confirming);
-      expect(result.distanceMeters, isNull);
-      expect(result.leadVehicleId, isNull);
-    }
-    final confirmed = subject.estimate(
-      detections: [detection],
-      timestamp: start.add(const Duration(milliseconds: 400)),
-    );
-    expect(confirmed.status, FollowingDistanceStatus.tracking);
-    expect(confirmed.distanceMeters, closeTo(7.79423, 0.0001));
-    final next = subject.estimate(
-      detections: [detection],
-      timestamp: start.add(const Duration(milliseconds: 600)),
-    );
-    expect(next.leadVehicleId, confirmed.leadVehicleId);
-  });
-
-  test('isolated weak detections cannot be combined across missing frames', () {
-    final subject = estimator();
-    for (var index = 0; index < 20; index++) {
-      final result = subject.estimate(
-        detections: index.isEven
-            ? [
-                VehicleDetection(
-                  label: 'car',
-                  confidence: 0.35,
-                  normalizedBox: car.normalizedBox,
-                ),
-              ]
-            : [],
-        timestamp: start.add(Duration(milliseconds: index * 200)),
-      );
-      expect(result.distanceMeters, isNull);
-      expect(result.status, isNot(FollowingDistanceStatus.tracking));
-    }
-  });
-
-  test(
-    'subthreshold and adjacent clipped vehicles do not obscure an empty lane',
-    () {
-      final result = estimator().estimate(
-        detections: [
-          VehicleDetection(
-            label: 'car',
-            confidence: 0.29,
-            normalizedBox: car.normalizedBox,
-          ),
-          const VehicleDetection(
-            label: 'truck',
-            confidence: 0.99,
-            normalizedBox: Rect.fromLTRB(0, 0.3, 0.4, 1),
+  test('box movement at slow processing cadence preserves lead identity', () {
+    final initial = estimator.estimate(roadScene(start));
+    final moved = estimator.estimate(
+      roadScene(
+        start.add(const Duration(seconds: 3)),
+        vehicles: [
+          roadVehicle(
+            confidence: 0.15,
+            box: const Rect.fromLTRB(0.53, 0.38, 0.73, 0.68),
           ),
         ],
-        timestamp: start,
+      ),
+    );
+    expect(moved.status, FollowingDistanceStatus.tracking);
+    expect(moved.leadVehicleId, initial.leadVehicleId);
+    expect(moved.distanceMeters, 26.8224);
+  });
+
+  test('a short miss preserves identity without inventing a distance', () {
+    estimator.estimate(roadScene(start));
+    final confirmed = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1))),
+    );
+    final missed = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 2)), vehicles: []),
+    );
+    expect(missed.status, FollowingDistanceStatus.confirming);
+    expect(missed.distanceMeters, isNull);
+    final recovered = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 3))),
+    );
+    expect(recovered.leadVehicleId, confirmed.leadVehicleId);
+    expect(recovered.distanceMeters, 26.8224);
+  });
+
+  test('adjacent lane traffic cannot replace the lead', () {
+    final vehicles = [
+      roadVehicle(distance: 40),
+      roadVehicle(
+        distance: 8,
+        inEgoLane: false,
+        box: const Rect.fromLTRB(0.7, 0.4, 0.9, 0.8),
+      ),
+    ];
+    estimator.estimate(roadScene(start, vehicles: vehicles));
+    final result = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1)), vehicles: vehicles),
+    );
+    expect(result.distanceMeters, 40);
+  });
+
+  test('adjacent traffic alone does not leave the UI confirming a lead', () {
+    final vehicles = [
+      roadVehicle(
+        inEgoLane: false,
+        box: const Rect.fromLTRB(0.7, 0.4, 0.9, 0.8),
+      ),
+    ];
+    estimator.estimate(roadScene(start, vehicles: vehicles));
+    final result = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1)), vehicles: vehicles),
+    );
+    expect(result.status, FollowingDistanceStatus.noVehicle);
+    expect(result.distanceMeters, isNull);
+  });
+
+  test('a nearer cut-in immediately supplies distance with a new identity', () {
+    final initial = estimator.estimate(roadScene(start));
+    estimator.estimate(roadScene(start.add(const Duration(seconds: 1))));
+    final result = estimator.estimate(
+      roadScene(
+        start.add(const Duration(seconds: 2)),
+        vehicles: [
+          roadVehicle(),
+          roadVehicle(
+            distance: 10,
+            box: const Rect.fromLTRB(0.35, 0.64, 0.65, 0.9),
+          ),
+        ],
+      ),
+    );
+    expect(result.status, FollowingDistanceStatus.tracking);
+    expect(result.distanceMeters, 10);
+    expect(result.leadVehicleId, isNot(initial.leadVehicleId));
+  });
+
+  test(
+    'uncertain closer vehicle never substitutes the distance of a farther one',
+    () {
+      final result = estimator.estimate(
+        roadScene(
+          start,
+          vehicles: [
+            roadVehicle(distance: 40),
+            roadVehicle(
+              distance: null,
+              box: const Rect.fromLTRB(0.35, 0.64, 0.65, 0.9),
+            ),
+          ],
+        ),
       );
-      expect(result.status, FollowingDistanceStatus.noVehicle);
+      expect(result.status, FollowingDistanceStatus.unreliable);
       expect(result.distanceMeters, isNull);
     },
   );
 
-  test('three-frame median suppresses a single oversized bounding box', () {
-    final subject = estimator();
-    for (var index = 0; index < 3; index++) {
-      subject.estimate(
-        detections: [car],
-        timestamp: start.add(Duration(milliseconds: index * 200)),
-      );
-    }
-    final result = subject.estimate(
-      detections: const [
-        VehicleDetection(
-          label: 'car',
-          confidence: 0.9,
-          normalizedBox: Rect.fromLTRB(0.36, 0.4, 0.64, 0.8),
-        ),
-      ],
-      timestamp: start.add(const Duration(milliseconds: 600)),
+  test('no road, invalid depth and abrupt depth jumps cannot grade', () {
+    estimator.estimate(roadScene(start));
+    estimator.estimate(roadScene(start.add(const Duration(seconds: 1))));
+    expect(
+      estimator
+          .estimate(
+            roadScene(
+              start.add(const Duration(seconds: 2)),
+              vehicles: [roadVehicle(distance: 2)],
+            ),
+          )
+          .status,
+      FollowingDistanceStatus.unreliable,
     );
-    expect(result.status, FollowingDistanceStatus.tracking);
-    expect(result.distanceMeters, closeTo(7.79423, 0.0001));
+    expect(
+      estimator
+          .estimate(
+            roadScene(
+              start.add(const Duration(seconds: 3)),
+              roadVisible: false,
+            ),
+          )
+          .distanceMeters,
+      isNull,
+    );
+    expect(
+      estimator
+          .estimate(
+            roadScene(
+              start.add(const Duration(seconds: 4)),
+              vehicles: [roadVehicle(distance: double.nan)],
+            ),
+          )
+          .status,
+      FollowingDistanceStatus.unreliable,
+    );
   });
 
-  test('a new estimator cannot reuse the previous camera target identity', () {
-    final first = estimator().estimate(detections: [car], timestamp: start);
-    final rotated = estimator().estimate(detections: [car], timestamp: start);
-    expect(rotated.leadVehicleId, isNot(first.leadVehicleId));
+  test('expiry and reset give immediate measurements new identities', () {
+    estimator.estimate(roadScene(start));
+    final initial = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1))),
+    );
+    expect(
+      estimator
+          .estimate(roadScene(start.add(const Duration(seconds: 8))))
+          .status,
+      FollowingDistanceStatus.tracking,
+    );
+    final later = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 9))),
+    );
+    expect(later.leadVehicleId, isNot(initial.leadVehicleId));
+    estimator.reset();
+    estimator.estimate(roadScene(start.add(const Duration(seconds: 10))));
+    final reset = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 11))),
+    );
+    expect(reset.leadVehicleId, isNot(later.leadVehicleId));
+  });
+
+  test('an off-lane lead is forgotten rather than kept confirming', () {
+    final initial = estimator.estimate(roadScene(start));
+    final offLane = estimator.estimate(
+      roadScene(
+        start.add(const Duration(seconds: 1)),
+        vehicles: [roadVehicle(inEgoLane: false)],
+      ),
+    );
+    expect(offLane.status, FollowingDistanceStatus.noVehicle);
+    final returned = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 2))),
+    );
+    expect(returned.leadVehicleId, isNot(initial.leadVehicleId));
+  });
+
+  test('separate estimators never reuse lead identities', () {
+    final first = estimator.estimate(roadScene(start));
+    final second = VehicleDistanceEstimator().estimate(roadScene(start));
+    expect(second.leadVehicleId, isNot(first.leadVehicleId));
+  });
+
+  test('nonfinite confidence and malformed boxes cannot supply a distance', () {
+    for (final vehicle in [
+      roadVehicle(confidence: double.nan),
+      roadVehicle(confidence: 1.1),
+      roadVehicle(confidence: 0.09),
+      roadVehicle(box: const Rect.fromLTRB(0.6, 0.3, 0.4, 0.6)),
+      roadVehicle(box: const Rect.fromLTRB(double.nan, 0.3, 0.6, 0.6)),
+    ]) {
+      estimator.reset();
+      expect(
+        estimator
+            .estimate(roadScene(start, vehicles: [vehicle]))
+            .distanceMeters,
+        isNull,
+      );
+    }
+  });
+
+  test('out-of-order observations cannot change a confirmed lead', () {
+    estimator.estimate(roadScene(start));
+    final initial = estimator.estimate(
+      roadScene(start.add(const Duration(seconds: 1))),
+    );
+    expect(
+      estimator.estimate(roadScene(start)).status,
+      FollowingDistanceStatus.unreliable,
+    );
+    expect(
+      estimator
+          .estimate(roadScene(start.add(const Duration(seconds: 2))))
+          .leadVehicleId,
+      initial.leadVehicleId,
+    );
   });
 }

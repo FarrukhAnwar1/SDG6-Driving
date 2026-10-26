@@ -1,220 +1,175 @@
-// Identifies a lead vehicle and estimates its distance using camera geometry.
+// Selects the current lead and preserves its identity with simple box matching.
 
 import 'dart:math' as math;
-import 'dart:ui';
 
-enum FollowingDistanceStatus {
-  waiting,
-  confirming,
-  tracking,
-  noVehicle,
-  unreliable,
-  unavailable,
-  paused,
-}
+import 'following_distance_measurement.dart';
+import 'following_distance_grading_service.dart';
+import 'road_model_output.dart';
 
-class VehicleDetection {
-  const VehicleDetection({
-    required this.label,
-    required this.confidence,
-    required this.normalizedBox,
-  });
+export 'following_distance_measurement.dart';
 
-  final String label;
-  final double confidence;
-  // Coordinates in the upright, uncropped camera frame, all between 0 and 1.
-  final Rect normalizedBox;
-}
-
-class FollowingDistanceMeasurement {
-  const FollowingDistanceMeasurement({
-    required this.timestamp,
-    required this.status,
-    this.distanceMeters,
-    this.leadVehicleId,
-  });
-
-  final DateTime timestamp;
-  final FollowingDistanceStatus status;
-  final double? distanceMeters;
-  final String? leadVehicleId;
-}
-
-// Monocular baseline: distance = assumed vehicle width * normalized focal
-// length / normalized box width. The camera supplies focal length for the
-// upright analysis frame; preview dimensions never enter the calculation.
 class VehicleDistanceEstimator {
-  VehicleDistanceEstimator({required this.normalizedFocalLength})
-    : assert(normalizedFocalLength > 0 && normalizedFocalLength.isFinite);
+  static const minimumConfidence = 0.25;
+  static const continuationConfidence = 0.1;
+  static const leadRetention = Duration(seconds: 6);
+  static int _nextNamespace = 0;
 
-  factory VehicleDistanceEstimator.fromHorizontalFieldOfView(double degrees) {
-    assert(degrees > 0 && degrees < 180);
-    return VehicleDistanceEstimator(
-      normalizedFocalLength: 1 / (2 * math.tan(degrees * math.pi / 360)),
-    );
-  }
+  final int _namespace = ++_nextNamespace;
+  int _nextLeadId = 0;
+  DateTime? _timestamp;
+  DateTime? _lastSeen;
+  VehicleDetection? _lastLead;
+  String? _leadId;
+  double? _distance;
 
-  final double normalizedFocalLength;
-  static int _nextTrackerId = 0;
-  final int _trackerId = ++_nextTrackerId;
-  static const double minimumConfidence = 0.3;
-  static const double immediateConfidence = 0.6;
-  static const Map<String, double> _vehicleWidthsMeters = {
-    'car': 1.8,
-    'motorcycle': 0.8,
-    'bus': 2.5,
-    'truck': 2.5,
-  };
+  FollowingDistanceMeasurement estimate(RoadObservation observation) {
+    final timestamp = observation.timestamp;
+    FollowingDistanceMeasurement missing(FollowingDistanceStatus status) {
+      _distance = null;
+      return FollowingDistanceMeasurement(timestamp: timestamp, status: status);
+    }
 
-  VehicleDetection? _previousVehicle;
-  double? _previousDistance;
-  DateTime? _previousTimestamp;
-  DateTime? _firstSeen;
-  int _observations = 0;
-  bool _confirmed = false;
-  final List<double> _recentDistances = [];
-  int _trackId = 0;
-
-  FollowingDistanceMeasurement estimate({
-    required Iterable<VehicleDetection> detections,
-    required DateTime timestamp,
-  }) {
-    if (_previousTimestamp != null && !timestamp.isAfter(_previousTimestamp!)) {
+    if (_timestamp != null && !timestamp.isAfter(_timestamp!)) {
       return FollowingDistanceMeasurement(
         timestamp: timestamp,
         status: FollowingDistanceStatus.unreliable,
       );
     }
-    final candidates = <({VehicleDetection detection, double distance})>[];
-    var sawUnreliableVehicle = false;
-    for (final detection in detections) {
-      final assumedWidth = _vehicleWidthsMeters[detection.label.toLowerCase()];
-      if (assumedWidth == null) continue;
-      final box = detection.normalizedBox;
-      if (!box.left.isFinite ||
-          !box.top.isFinite ||
-          !box.right.isFinite ||
-          !box.bottom.isFinite) {
-        sawUnreliableVehicle = true;
-        continue;
-      }
-      // Filter adjacent traffic before testing quality: an uncertain or
-      // clipped car in another lane must not make a clear scene unreliable.
-      // A fixed vertical cutoff is unsuitable for different dashboard mounts.
-      if (box.center.dx < 0.35 || box.center.dx > 0.65) continue;
-      if (detection.confidence < minimumConfidence) continue;
-      if (!detection.confidence.isFinite ||
-          detection.confidence > 1 ||
-          box.left <= 0.01 ||
-          box.right >= 0.99 ||
-          box.top <= 0.01 ||
-          box.bottom >= 0.99 ||
-          box.width < 0.02 ||
-          box.height <= 0) {
-        sawUnreliableVehicle = true;
-        continue;
-      }
-      final distance = assumedWidth * normalizedFocalLength / box.width;
-      if (!distance.isFinite || distance < 1 || distance > 120) {
-        sawUnreliableVehicle = true;
-        continue;
-      }
-      candidates.add((detection: detection, distance: distance));
+    if (_lastSeen != null && timestamp.difference(_lastSeen!) > leadRetention) {
+      _forgetLead();
     }
+    if (_timestamp != null &&
+        timestamp.difference(_timestamp!) >
+            FollowingDistanceGradingService.maxSampleGap) {
+      _distance = null;
+    }
+    _timestamp = timestamp;
+    if (!observation.roadVisible) {
+      return missing(FollowingDistanceStatus.waiting);
+    }
+    final observed = observation.vehicles
+        .where((vehicle) => _validDetection(vehicle.detection))
+        .toList();
+    RoadVehicleObservation? matchedLead;
+    var bestMatch = double.infinity;
+    for (final vehicle in observed) {
+      final cost = _matchCost(vehicle.detection);
+      if (cost != null && cost < bestMatch) {
+        matchedLead = vehicle;
+        bestMatch = cost;
+      }
+    }
+    final candidates = observed
+        .where(
+          (vehicle) =>
+              vehicle.inEgoLane &&
+              (vehicle.detection.confidence >= minimumConfidence ||
+                  identical(vehicle, matchedLead)),
+        )
+        .toList();
     if (candidates.isEmpty) {
-      reset();
-      return FollowingDistanceMeasurement(
-        timestamp: timestamp,
-        status: sawUnreliableVehicle
-            ? FollowingDistanceStatus.unreliable
+      if (matchedLead != null && !matchedLead.inEgoLane) {
+        _forgetLead();
+      }
+      return missing(
+        _leadId != null
+            ? FollowingDistanceStatus.confirming
             : FollowingDistanceStatus.noVehicle,
       );
     }
-    candidates.sort((a, b) => a.distance.compareTo(b.distance));
-    final selected = candidates.first;
-    final previous = _previousVehicle;
-    final isContinuous =
-        _previousTimestamp != null &&
-        timestamp.isAfter(_previousTimestamp!) &&
-        timestamp.difference(_previousTimestamp!) <= const Duration(seconds: 1);
-    final isSameVehicle =
-        isContinuous &&
-        previous != null &&
-        previous.label.toLowerCase() ==
-            selected.detection.label.toLowerCase() &&
-        _intersectionOverUnion(
-              previous.normalizedBox,
-              selected.detection.normalizedBox,
-            ) >=
-            0.25;
-    // Reject a single implausible jump rather than letting an unstable box
-    // extend an unsafe streak. The next observation gets a new grace window.
-    if (isSameVehicle &&
-        _previousDistance != null &&
-        (selected.distance / _previousDistance! > 1.6 ||
-            selected.distance / _previousDistance! < 0.6)) {
-      reset();
-      return FollowingDistanceMeasurement(
-        timestamp: timestamp,
-        status: FollowingDistanceStatus.unreliable,
-      );
+    final measured = candidates.where(_hasUsableDepth).toList();
+    if (measured.isEmpty) return missing(FollowingDistanceStatus.unreliable);
+    measured.sort((a, b) => a.distanceMeters!.compareTo(b.distanceMeters!));
+    final lead = measured.first;
+    // A closer occluding vehicle with uncertain depth must not cause us to
+    // grade the visible, more distant vehicle behind it instead.
+    if (candidates.any(
+      (vehicle) =>
+          !_hasUsableDepth(vehicle) &&
+          vehicle.detection.normalizedBox.bottom >=
+              lead.detection.normalizedBox.bottom - 0.03,
+    )) {
+      return missing(FollowingDistanceStatus.unreliable);
     }
-    if (!isSameVehicle) {
-      _trackId++;
-      _firstSeen = timestamp;
-      _observations = 0;
-      _confirmed = false;
-      _recentDistances.clear();
+    final sameLead = identical(lead, matchedLead);
+    if (!sameLead) {
+      _leadId = 'lead-$_namespace-${++_nextLeadId}';
+      _distance = null;
     }
-    _observations++;
-    // Nano-model scores on small road vehicles often fall below 0.6. Accept
-    // those only after three overlapping observations across at least 300 ms;
-    // an isolated lower-confidence hit cannot start grading.
-    _confirmed =
-        _confirmed ||
-        selected.detection.confidence >= immediateConfidence ||
-        (_observations >= 3 &&
-            timestamp.difference(_firstSeen!) >=
-                const Duration(milliseconds: 300));
-    _previousVehicle = selected.detection;
-    _previousDistance = selected.distance;
-    _previousTimestamp = timestamp;
-    _recentDistances.add(selected.distance);
-    if (_recentDistances.length > 3) _recentDistances.removeAt(0);
-    if (!_confirmed) {
-      return FollowingDistanceMeasurement(
-        timestamp: timestamp,
-        status: FollowingDistanceStatus.confirming,
-      );
+    _lastLead = lead.detection;
+    _lastSeen = timestamp;
+    final distance = lead.distanceMeters!;
+    if (_distance != null &&
+        (distance / _distance! < 0.6 || distance / _distance! > 1.6)) {
+      // Reject a one-frame depth jump. The next consistent observation can
+      // establish a fresh baseline and grace period; never reuse stale distance.
+      return missing(FollowingDistanceStatus.unreliable);
     }
-    final sortedDistances = [..._recentDistances]..sort();
-    final middle = sortedDistances.length ~/ 2;
-    final filteredDistance = sortedDistances.length.isOdd
-        ? sortedDistances[middle]
-        : (sortedDistances[middle - 1] + sortedDistances[middle]) / 2;
+    _distance = distance;
     return FollowingDistanceMeasurement(
       timestamp: timestamp,
       status: FollowingDistanceStatus.tracking,
-      distanceMeters: filteredDistance,
-      leadVehicleId: 'vehicle-$_trackerId-$_trackId',
+      distanceMeters: distance,
+      leadVehicleId: _leadId,
     );
   }
 
-  void reset() {
-    _previousVehicle = null;
-    _previousDistance = null;
-    _previousTimestamp = null;
-    _firstSeen = null;
-    _observations = 0;
-    _confirmed = false;
-    _recentDistances.clear();
+  bool _validDetection(VehicleDetection detection) {
+    final box = detection.normalizedBox;
+    return detection.confidence.isFinite &&
+        detection.confidence >= continuationConfidence &&
+        detection.confidence <= 1 &&
+        [box.left, box.top, box.right, box.bottom].every((v) => v.isFinite) &&
+        box.width > 0 &&
+        box.height > 0 &&
+        box.center.dx > 0 &&
+        box.center.dx < 1 &&
+        box.center.dy > 0 &&
+        box.center.dy < 1;
   }
 
-  double _intersectionOverUnion(Rect a, Rect b) {
-    final overlap = a.intersect(b);
-    if (overlap.width <= 0 || overlap.height <= 0) return 0;
-    final intersection = overlap.width * overlap.height;
-    return intersection /
-        (a.width * a.height + b.width * b.height - intersection);
+  bool _hasUsableDepth(RoadVehicleObservation vehicle) {
+    final distance = vehicle.distanceMeters;
+    return distance != null &&
+        distance.isFinite &&
+        distance >= 1 &&
+        distance <= 150;
+  }
+
+  // Only match the last observed lead. No predicted boxes, Kalman filter,
+  // assignment stage, or second-sighting gate is needed at this sampling rate.
+  double? _matchCost(VehicleDetection detection) {
+    final previous = _lastLead?.normalizedBox;
+    if (previous == null) return null;
+    final box = detection.normalizedBox;
+    final widthRatio = box.width / previous.width;
+    final heightRatio = box.height / previous.height;
+    final width = math.max(box.width, previous.width);
+    final height = math.max(box.height, previous.height);
+    final dx = (box.center.dx - previous.center.dx).abs();
+    final dy = (box.center.dy - previous.center.dy).abs();
+    if (widthRatio < 0.4 ||
+        widthRatio > 2.5 ||
+        heightRatio < 0.4 ||
+        heightRatio > 2.5 ||
+        dx > math.max(0.06, width * 0.75) ||
+        dy > math.max(0.06, height * 0.75)) {
+      return null;
+    }
+    return dx / width +
+        dy / height +
+        0.25 * (math.log(widthRatio).abs() + math.log(heightRatio).abs());
+  }
+
+  void _forgetLead() {
+    _lastLead = null;
+    _lastSeen = null;
+    _leadId = null;
+    _distance = null;
+  }
+
+  void reset() {
+    _timestamp = null;
+    _forgetLead();
   }
 }

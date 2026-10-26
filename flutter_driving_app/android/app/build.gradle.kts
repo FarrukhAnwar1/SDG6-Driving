@@ -30,6 +30,7 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }
@@ -42,11 +43,4 @@ kotlin {
 
 flutter {
     source = "../.."
-}
-
-dependencies {
-    // Match the detector's CameraX versions. Read its default rear camera's
-    // metadata without opening or binding a second camera.
-    implementation("androidx.camera:camera-camera2:1.6.0")
-    implementation("androidx.camera:camera-lifecycle:1.6.0")
 }

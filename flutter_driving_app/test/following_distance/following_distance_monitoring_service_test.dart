@@ -1,10 +1,8 @@
 // Tests GPS and camera synchronization, driving modes, and grading continuity.
 
-import 'dart:ui';
-
 import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
 import 'package:flutter_driving_app/widgets/following_distance/following_distance_monitoring_service.dart';
-import 'package:flutter_driving_app/widgets/following_distance/road_camera_geometry.dart';
+import '../fixtures/road_vision_fixtures.dart';
 import 'package:flutter_driving_app/widgets/following_distance/vehicle_distance_estimator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -57,7 +55,7 @@ void main() {
       );
       service.resume();
       drive(0, 6);
-      expect(service.grade, closeTo(95, 0.00001));
+      expect(service.grade, closeTo(98, 0.00001));
       expect(service.headwaySeconds, closeTo(1, 0.00001));
       service.finalizeTrip();
       expect(service.violations, hasLength(1));
@@ -104,14 +102,14 @@ void main() {
     drive(0, 6);
     service.pause();
     drive(7, 10);
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
     service.resume();
     now = start.add(const Duration(seconds: 11));
     frame();
     expect(service.status, FollowingDistanceStatus.unavailable);
     drive(12, 18);
     service.finalizeTrip();
-    expect(service.grade, closeTo(90, 0.00001));
+    expect(service.grade, closeTo(96, 0.00001));
     expect(service.violations, hasLength(2));
     expect(
       service.violations.first.endTime,
@@ -138,7 +136,7 @@ void main() {
       frame(status: FollowingDistanceStatus.unreliable);
       drive(13, 17);
       service.finalizeTrip();
-      expect(service.grade, closeTo(95, 0.00001));
+      expect(service.grade, closeTo(98, 0.00001));
       expect(service.violations, hasLength(1));
     },
   );
@@ -156,7 +154,7 @@ void main() {
     );
     drive(9, 13);
     service.finalizeTrip();
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
   });
 
   test('stale and future frames cannot supply a new streak', () {
@@ -178,7 +176,7 @@ void main() {
     frame();
     drive(8, 12);
     service.finalizeTrip();
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
     expect(service.violations, hasLength(1));
   });
 
@@ -188,66 +186,163 @@ void main() {
     service.resume();
     drive(7, 20);
     service.finalizeTrip();
-    expect(service.grade, closeTo(95, 0.00001));
+    expect(service.grade, closeTo(98, 0.00001));
     expect(service.violations, hasLength(1));
     expect(service.isActive, isFalse);
   });
 
-  test(
-    'portrait geometry preserves a safe gap with a small car above mid-frame',
-    () {
-      const geometry = RoadCameraGeometry(
-        focalLength: 6,
-        imagePlaneWidth: 6,
-        imagePlaneHeight: 4.5,
-      );
-      final focal = geometry.normalizedFocalLengthFor(const Size(480, 640))!;
-      final estimator = VehicleDistanceEstimator(normalizedFocalLength: focal);
-      // A 1.8m-wide car at 45m spans about 5.33% of this portrait frame. At
-      // 30 mph this is a safe 3.36s; the old 60-degree guess reports 2.18s.
-      final detection = VehicleDetection(
-        label: 'car',
-        confidence: 0.4,
-        normalizedBox: Rect.fromCenter(
-          center: const Offset(0.5, 0.37),
-          width: 1.8 * focal / 45,
-          height: 0.1,
+  test('learned metric depth preserves a safe gap at one FPS', () {
+    final estimator = VehicleDistanceEstimator();
+    for (var second = 0; second <= 12; second++) {
+      now = start.add(Duration(seconds: second));
+      position();
+      service.addMeasurement(
+        estimator.estimate(
+          roadScene(now, vehicles: [roadVehicle(distance: 45)]),
         ),
       );
-      for (var index = 0; index <= 60; index++) {
-        now = start.add(Duration(milliseconds: index * 200));
-        position();
-        service.addMeasurement(
-          estimator.estimate(detections: [detection], timestamp: now),
-        );
-      }
-      expect(service.status, FollowingDistanceStatus.tracking);
-      expect(service.headwaySeconds, closeTo(45 / 13.4112, 1e-9));
-      service.finalizeTrip();
-      expect(service.grade, 100);
-      expect(service.violations, isEmpty);
-    },
-  );
+    }
+    expect(service.status, FollowingDistanceStatus.tracking);
+    expect(service.headwaySeconds, closeTo(45 / 13.4112, 1e-9));
+    service.finalizeTrip();
+    expect(service.grade, 100);
+    expect(service.violations, isEmpty);
+  });
+
+  test('isolated accepted sightings cannot combine into a violation', () {
+    final estimator = VehicleDistanceEstimator();
+    for (var second = 0; second <= 12; second++) {
+      now = start.add(Duration(seconds: second));
+      position();
+      service.addMeasurement(
+        estimator.estimate(
+          roadScene(
+            now,
+            vehicles: second.isEven
+                ? [roadVehicle(confidence: 0.25, distance: 13.4112)]
+                : [],
+          ),
+        ),
+      );
+      expect(service.headwaySeconds, second.isEven ? closeTo(1, 1e-9) : isNull);
+    }
+    service.finalizeTrip();
+    expect(service.grade, 100);
+    expect(service.violations, isEmpty);
+  });
 
   test(
-    'isolated weak sightings never penalize or reuse a previous distance',
+    'the first accepted sighting starts a full five-second grace period',
     () {
-      final estimator = VehicleDistanceEstimator(normalizedFocalLength: 1);
-      const detection = VehicleDetection(
-        label: 'car',
-        confidence: 0.4,
-        normalizedBox: Rect.fromLTRB(0.4, 0.3, 0.6, 0.45),
-      );
-      for (var index = 0; index <= 60; index++) {
-        now = start.add(Duration(milliseconds: index * 200));
+      final estimator = VehicleDistanceEstimator();
+      for (var second = 0; second <= 5; second++) {
+        now = start.add(Duration(seconds: second));
         position();
         service.addMeasurement(
           estimator.estimate(
-            detections: index.isEven ? [detection] : [],
-            timestamp: now,
+            roadScene(now, vehicles: [roadVehicle(distance: 13.4112)]),
           ),
         );
-        expect(service.headwaySeconds, isNull);
+      }
+      expect(service.grade, 100);
+      now = start.add(const Duration(seconds: 6));
+      position();
+      service.addMeasurement(
+        estimator.estimate(
+          roadScene(now, vehicles: [roadVehicle(distance: 13.4112)]),
+        ),
+      );
+      service.finalizeTrip();
+      expect(service.grade, closeTo(98, 1e-9));
+      expect(service.violations.single.startTime, start);
+      expect(
+        service.violations.single.penalizedDuration,
+        const Duration(seconds: 1),
+      );
+    },
+  );
+
+  test('continuation-only confidence cannot start grading without a lead', () {
+    final estimator = VehicleDistanceEstimator();
+    for (var second = 0; second <= 10; second++) {
+      now = start.add(Duration(seconds: second));
+      position();
+      service.addMeasurement(
+        estimator.estimate(
+          roadScene(
+            now,
+            vehicles: [roadVehicle(confidence: 0.15, distance: 13.4112)],
+          ),
+        ),
+      );
+      expect(service.headwaySeconds, isNull);
+    }
+    service.finalizeTrip();
+    expect(service.grade, 100);
+    expect(service.violations, isEmpty);
+  });
+
+  test(
+    'a delayed model result uses capture-time speed rather than arrival speed',
+    () {
+      position();
+      now = start.add(const Duration(seconds: 1));
+      service.updatePosition(
+        speedMph: 60,
+        latitude: 40,
+        longitude: -75,
+        timestamp: now,
+      );
+      now = start.add(const Duration(milliseconds: 1500));
+      service.addMeasurement(
+        FollowingDistanceMeasurement(
+          timestamp: start,
+          status: FollowingDistanceStatus.tracking,
+          distanceMeters: 26.8224,
+          leadVehicleId: 'lead',
+        ),
+      );
+      expect(service.headwaySeconds, closeTo(2, 1e-9));
+      // Normal inference latency is not an outage when results keep arriving.
+      now = start.add(const Duration(milliseconds: 2600));
+      service.checkForInterruption();
+      expect(service.status, FollowingDistanceStatus.tracking);
+      now = start.add(const Duration(milliseconds: 3100));
+      position();
+      service.checkForInterruption();
+      expect(service.status, FollowingDistanceStatus.unavailable);
+    },
+  );
+
+  test('in-flight processing has five seconds while GPS stays fresh', () {
+    position();
+    service.beginMeasurement(start);
+    expect(service.status, FollowingDistanceStatus.processing);
+    for (var second = 1; second <= 3; second++) {
+      now = start.add(Duration(seconds: second));
+      position();
+      service.checkForInterruption();
+      expect(service.status, FollowingDistanceStatus.processing);
+    }
+    frame(timestamp: start);
+    expect(service.status, FollowingDistanceStatus.tracking);
+    expect(service.measurementAge, const Duration(seconds: 3));
+    expect(service.headwaySeconds, closeTo(1, 1e-9));
+  });
+
+  test(
+    'unexplained gaps remain interruptions despite the longer result window',
+    () {
+      for (var capturedSecond = 0; capturedSecond <= 12; capturedSecond += 3) {
+        now = start.add(Duration(seconds: capturedSecond));
+        position();
+        final capturedAt = now;
+        for (var offset = 1; offset <= 3; offset++) {
+          now = capturedAt.add(Duration(seconds: offset));
+          position();
+          service.checkForInterruption();
+        }
+        frame(timestamp: capturedAt);
       }
       service.finalizeTrip();
       expect(service.grade, 100);
@@ -255,43 +350,90 @@ void main() {
     },
   );
 
-  test(
-    'confirmation time is excluded from a confirmed unsafe vehicles grace period',
-    () {
-      final estimator = VehicleDistanceEstimator(normalizedFocalLength: 1);
-      final width = 1.8 / 13.4112;
-      final detection = VehicleDetection(
-        label: 'car',
-        confidence: 0.4,
-        normalizedBox: Rect.fromCenter(
-          center: const Offset(0.5, 0.4),
-          width: width,
-          height: 0.1,
-        ),
-      );
-      for (var index = 0; index <= 27; index++) {
-        now = start.add(Duration(milliseconds: index * 200));
-        position();
-        service.addMeasurement(
-          estimator.estimate(detections: [detection], timestamp: now),
-        );
-      }
-      expect(service.grade, 100);
-      now = start.add(const Duration(milliseconds: 5600));
+  test('consecutive slow jobs grade at their measured capture cadence', () {
+    for (var second = 0; second <= 8; second += 2) {
+      now = start.add(Duration(seconds: second));
       position();
-      service.addMeasurement(
-        estimator.estimate(detections: [detection], timestamp: now),
-      );
-      service.finalizeTrip();
-      expect(service.grade, closeTo(99, 1e-9));
-      expect(
-        service.violations.single.startTime,
-        start.add(const Duration(milliseconds: 400)),
-      );
-      expect(
-        service.violations.single.penalizedDuration,
-        const Duration(milliseconds: 200),
-      );
+      final capturedAt = now;
+      service.beginMeasurement(capturedAt);
+      for (var offset = 1; offset <= 2; offset++) {
+        now = capturedAt.add(Duration(seconds: offset));
+        position();
+        service.checkForInterruption();
+      }
+      frame(timestamp: capturedAt);
+    }
+    service.finalizeTrip();
+    expect(service.grade, closeTo(94, 1e-9));
+    expect(
+      service.violations.single.penalizedDuration,
+      const Duration(seconds: 3),
+    );
+  });
+
+  test('a processing timeout is one outage and a later frame can recover', () {
+    position();
+    service.beginMeasurement(start);
+    for (var second = 1; second <= 7; second++) {
+      now = start.add(Duration(seconds: second));
+      position();
+      service.checkForInterruption();
+    }
+    expect(service.status, FollowingDistanceStatus.unavailable);
+    frame(timestamp: start);
+    expect(service.status, FollowingDistanceStatus.unavailable);
+    service.beginMeasurement(now);
+    final capturedAt = now;
+    now = now.add(const Duration(seconds: 1));
+    position();
+    frame(timestamp: capturedAt);
+    expect(service.status, FollowingDistanceStatus.tracking);
+    expect(service.grade, 100);
+  });
+
+  test('a recent no-vehicle result stays visible while the next job runs', () {
+    position();
+    frame(status: FollowingDistanceStatus.noVehicle);
+    now = start.add(const Duration(seconds: 1));
+    position();
+    service.beginMeasurement(now);
+    expect(service.status, FollowingDistanceStatus.noVehicle);
+    now = start.add(const Duration(seconds: 4));
+    position();
+    service.checkForInterruption();
+    expect(service.status, FollowingDistanceStatus.noVehicle);
+  });
+
+  test('a late result cannot revive a streak after GPS becomes invalid', () {
+    position();
+    now = start.add(const Duration(seconds: 1));
+    service.invalidatePosition();
+    position();
+    frame(timestamp: start);
+    expect(service.status, FollowingDistanceStatus.unavailable);
+    expect(service.headwaySeconds, isNull);
+    frame();
+    expect(service.status, FollowingDistanceStatus.tracking);
+  });
+
+  test(
+    'watchdog lets fresh delayed results recover after one camera outage',
+    () {
+      drive(0, 6);
+      now = start.add(const Duration(seconds: 8));
+      position();
+      service.checkForInterruption();
+      expect(service.status, FollowingDistanceStatus.unavailable);
+      // A second watchdog tick must not advance the cutoff past this new frame.
+      // At 1.5s latency every otherwise-fresh result used to remain rejected.
+      now = start.add(const Duration(seconds: 9));
+      position();
+      service.checkForInterruption();
+      now = start.add(const Duration(milliseconds: 9500));
+      frame(timestamp: start.add(const Duration(seconds: 8)));
+      expect(service.status, FollowingDistanceStatus.tracking);
+      expect(service.headwaySeconds, closeTo(1, 1e-9));
+      expect(service.grade, closeTo(98, 1e-9));
     },
   );
 }

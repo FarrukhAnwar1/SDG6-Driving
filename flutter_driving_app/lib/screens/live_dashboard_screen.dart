@@ -564,18 +564,31 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     setState(_followingDistanceMonitoring.cameraUnavailable);
   }
 
-  String get _followingDistanceNote => switch (_followingDistanceMonitoring
-      .status) {
-    FollowingDistanceStatus.tracking =>
-      'Estimated gap: ${_followingDistanceMonitoring.headwaySeconds!.toStringAsFixed(1)} s',
-    FollowingDistanceStatus.confirming => 'Confirming lead vehicle',
-    FollowingDistanceStatus.noVehicle => 'No lead vehicle detected',
-    FollowingDistanceStatus.unreliable =>
-      'Vehicle detected; distance uncertain',
-    FollowingDistanceStatus.unavailable => 'Monitoring unavailable',
-    FollowingDistanceStatus.paused => 'Monitoring paused',
-    FollowingDistanceStatus.waiting => 'Waiting for road view and movement',
-  };
+  void _handleRoadProcessingStarted(DateTime timestamp) {
+    if (!mounted || _isStoppingTrip) return;
+    setState(() => _followingDistanceMonitoring.beginMeasurement(timestamp));
+  }
+
+  String get _followingDistanceGapNote {
+    final gap = _followingDistanceMonitoring.headwaySeconds!.toStringAsFixed(1);
+    final age = _followingDistanceMonitoring.measurementAge;
+    return age != null && age > const Duration(seconds: 2)
+        ? 'Last gap: $gap s (${age.inSeconds} s ago)'
+        : 'Estimated gap: $gap s';
+  }
+
+  String get _followingDistanceNote =>
+      switch (_followingDistanceMonitoring.status) {
+        FollowingDistanceStatus.tracking => _followingDistanceGapNote,
+        FollowingDistanceStatus.processing => 'Processing road view',
+        FollowingDistanceStatus.confirming => 'Confirming lead vehicle',
+        FollowingDistanceStatus.noVehicle => 'No lead vehicle detected',
+        FollowingDistanceStatus.unreliable =>
+          'Vehicle detected; distance uncertain',
+        FollowingDistanceStatus.unavailable => 'Monitoring unavailable',
+        FollowingDistanceStatus.paused => 'Monitoring paused',
+        FollowingDistanceStatus.waiting => 'Waiting for road view and movement',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -1185,6 +1198,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                     active: _cameraResumed && !_isStoppingTrip,
                     onMeasurement: _handleFollowingDistance,
                     onUnavailable: _handleCameraUnavailable,
+                    onProcessingStarted: _handleRoadProcessingStarted,
                   ),
             ),
           ],

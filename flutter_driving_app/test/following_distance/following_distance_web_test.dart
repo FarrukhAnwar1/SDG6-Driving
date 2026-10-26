@@ -7,7 +7,7 @@ import 'package:flutter_driving_app/screens/login_screen.dart';
 import 'package:flutter_driving_app/widgets/following_distance/following_distance_camera.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ultralytics_yolo/ultralytics_yolo.dart';
+import 'package:camera/camera.dart';
 
 void main() {
   testWidgets(
@@ -28,7 +28,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(unavailable, 1);
       expect(measurements, 0);
-      expect(find.byType(YOLOView), findsNothing);
+      expect(find.byType(CameraPreview), findsNothing);
       expect(find.byIcon(Icons.videocam_off_outlined), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

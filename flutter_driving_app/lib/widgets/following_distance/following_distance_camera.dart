@@ -1,13 +1,16 @@
-// Runs road-camera vehicle detection and manages camera resources and lifecycle.
+// Coordinates the road camera, pretrained inference, one-FPS sampling and cleanup.
 
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 
-import 'road_camera_geometry.dart';
+import 'following_distance_monitoring_service.dart';
+import 'following_distance_grading_service.dart';
+import 'road_camera_source.dart';
+import 'road_model_input.dart';
+import 'road_vision_engine.dart';
 import 'vehicle_distance_estimator.dart';
 
 typedef FollowingDistanceCameraBuilder =
@@ -17,29 +20,24 @@ typedef FollowingDistanceCameraBuilder =
       VoidCallback onUnavailable,
     );
 
-// Owns the native camera/inference view. It streams detections only: no frames
-// are saved, sent over the network, or retained in the completed trip.
 class FollowingDistanceCamera extends StatefulWidget {
   const FollowingDistanceCamera({
     super.key,
     required this.onMeasurement,
     required this.onUnavailable,
+    this.onProcessingStarted,
     this.active = true,
-    this.controller,
-    this.horizontalFieldOfViewDegrees,
-  }) : assert(
-         horizontalFieldOfViewDegrees == null ||
-             (horizontalFieldOfViewDegrees > 0 &&
-                 horizontalFieldOfViewDegrees < 180),
-       );
-
+    this.sourceFactory,
+    this.engineFactory,
+    this.clock,
+  });
   final ValueChanged<FollowingDistanceMeasurement> onMeasurement;
   final VoidCallback onUnavailable;
+  final ValueChanged<DateTime>? onProcessingStarted;
   final bool active;
-  final YOLOViewController? controller;
-  // Optional measured FOV for the upright analysis frame. Normally camera
-  // metadata supplies this; there is deliberately no guessed default FOV.
-  final double? horizontalFieldOfViewDegrees;
+  final RoadCameraSource Function()? sourceFactory;
+  final RoadVisionEngine Function()? engineFactory;
+  final DateTime Function()? clock;
 
   @override
   State<FollowingDistanceCamera> createState() =>
@@ -47,35 +45,31 @@ class FollowingDistanceCamera extends StatefulWidget {
 }
 
 class FollowingDistanceCameraState extends State<FollowingDistanceCamera> {
-  late final YOLOViewController _controller =
-      widget.controller ?? YOLOViewController();
-  RoadCameraGeometry? _geometry;
-  VehicleDistanceEstimator? _estimator;
-  Size? _frameSize;
-  bool _permitted = false;
-  bool _paused = false;
-  bool _stopped = false;
-  bool _configured = false;
-  bool _configurationReady = false;
-  bool _configurationFailed = false;
-  int _configurationVersion = 0;
+  static const analysisInterval = Duration(seconds: 1);
+  final _estimator = VehicleDistanceEstimator();
+  RoadCameraSource? _source;
+  RoadVisionEngine? _engine;
+  Future<void> _cameraCleanup = Future.value();
+  Future<void>? _stopping;
+  DateTime? _lastStarted;
+  DateTime? _lastRawFrameTime;
+  int _measurementEpoch = 0;
+  bool _ready = false,
+      _busy = false,
+      _paused = false,
+      _stopped = false,
+      _disposing = false;
+  int _version = 0;
+  DateTime get _now => widget.clock?.call() ?? DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _paused = !widget.active;
-    // Controller.init otherwise replaces the view's confidence with its own
-    // default. Seed both settings before the native view attaches.
-    unawaited(
-      _controller.setConfidenceThreshold(
-        VehicleDistanceEstimator.minimumConfidence,
-      ),
-    );
-    unawaited(_controller.setShowOverlays(false));
-    // Unsupported platforms report unavailable synchronously. Notify the
-    // dashboard only after its first build, when its setState is safe.
+    // Unsupported/denied callbacks may update the parent. Wait until after its
+    // build, including the browser placeholder used for simple web debugging.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && !_paused && !_stopped) unawaited(_checkPermission());
+      if (mounted && !_paused) unawaited(_start());
     });
   }
 
@@ -87,256 +81,190 @@ class FollowingDistanceCameraState extends State<FollowingDistanceCamera> {
     }
   }
 
-  Future<void> _checkPermission() async {
+  bool _current(int version) =>
+      mounted && !_stopped && !_paused && version == _version;
+
+  Future<void> _start() async {
+    final version = ++_version;
     try {
       if (kIsWeb ||
-          (defaultTargetPlatform != TargetPlatform.android &&
-              defaultTargetPlatform != TargetPlatform.iOS)) {
-        _unavailable();
+          ![
+            TargetPlatform.android,
+            TargetPlatform.iOS,
+          ].contains(defaultTargetPlatform)) {
+        _unavailable(version);
         return;
       }
-      // The existing permissions gate requests camera access before a trip.
-      // Do not trigger a permission dialog while focus grading is running.
-      final permitted = await Permission.camera.isGranted;
-      if (!mounted || _stopped || _paused) return;
-      setState(() => _permitted = permitted);
-      if (!permitted) _unavailable();
-    } catch (_) {
-      _unavailable();
+      // The app's existing permissions gate handles requests before a trip.
+      final granted = await Permission.camera.isGranted;
+      if (!_current(version)) return;
+      if (!granted) {
+        _unavailable(version);
+        return;
+      }
+      await _cameraCleanup;
+      if (!_current(version)) return;
+      final source = widget.sourceFactory?.call() ?? FlutterRoadCameraSource();
+      _source = source;
+      final engine = _engine ??=
+          widget.engineFactory?.call() ?? PretrainedRoadVisionEngine();
+      await source.start(
+        onFrame: (frame) => _onFrame(frame, version),
+        onError: () => _unavailable(version),
+      );
+      if (!_current(version)) return;
+      setState(() {});
+      await engine.initialize();
+      if (!_current(version)) return;
+      _ready = true;
+    } catch (error, stack) {
+      debugPrint('Road monitoring could not start: $error\n$stack');
+      if (_current(version)) {
+        _unavailable(version);
+        await _releaseCamera();
+        final engine = _engine;
+        _engine = null;
+        await engine?.close();
+      }
     }
   }
 
-  Future<void> _configure() async {
-    if (_configured || !_controller.isInitialized) return;
-    _configured = true;
-    final version = _configurationVersion;
+  void _onFrame(RoadCameraFrame frame, int version) {
+    if (!_current(version)) return;
+    if (_lastRawFrameTime != null) {
+      if (!frame.timestamp.isAfter(_lastRawFrameTime!)) return;
+      if (frame.timestamp.difference(_lastRawFrameTime!) >
+          FollowingDistanceGradingService.maxSampleGap) {
+        _measurementEpoch++;
+        _unavailable(version);
+      }
+    }
+    _lastRawFrameTime = frame.timestamp;
+    if (!_ready || _busy) return;
+    if (_lastStarted != null &&
+        frame.timestamp.difference(_lastStarted!) < analysisInterval) {
+      return;
+    }
+    _lastStarted = frame.timestamp;
+    _busy = true;
+    widget.onProcessingStarted?.call(frame.timestamp);
+    // No queue: camera frames arriving during inference are deliberately dropped.
+    unawaited(
+      _analyze(
+        frame,
+        version,
+        _measurementEpoch,
+      ).whenComplete(() => _busy = false),
+    );
+  }
+
+  Future<void> _analyze(RoadCameraFrame frame, int version, int epoch) async {
     try {
-      await _controller.setConfidenceThreshold(
-        VehicleDistanceEstimator.minimumConfidence,
-      );
-      if (!_isCurrentConfiguration(version)) return;
-      // Android already starts its default rear camera at native 1x. Calling
-      // setZoomLevel there can auto-select a different physical lens, which
-      // would invalidate the default-camera metadata. iOS uses one virtual
-      // device whose active format/zoom describe the selected constituent.
-      if (defaultTargetPlatform == TargetPlatform.iOS) {
-        await _controller.setZoomLevel(1);
-        if (!_isCurrentConfiguration(version)) return;
+      final observation = await _engine!.analyze(frame);
+      if (!_current(version) || epoch != _measurementEpoch) return;
+      final age = _now.difference(frame.timestamp);
+      if (observation.timestamp != frame.timestamp ||
+          age > FollowingDistanceMonitoringService.maxMeasurementAge ||
+          age < const Duration(milliseconds: -100)) {
+        debugPrint(
+          'Road measurement rejected: age=${age.inMilliseconds}ms, limit=${FollowingDistanceMonitoringService.maxMeasurementAge.inMilliseconds}ms, captureTimeMatches=${observation.timestamp == frame.timestamp}',
+        );
+        _unavailable(version);
+        return;
       }
-      await _controller.setShowOverlays(false);
-      if (!_isCurrentConfiguration(version)) return;
-      final geometry = widget.horizontalFieldOfViewDegrees == null
-          ? await RoadCameraGeometry.read()
-          : null;
-      if (!_isCurrentConfiguration(version)) return;
-      _geometry = geometry;
-      if (geometry == null && widget.horizontalFieldOfViewDegrees == null) {
-        _configurationFailed = true;
-        _unavailable();
-      } else {
-        _configurationReady = true;
-      }
-    } catch (_) {
-      if (version == _configurationVersion) {
-        _configurationFailed = true;
-        _unavailable();
-      }
+      widget.onMeasurement(_estimator.estimate(observation));
+    } catch (error, stack) {
+      debugPrint('Road measurement unavailable: $error\n$stack');
+      _unavailable(version);
     }
   }
 
-  bool _isCurrentConfiguration(int version) =>
-      mounted && !_stopped && !_paused && version == _configurationVersion;
-
-  void _onFrame(Map<String, dynamic> data) {
-    if (!mounted || _stopped || _paused) return;
-    unawaited(_configure());
-    try {
-      final timestamp = data['timestamp'];
-      final detections = data['detections'];
-      final width = data['imageWidth'];
-      final height = data['imageHeight'];
-      if (timestamp is! num ||
-          !timestamp.isFinite ||
-          detections is! List ||
-          width is! num ||
-          height is! num ||
-          !width.isFinite ||
-          !height.isFinite ||
-          width <= 0 ||
-          height <= 0) {
-        _unavailable();
-        return;
-      }
-      final frameTime = DateTime.fromMillisecondsSinceEpoch(
-        timestamp.round(),
-        isUtc: true,
-      );
-      if (_configurationFailed) {
-        _unavailable();
-        return;
-      }
-      if (!_configurationReady) {
-        widget.onMeasurement(
-          FollowingDistanceMeasurement(
-            timestamp: frameTime,
-            status: FollowingDistanceStatus.waiting,
-          ),
-        );
-        return;
-      }
-      final frameSize = Size(width.toDouble(), height.toDouble());
-      if (_estimator == null || frameSize != _frameSize) {
-        final fieldOfView = widget.horizontalFieldOfViewDegrees;
-        if (fieldOfView != null) {
-          _estimator = VehicleDistanceEstimator.fromHorizontalFieldOfView(
-            fieldOfView,
-          );
-        } else {
-          final focalLength = _geometry!.normalizedFocalLengthFor(frameSize);
-          if (focalLength == null ||
-              !focalLength.isFinite ||
-              focalLength <= 0) {
-            _unavailable();
-            return;
-          }
-          _estimator = VehicleDistanceEstimator(
-            normalizedFocalLength: focalLength,
-          );
-        }
-        _frameSize = frameSize;
-      }
-      final vehicles = detections.map((item) {
-        if (item is! Map ||
-            item['className'] is! String ||
-            item['confidence'] is! num ||
-            item['normalizedBox'] is! Map) {
-          throw const FormatException('Invalid detection');
-        }
-        final box = item['normalizedBox'] as Map;
-        return VehicleDetection(
-          label: item['className'] as String,
-          confidence: (item['confidence'] as num).toDouble(),
-          normalizedBox: Rect.fromLTRB(
-            (box['left'] as num).toDouble(),
-            (box['top'] as num).toDouble(),
-            (box['right'] as num).toDouble(),
-            (box['bottom'] as num).toDouble(),
-          ),
-        );
-      }).toList();
-      widget.onMeasurement(
-        _estimator!.estimate(
-          detections: vehicles,
-          // Both native runtimes send epoch milliseconds, not arrival time.
-          timestamp: frameTime,
-        ),
-      );
-    } catch (_) {
-      _unavailable();
-    }
+  void _unavailable(int version) {
+    if (!_current(version)) return;
+    _estimator.reset();
+    widget.onUnavailable();
   }
 
-  void _unavailable() {
-    _estimator?.reset();
-    if (mounted && !_stopped && !_paused) widget.onUnavailable();
+  Future<void> _releaseCamera() {
+    final source = _source;
+    _source = null;
+    _ready = false;
+    if (mounted && !_disposing) setState(() {});
+    return _cameraCleanup = _cameraCleanup.then((_) async {
+      try {
+        await source?.close();
+      } catch (error) {
+        debugPrint('Road camera cleanup: $error');
+      }
+    });
   }
 
   Future<void> pause() async {
     if (_paused || _stopped) return;
     _paused = true;
-    _resetGeometry();
-    try {
-      await _controller.pause();
-    } catch (_) {
-      // The view may still be loading; its lifecycle also pauses the camera.
-    }
+    _version++;
+    _lastStarted = null;
+    _lastRawFrameTime = null;
+    _estimator.reset();
+    await _releaseCamera();
   }
 
   Future<void> resume() async {
     if (_stopped || !_paused) return;
     _paused = false;
-    _resetGeometry();
-    try {
-      await _controller.resume();
-      if (mounted && !_stopped) await _checkPermission();
-    } catch (_) {
-      _unavailable();
-    }
+    _lastStarted = null;
+    _lastRawFrameTime = null;
+    await _start();
   }
 
-  Future<void> stop() async {
-    if (_stopped) return;
+  Future<void> stop() => _stopping ??= _stop();
+  Future<void> _stop() async {
     _stopped = true;
-    _resetGeometry();
+    _version++;
+    _estimator.reset();
+    // Release the camera first; model cleanup waits for any native inference.
+    await _releaseCamera();
+    final engine = _engine;
+    _engine = null;
     try {
-      await _controller.stop().timeout(const Duration(seconds: 3));
-    } catch (_) {
-      // Platform view disposal also releases the native camera and model.
+      await engine?.close();
+    } catch (error) {
+      debugPrint('Road model cleanup: $error');
     }
-  }
-
-  void _resetGeometry() {
-    _configurationVersion++;
-    _configured = false;
-    _configurationReady = false;
-    _configurationFailed = false;
-    _geometry = null;
-    _frameSize = null;
-    // Each estimator has its own identity namespace, including after a change
-    // of frame dimensions or lifecycle restart.
-    _estimator = null;
   }
 
   @override
   void dispose() {
+    // Avoid setState from the asynchronous cleanup during element unmounting.
+    _disposing = true;
+    _stopped = true;
+    final source = _source;
+    _source = null;
+    if (source != null) {
+      _cameraCleanup = _cameraCleanup.then((_) => source.close()).catchError((
+        Object error,
+      ) {
+        debugPrint('Road camera cleanup: $error');
+      });
+    }
     unawaited(stop());
-    _controller.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Road camera preview',
-      image: true,
-      child: IgnorePointer(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: !_permitted || _stopped
-              ? const ColoredBox(
-                  color: Colors.black12,
-                  child: Center(child: Icon(Icons.videocam_off_outlined)),
-                )
-              : FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: 240,
-                    height: 160,
-                    child: YOLOView(
-                      controller: _controller,
-                      modelPath: defaultTargetPlatform == TargetPlatform.iOS
-                          ? 'assets/models/yolo11n.mlpackage.zip'
-                          : 'assets/models/yolo11n.tflite',
-                      task: YOLOTask.detect,
-                      lensFacing: LensFacing.back,
-                      confidenceThreshold:
-                          VehicleDistanceEstimator.minimumConfidence,
-                      onStreamingData: _onFrame,
-                      onModelError: (_, _, _) => _unavailable(),
-                      streamingConfig: const YOLOStreamingConfig(
-                        includeDetections: true,
-                        includeClassifications: false,
-                        includeProcessingTimeMs: false,
-                        includeFps: false,
-                        includeOriginalImage: false,
-                        inferenceFrequency: 5,
-                        maxFPS: 5,
-                      ),
-                    ),
-                  ),
-                ),
-        ),
+  Widget build(BuildContext context) => Semantics(
+    label: 'Road camera preview',
+    image: true,
+    child: IgnorePointer(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: _source == null || _stopped
+            ? const ColoredBox(
+                color: Colors.black12,
+                child: Center(child: Icon(Icons.videocam_off_outlined)),
+              )
+            : FittedBox(fit: BoxFit.cover, child: _source!.buildPreview()),
       ),
-    );
-  }
+    ),
+  );
 }

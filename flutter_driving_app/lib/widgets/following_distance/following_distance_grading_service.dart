@@ -14,11 +14,16 @@
 //
 // INTERRUPTION RULE:
 // A safe gap, speed below threshold, invalid/missing distance or invalid speed/GPS
-// coordinates, a different lead vehicle, more than [maxSampleGap]
-// between samples, or an explicit monitoring interruption ends the streak at
+// coordinates, a different lead vehicle, an unexplained observation gap,
+// or an explicit monitoring interruption ends the streak at
 // its last unsafe observation. A new streak gets a fresh grace period; separate
 // streaks are never merged or charged for the interruption. Duplicate and
 // out-of-order samples are ignored.
+// At the nominal one FPS, [maxSampleGap] includes scheduling tolerance. A
+// measured processing job may extend the NEXT observation's deadline by its
+// actual duration (bounded by [maxProcessingDuration]) plus 500ms. The current
+// job cannot excuse an earlier gap. Camera-stream and GPS outages always reset
+// grace, even when a model is busy. All penalties use capture timestamps.
 //
 // VIOLATION RECORDS:
 // Only streaks with a post-grace penalty are recorded. Start/end times include
@@ -54,16 +59,18 @@ class FollowingDistanceViolation {
 
 class FollowingDistanceGradingService {
   static const double minimumSpeedMph = 25;
-  static const double requiredHeadwaySeconds = 3;
+  static const double requiredHeadwaySeconds = 1.5;
   static const Duration graceDuration = Duration(seconds: 5);
-  // Five FPS is expected. More than a second between observations is a gap.
-  static const Duration maxSampleGap = Duration(seconds: 1);
+  // Default one-FPS deadline. Only verified previous processing can extend it.
+  static const Duration maxSampleGap = Duration(milliseconds: 1500);
+  static const Duration maxProcessingDuration = Duration(seconds: 5);
   static const double pointsPerSecond = 1;
   static const double secondsPerPenaltyStep = 0.5;
   static const double metersPerSecondPerMph = 0.44704;
 
   double _grade = 100;
   DateTime? _lastSampleTime;
+  Duration _nextSampleGap = maxSampleGap;
   _FollowingStreak? _streak;
   bool _finalized = false;
   final List<FollowingDistanceViolation> _violations = [];
@@ -79,14 +86,25 @@ class FollowingDistanceGradingService {
     required double latitude,
     required double longitude,
     String? leadVehicleId,
+    Duration processingDuration = Duration.zero,
   }) {
     if (_finalized) return;
     final previous = _lastSampleTime;
     if (previous != null && !timestamp.isAfter(previous)) return;
-    if (previous != null && timestamp.difference(previous) > maxSampleGap) {
+    if (previous != null && timestamp.difference(previous) > _nextSampleGap) {
       interrupt();
     }
     _lastSampleTime = timestamp;
+    // Only the previous job can explain the interval before this observation.
+    // A slow current result must never excuse an earlier hole in monitoring.
+    final measuredProcessing =
+        processingDuration >= Duration.zero &&
+            processingDuration <= maxProcessingDuration
+        ? processingDuration
+        : Duration.zero;
+    _nextSampleGap = measuredProcessing > const Duration(seconds: 1)
+        ? measuredProcessing + const Duration(milliseconds: 500)
+        : maxSampleGap;
 
     if (!speedMph.isFinite ||
         speedMph < minimumSpeedMph ||

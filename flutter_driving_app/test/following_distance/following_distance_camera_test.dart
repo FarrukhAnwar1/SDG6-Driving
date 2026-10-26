@@ -1,4 +1,4 @@
-// Tests camera configuration, geometry loading, and lifecycle safeguards.
+// Checks one-FPS scheduling, lifecycle cancellation and camera/model cleanup.
 
 import 'dart:async';
 
@@ -6,356 +6,304 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_driving_app/widgets/following_distance/following_distance_camera.dart';
-import 'package:flutter_driving_app/widgets/following_distance/road_camera_geometry.dart';
+import 'package:flutter_driving_app/widgets/following_distance/road_camera_source.dart';
+import 'package:flutter_driving_app/widgets/following_distance/road_model_input.dart';
+import 'package:flutter_driving_app/widgets/following_distance/road_model_output.dart';
+import 'package:flutter_driving_app/widgets/following_distance/road_vision_engine.dart';
 import 'package:flutter_driving_app/widgets/following_distance/vehicle_distance_estimator.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 
-class _Controller extends YOLOViewController {
-  int pauses = 0;
-  int resumes = 0;
-  int stops = 0;
-  bool released = false;
-  bool failStop = false;
-  final List<double> zoomLevels = [];
+import '../fixtures/road_vision_fixtures.dart';
 
+class _Source implements RoadCameraSource {
+  late ValueChanged<RoadCameraFrame> emit;
+  int closes = 0;
   @override
-  bool get isInitialized => true;
-  @override
-  Future<void> setShowOverlays(bool visible) async {}
-  @override
-  Future<void> setZoomLevel(double zoomLevel) async =>
-      zoomLevels.add(zoomLevel);
-  @override
-  Future<void> pause() async => pauses++;
-  @override
-  Future<void> resume() async => resumes++;
-  @override
-  Future<void> stop() async {
-    stops++;
-    if (failStop) throw PlatformException(code: 'camera_unavailable');
+  Future<void> start({
+    required ValueChanged<RoadCameraFrame> onFrame,
+    required VoidCallback onError,
+  }) async {
+    emit = onFrame;
   }
 
   @override
-  void dispose() {
-    released = true;
-    super.dispose();
+  Future<void> close() async {
+    closes++;
+  }
+
+  @override
+  Widget buildPreview() => const SizedBox(
+    width: 240,
+    height: 320,
+    child: ColoredBox(color: Colors.black),
+  );
+}
+
+class _Engine implements RoadVisionEngine {
+  Completer<void>? loading;
+  Completer<RoadObservation>? result;
+  int calls = 0, closes = 0;
+  @override
+  Future<void> initialize() async {
+    await loading?.future;
+  }
+
+  @override
+  Future<RoadObservation> analyze(RoadCameraFrame frame) async {
+    calls++;
+    return result?.future ?? roadScene(frame.timestamp);
+  }
+
+  @override
+  Future<void> close() async {
+    await loading?.future;
+    closes++;
   }
 }
 
 void main() {
+  if (kIsWeb) return;
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   const permissions = MethodChannel('flutter.baseflow.com/permissions/methods');
-  late _Controller controller;
+  final start = DateTime.utc(2026, 10, 23);
+  late DateTime now;
+  late _Engine engine;
+  late List<_Source> sources;
   late List<FollowingDistanceMeasurement> measurements;
-  late int unavailable;
-  late int permissionRequests;
-  late int permissionStatus;
-  late int geometryReads;
-  Map<String, dynamic>? geometryResponse;
-  Completer<int>? pendingPermission;
-  Completer<Map<String, dynamic>?>? pendingGeometry;
+  late int unavailable, permissionStatus, requests;
+  Completer<int>? permission;
 
   setUp(() {
-    controller = _Controller();
+    now = start;
+    engine = _Engine();
+    sources = [];
     measurements = [];
     unavailable = 0;
-    permissionRequests = 0;
-    permissionStatus = 0;
-    pendingPermission = null;
-    pendingGeometry = null;
-    geometryReads = 0;
-    geometryResponse = {
-      'focalLength': 4.0,
-      'imagePlaneWidth': 6.0,
-      'imagePlaneHeight': 4.5,
-    };
-    binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      RoadCameraGeometry.channel,
-      (_) async {
-        geometryReads++;
-        return pendingGeometry?.future ?? geometryResponse;
-      },
-    );
+    permissionStatus = 1;
+    requests = 0;
+    permission = null;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(permissions, (
       call,
     ) async {
       if (call.method == 'checkPermissionStatus') {
-        return pendingPermission == null
-            ? permissionStatus
-            : pendingPermission!.future;
+        return permission?.future ?? permissionStatus;
       }
-      if (call.method == 'requestPermissions') permissionRequests++;
+      if (call.method == 'requestPermissions') requests++;
       return null;
     });
   });
   tearDown(() {
     binding.defaultBinaryMessenger.setMockMethodCallHandler(permissions, null);
-    binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      RoadCameraGeometry.channel,
-      null,
-    );
   });
 
   Widget camera({
     GlobalKey<FollowingDistanceCameraState>? key,
     bool active = true,
+    VoidCallback? onUnavailable,
   }) => MaterialApp(
     home: FollowingDistanceCamera(
       key: key,
       active: active,
-      controller: controller,
+      clock: () => now,
+      sourceFactory: () {
+        final source = _Source();
+        sources.add(source);
+        return source;
+      },
+      engineFactory: () => engine,
       onMeasurement: measurements.add,
-      onUnavailable: () => unavailable++,
+      onUnavailable: onUnavailable ?? () => unavailable++,
     ),
   );
-
-  Map<String, dynamic> frame(int ms) => {
-    'timestamp': DateTime.utc(2026, 10, 22, 10).millisecondsSinceEpoch + ms,
-    'imageWidth': 480,
-    'imageHeight': 640,
-    'detections': [
-      {
-        'className': 'car',
-        'confidence': 0.9,
-        'normalizedBox': {'left': 0.4, 'top': 0.4, 'right': 0.6, 'bottom': 0.8},
-      },
-    ],
-  };
+  RoadCameraFrame frame(int ms) {
+    now = start.add(Duration(milliseconds: ms));
+    return RoadCameraFrame(
+      width: 2,
+      height: 2,
+      format: RoadPixelFormat.bgra8888,
+      planes: [],
+      clockwiseRotation: 0,
+      timestamp: now,
+    );
+  }
 
   testWidgets(
-    'unsupported camera can update its parent without a build-phase error',
+    'unsupported platforms update the parent after its first build',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: StatefulBuilder(
-            builder: (context, updateParent) => FollowingDistanceCamera(
-              controller: controller,
+            builder: (context, update) => FollowingDistanceCamera(
               onMeasurement: measurements.add,
-              onUnavailable: () => updateParent(() => unavailable++),
+              onUnavailable: () => update(() => unavailable++),
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
       expect(unavailable, 1);
-      expect(find.byType(YOLOView), findsNothing);
-      expect(permissionRequests, 0);
-      expect(measurements, isEmpty);
+      expect(tester.takeException(), isNull);
+      expect(sources, isEmpty);
     },
     variant: TargetPlatformVariant({TargetPlatform.windows}),
   );
 
   testWidgets(
-    'denied permission reports unavailable without asking during a trip',
+    'inactive and denied cameras do not load models or request permission',
     (tester) async {
+      await tester.pumpWidget(camera(active: false));
+      await tester.pumpAndSettle();
+      expect(sources, isEmpty);
+      expect(unavailable, 0);
+      await tester.pumpWidget(const SizedBox());
+      permissionStatus = 0;
       await tester.pumpWidget(camera());
       await tester.pumpAndSettle();
+      expect(sources, isEmpty);
       expect(unavailable, 1);
-      expect(permissionRequests, 0);
-      expect(find.byType(YOLOView), findsNothing);
-      expect(measurements, isEmpty);
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-      expect(controller.released, isTrue);
-      expect(controller.stops, 1);
+      expect(requests, 0);
     },
   );
 
   testWidgets(
-    'native detections use the bundled rear-camera model at five FPS; pause and stop reject callbacks',
+    'inference runs at most once per second while preview stays mounted',
     (tester) async {
-      permissionStatus = 1;
-      final key = GlobalKey<FollowingDistanceCameraState>();
-      await tester.pumpWidget(camera(key: key));
-      // Native model loading is intentionally absent in a widget test, so its
-      // loading spinner must not be awaited with pumpAndSettle.
+      await tester.pumpWidget(camera());
+      await tester.pumpAndSettle();
+      sources.single.emit(frame(0));
       await tester.pump();
+      sources.single.emit(frame(999));
       await tester.pump();
-      // The test has no native model loader. Inspect the configured view and
-      // deliver the same raw maps that its native event channel would deliver.
-      final view = tester.widget<YOLOView>(find.byType(YOLOView));
-      expect(
-        view.modelPath,
-        defaultTargetPlatform == TargetPlatform.iOS
-            ? 'assets/models/yolo11n.mlpackage.zip'
-            : 'assets/models/yolo11n.tflite',
-      );
-      expect(view.lensFacing, LensFacing.back);
-      expect(view.streamingConfig!.maxFPS, 5);
-      expect(view.streamingConfig!.inferenceFrequency, 5);
-      expect(view.streamingConfig!.includeOriginalImage, isFalse);
-      expect(view.confidenceThreshold, 0.3);
-      expect(controller.confidenceThreshold, 0.3);
-      final onFrame = view.onStreamingData!;
-      onFrame(frame(0));
+      expect(engine.calls, 1);
+      sources.single.emit(frame(1000));
       await tester.pump();
-      onFrame(frame(200));
-      onFrame(frame(400));
-      expect(measurements, hasLength(3));
-      expect(measurements.first.status, FollowingDistanceStatus.waiting);
-      expect(measurements.last.distanceMeters, closeTo(8, 0.0001));
-      expect(measurements.first.timestamp, DateTime.utc(2026, 10, 22, 10));
-      expect(measurements[1].leadVehicleId, measurements.last.leadVehicleId);
-      final firstVehicleId = measurements.last.leadVehicleId;
-      expect(geometryReads, 1);
-      expect(
-        controller.zoomLevels,
-        defaultTargetPlatform == TargetPlatform.iOS ? [1] : isEmpty,
-      );
-
-      await key.currentState!.pause();
-      onFrame(frame(600));
-      expect(controller.pauses, 1);
-      expect(measurements, hasLength(3));
-      await key.currentState!.resume();
-      await tester.pump();
-      onFrame(frame(800));
-      await tester.pump();
-      onFrame(frame(1000));
-      expect(controller.resumes, 1);
-      expect(measurements, hasLength(5));
-      expect(measurements.last.leadVehicleId, isNot(firstVehicleId));
-      expect(geometryReads, 2);
-
-      await key.currentState!.stop();
-      await key.currentState!.stop();
-      await key.currentState!.resume();
-      onFrame(frame(1200));
-      expect(controller.stops, 1);
-      expect(controller.resumes, 1);
-      expect(measurements, hasLength(5));
+      expect(engine.calls, 2);
+      expect(measurements.last.status, FollowingDistanceStatus.tracking);
+      expect(measurements.last.timestamp, now);
+      expect(measurements.last.distanceMeters, 26.8224);
+      expect(find.byIcon(Icons.videocam_off_outlined), findsNothing);
       await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-      onFrame(frame(1400));
-      expect(measurements, hasLength(5));
-      expect(controller.released, isTrue);
-      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+      expect(sources.single.closes, 1);
+      expect(engine.closes, 1);
     },
-    variant: TargetPlatformVariant({
-      TargetPlatform.android,
-      TargetPlatform.iOS,
-    }),
   );
 
-  testWidgets('missing camera geometry cannot generate guessed distances', (
+  testWidgets('busy inference drops new frames without creating a backlog', (
     tester,
   ) async {
-    permissionStatus = 1;
-    geometryResponse = null;
+    engine.result = Completer<RoadObservation>();
     await tester.pumpWidget(camera());
+    await tester.pumpAndSettle();
+    sources.single.emit(frame(0));
+    sources.single.emit(frame(1000));
+    sources.single.emit(frame(2000));
+    expect(engine.calls, 1);
+    engine.result!.complete(roadScene(start));
     await tester.pump();
+    expect(engine.calls, 1);
+    expect(measurements, hasLength(1));
+    engine.result = null;
+    sources.single.emit(frame(2100));
     await tester.pump();
-    final onFrame = tester
-        .widget<YOLOView>(find.byType(YOLOView))
-        .onStreamingData!;
-    onFrame(frame(0));
-    await tester.pump();
-    onFrame(frame(200));
-    expect(unavailable, greaterThanOrEqualTo(1));
-    expect(
-      measurements.every((measurement) => measurement.distanceMeters == null),
-      isTrue,
-    );
-    expect(geometryReads, 1);
-    await tester.pumpWidget(const SizedBox());
+    expect(engine.calls, 2);
+    expect(measurements.last.timestamp, now);
   });
 
   testWidgets(
-    'rotation recalculates geometry and restarts the target identity',
+    'expired inference never replaces capture time with arrival time',
     (tester) async {
-      permissionStatus = 1;
+      engine.result = Completer<RoadObservation>();
       await tester.pumpWidget(camera());
-      await tester.pump();
-      await tester.pump();
-      final onFrame = tester
-          .widget<YOLOView>(find.byType(YOLOView))
-          .onStreamingData!;
-      onFrame(frame(0));
-      await tester.pump();
-      onFrame(frame(200));
-      final portrait = measurements.last;
-      onFrame({...frame(400), 'imageWidth': 640, 'imageHeight': 480});
-      final landscape = measurements.last;
-      expect(portrait.distanceMeters, closeTo(8, 1e-9));
-      expect(landscape.distanceMeters, closeTo(6, 1e-9));
-      expect(landscape.leadVehicleId, isNot(portrait.leadVehicleId));
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets(
-    'stale metadata after pause cannot replace the resumed geometry',
-    (tester) async {
-      permissionStatus = 1;
-      final pending = Completer<Map<String, dynamic>?>();
-      pendingGeometry = pending;
-      final key = GlobalKey<FollowingDistanceCameraState>();
-      await tester.pumpWidget(camera(key: key));
-      await tester.pump();
-      await tester.pump();
-      final onFrame = tester
-          .widget<YOLOView>(find.byType(YOLOView))
-          .onStreamingData!;
-      onFrame(frame(0));
-      await tester.pump();
-      expect(geometryReads, 1);
-      await key.currentState!.pause();
-      pendingGeometry = null;
-      await key.currentState!.resume();
-      onFrame(frame(200));
-      await tester.pump();
-      onFrame(frame(400));
-      expect(measurements.last.distanceMeters, closeTo(8, 1e-9));
-      pending.complete({
-        'focalLength': 8,
-        'imagePlaneWidth': 6,
-        'imagePlaneHeight': 4.5,
-      });
-      await tester.pump();
-      onFrame(frame(600));
-      expect(measurements.last.distanceMeters, closeTo(8, 1e-9));
-      expect(geometryReads, 2);
-      expect(unavailable, 0);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
-
-  testWidgets(
-    'a permission check completing after stop cannot start inference',
-    (tester) async {
-      pendingPermission = Completer<int>();
-      final key = GlobalKey<FollowingDistanceCameraState>();
-      await tester.pumpWidget(camera(key: key));
-      await tester.pump();
-      await key.currentState!.stop();
-      pendingPermission!.complete(1);
       await tester.pumpAndSettle();
-      expect(find.byType(YOLOView), findsNothing);
+      sources.single.emit(frame(0));
+      now = start.add(const Duration(seconds: 6));
+      engine.result!.complete(roadScene(start));
+      await tester.pump();
       expect(measurements, isEmpty);
-      expect(permissionRequests, 0);
-      expect(tester.takeException(), isNull);
+      expect(unavailable, 1);
     },
   );
 
-  testWidgets(
-    'starting in the background defers the camera; native stop failure still releases its controller',
-    (tester) async {
-      final key = GlobalKey<FollowingDistanceCameraState>();
-      await tester.pumpWidget(camera(key: key, active: false));
-      await tester.pumpAndSettle();
-      expect(find.byType(YOLOView), findsNothing);
-      expect(unavailable, 0);
-      await tester.pumpWidget(camera(key: key));
-      await tester.pumpAndSettle();
-      expect(controller.resumes, 1);
-      expect(unavailable, 1);
-      controller.failStop = true;
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-      expect(controller.released, isTrue);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('pause closes the camera and resume ignores the old stream', (
+    tester,
+  ) async {
+    final key = GlobalKey<FollowingDistanceCameraState>();
+    await tester.pumpWidget(camera(key: key));
+    await tester.pumpAndSettle();
+    final old = sources.single;
+    old.emit(frame(0));
+    await tester.pump();
+    await key.currentState!.pause();
+    await tester.pump();
+    expect(old.closes, 1);
+    old.emit(frame(1000));
+    await tester.pump();
+    expect(engine.calls, 1);
+    await key.currentState!.resume();
+    await tester.pump();
+    old.emit(frame(2000));
+    await tester.pump();
+    expect(engine.calls, 1);
+    sources.last.emit(frame(3000));
+    await tester.pump();
+    expect(measurements.last.status, FollowingDistanceStatus.tracking);
+    await key.currentState!.stop();
+    await tester.pump();
+    sources.last.emit(frame(4000));
+    await tester.pump();
+    expect(engine.calls, 2);
+    expect(engine.closes, 1);
+    expect(sources.every((source) => source.closes == 1), isTrue);
+  });
+
+  testWidgets('dispose releases the camera before model loading completes', (
+    tester,
+  ) async {
+    engine.loading = Completer<void>();
+    await tester.pumpWidget(camera());
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+    expect(sources.single.closes, 1);
+    expect(engine.closes, 0);
+    engine.loading!.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(engine.closes, 1);
+    expect(unavailable, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('dispose during permission lookup never opens a camera', (
+    tester,
+  ) async {
+    permission = Completer<int>();
+    await tester.pumpWidget(camera());
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    permission!.complete(1);
+    await tester.pumpAndSettle();
+    expect(sources, isEmpty);
+    expect(measurements, isEmpty);
+    expect(unavailable, 0);
+  });
+
+  testWidgets('a raw camera gap discards even a currently processing frame', (
+    tester,
+  ) async {
+    engine.result = Completer<RoadObservation>();
+    await tester.pumpWidget(camera());
+    await tester.pumpAndSettle();
+    sources.single.emit(frame(0));
+    sources.single.emit(frame(2000));
+    expect(unavailable, 1);
+    engine.result!.complete(roadScene(start));
+    await tester.pump();
+    expect(measurements, isEmpty);
+    engine.result = null;
+    sources.single.emit(frame(2100));
+    await tester.pump();
+    expect(measurements.single.status, FollowingDistanceStatus.tracking);
+  });
 }
