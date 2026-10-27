@@ -12,7 +12,8 @@ secondary 58%) and poor everywhere else - residential is 8.6% of 584k ways.
 A lookup that only answers for tagged roads therefore says nothing about
 neighbourhood driving, which is where a 25 mph limit matters most. The numbers
 below come from the extract itself rather than from a table someone wrote down;
-see README for the queries that produced them.
+see README for the queries that produced them, and for how they sit against
+Florida's statutory defaults (F.S. 316.183).
 """
 
 import re
@@ -65,20 +66,30 @@ POSTED_SPEEDING_THRESHOLD_MPH = 5.0
 #   residential   25 mph on 68.4% of 50,546 tagged ways, and 30 mph is the
 #                 practical ceiling (25+30 = 79.7%, 35 is under 4%). Tolerance
 #                 of 10 = (30 ceiling - 25 assumed) + 5 normal, so 30 in a real
-#                 30 never fires and 35+ always does. Also matches PA's 25 mph
-#                 statutory urban-district limit, which is the legal backstop
+#                 30 never fires and 35+ always does. Florida's statutory
+#                 residence-district default is 30 (316.183(2)), but it lets
+#                 localities lower it to 20/25, and the extract shows most have.
+#                 Assuming 30 would show a driver on a real 25 a limit higher
+#                 than the law allows, which is the worse mistake
 #   unclassified  25 mph on 35.9% of 2,794 - a weaker mode with a 35 mph tail,
 #                 so it takes a wider 15 = (35 - 25) + 5
 #   living_street 88 tagged ways total, spread 5-25, mode 10. Barely 1,240 ways
 #                 in the extract, so the number matters little either way
 #
-# Deliberately absent, because assuming a number would invent violations:
+# Deliberately absent, because assuming a number would invent violations or
+# show the driver a limit higher than the real one:
 #   tertiary      30/35/40/45 at 33/25/13/12% - no mode to speak of. Assume 30
 #                 and a driver legally doing 50 on a real 45 reads as 20 over
 #   secondary     same flat shape, and already 58% tagged
 #   service       modal 15, but grading someone's driveway is not the point
 #   *_link        ramps vary far too much to guess at
 #   motorway etc. already 90%+ tagged; an untagged one is an outlier, not a gap
+#
+# Florida's statutory defaults don't fill these gaps either: outside residential
+# streets the default is 30 in a business or residence district and 55
+# everywhere else (316.183(2)), and a road's row can't say which side of that
+# line it is on. Assuming 55 would put "EST. LIMIT 55" on the dashboard for
+# in-town roads that are really posted 30-45
 INFERRED_SPEED_LIMITS_MPH: dict[str, tuple[float, float]] = {
     "residential": (25.0, 10.0),
     "unclassified": (25.0, 15.0),
