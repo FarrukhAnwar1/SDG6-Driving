@@ -105,7 +105,7 @@ class still doesn't register as speeding.
 
 | `highway` | Assumed | Tolerance | Basis |
 | --- | --- | --- | --- |
-| `residential` | 25 mph | 10 mph | 68.4% of 50,546 tagged ways; 30 is the ceiling (25+30 = 79.7%). Matches PA's statutory 25 mph urban-district limit |
+| `residential` | 25 mph | 10 mph | 68.4% of 50,546 tagged ways; 30 is the ceiling (25+30 = 79.7%). Florida's statutory default is 30, but localities may lower it to 25 (see below) |
 | `unclassified` | 25 mph | 15 mph | 35.9% of 2,794 — weaker mode with a 35 mph tail |
 | `living_street` | 15 mph | 10 mph | 88 tagged ways, spread 5–25; only 1,240 ways in the extract |
 
@@ -114,6 +114,23 @@ driver legally doing 50 on a real 45 reads as 20 over), `secondary` (same flat
 shape, already 58% tagged), `service` (grading driveways isn't the point),
 `*_link` (ramps vary far too much), and the arterials (already 90%+ tagged, so
 an untagged one is an outlier rather than a gap).
+
+##### Against Florida's statutory defaults
+
+Florida sets a default limit for roads with no sign (F.S. §316.183(2)): 30 mph
+in a business or residence district and 55 mph everywhere else. The table above
+deliberately doesn't use those numbers:
+
+- **Residential streets assume 25, not 30.** The statute lets cities and
+  counties lower residence districts to 20 or 25, and the extract shows most
+  have. The dashboard displays an assumed limit as `EST. LIMIT`, so the two
+  possible mistakes aren't equal: showing 25 on a real 30 asks the driver to go
+  slightly slower than needed, but showing 30 on a real 25 tells them a speed
+  the law doesn't allow is fine.
+- **Other classes stay ungraded rather than taking 30 or 55.** Which default
+  applies depends on the district, and a road's OSM row can't say which one it
+  is in. Assuming 55 would put `EST. LIMIT 55` on in-town roads really posted
+  30–45. Showing no limit is more honest than showing a wrong one.
 
 `maxspeed=unposted` (392 ways) resolves to the assumed limit rather than to
 nothing, since that tag is stating the statutory default applies.

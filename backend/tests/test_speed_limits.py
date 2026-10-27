@@ -78,7 +78,10 @@ def test_inference_is_off_by_default() -> None:
     assert resolve_speed_limit(None, "residential") == (None, "unknown", None)
 
 
-def test_a_residential_street_falls_back_to_the_statutory_25() -> None:
+def test_a_residential_street_falls_back_to_its_common_25() -> None:
+    # Florida's statutory default is 30, but most residential streets in the
+    # extract are zoned down to 25, and showing 30 on a real 25 is the worse
+    # mistake
     limit, source, threshold = resolve_speed_limit(None, "residential", infer=True)
     assert (limit, source) == (25.0, "inferred")
     # Wide enough that 30 in a real 30 zone never registers as speeding
@@ -97,6 +100,14 @@ def test_unposted_lands_on_the_assumption_rather_than_on_nothing() -> None:
 def test_classes_with_no_usable_mode_are_left_ungraded(highway) -> None:
     # Their tagged ways are spread too wide for one number to describe, so
     # assuming one would invent violations on roads where nothing was wrong
+    assert resolve_speed_limit(None, highway, infer=True) == (None, "unknown", None)
+
+
+@pytest.mark.parametrize("highway", ["motorway", "trunk", "primary"])
+def test_arterials_do_not_take_a_statutory_default(highway) -> None:
+    # Florida's default is 30 or 55 depending on the district, which a road's
+    # row can't say, so an untagged arterial shows no limit rather than a
+    # possibly wrong one
     assert resolve_speed_limit(None, highway, infer=True) == (None, "unknown", None)
 
 
