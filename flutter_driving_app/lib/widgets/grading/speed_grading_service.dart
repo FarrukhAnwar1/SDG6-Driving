@@ -94,6 +94,10 @@ class SpeedGradingService {
   double get grade => _grade;
   int get violationCount => _violations.length;
 
+  // True while the current streak is past grace and costing points. Read-only
+  // view of existing streak state (used to time Live Voice Feedback alerts).
+  bool get isPenalizing => _lastPenalizedThrough != null;
+
   // Closed violations, with grouped start/end times, the initial limit,
   // peak speed, and the coordinates where the first streak began.
   List<SpeedingViolation> get violations => List.unmodifiable(_violations);

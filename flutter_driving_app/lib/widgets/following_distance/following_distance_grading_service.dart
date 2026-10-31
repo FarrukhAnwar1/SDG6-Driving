@@ -79,6 +79,10 @@ class FollowingDistanceGradingService {
   List<FollowingDistanceViolation> get violations =>
       List.unmodifiable(_violations);
 
+  // True while the current streak is past grace and costing points. Read-only
+  // view of existing streak state (used to time Live Voice Feedback alerts).
+  bool get isPenalizing => _streak?.penalizedThrough != null;
+
   void addSample({
     required double speedMph,
     required double? distanceMeters,

@@ -47,6 +47,8 @@ class FollowingDistanceMonitoringService {
       drivingMode.tracksFollowingDistance ? _grading.grade : null;
   List<FollowingDistanceViolation> get violations =>
       drivingMode.tracksFollowingDistance ? _grading.violations : const [];
+  bool get isPenalizing =>
+      drivingMode.tracksFollowingDistance && _grading.isPenalizing;
   FollowingDistanceStatus get status => _status;
   double? get headwaySeconds => _headwaySeconds;
   Duration? get measurementAge => _lastMeasurementTime == null

@@ -44,6 +44,10 @@ dependencies:
   fl_chart: ^1.2.0
   camera: 0.12.1
   flutter_onnxruntime: 1.9.0
+  # Live Voice Feedback relies on this version's Android audio focus and
+  # navigation attributes, and its iOS ducking, as described in
+  # docs/voice_feedback.md. Re-check those and the AGP 9 build before upgrading.
+  flutter_tts: 4.2.5
 
 # geolocator 13 requires Android >=4.6.0, whose unconditional NMEA listener can
 # hang the Android main thread on cancellation. Keep the compatible 4.5.5 API
