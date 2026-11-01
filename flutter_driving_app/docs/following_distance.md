@@ -173,6 +173,16 @@ other unsupported platforms display an unavailable camera placeholder without
 loading native models; ordinary browser UI debugging remains available.
 Use `flutter run -d edge --dart-define=ENVIRONMENT=dev_browser` for the existing
 browser permission bypass. Live GPS/sensor trips still require a phone.
+
+Android emulators skip the road camera and native model loading by default.
+An emulator run took about 26 seconds per observation, exceeding the five-second
+grading deadline; its logs also showed large frame stalls. Regular mode still tracks GPS,
+speed limits, focus and voice feedback; following-distance monitoring remains
+unavailable and does not record violations. A 100 score still means no confirmed
+penalty, not camera coverage. Physical Android phones keep the existing pipeline.
+For deliberate emulator model diagnostics, opt in with
+`--dart-define=ROAD_MONITORING_ON_EMULATOR=true`. Fully restart the app when changing
+this flag. The parked monitoring probe below also requires this flag on emulators.
 Browser smoke tests are in `following_distance_web_test.dart`; on Windows,
 `CHROME_EXECUTABLE` may point to Edge. The installed Flutter 3.44.1 test server
 has previously needed an SDK CanvasKit asset-serving workaround on Windows.

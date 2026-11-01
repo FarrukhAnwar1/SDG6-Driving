@@ -42,9 +42,10 @@ class _Source implements RoadCameraSource {
 class _Engine implements RoadVisionEngine {
   Completer<void>? loading;
   Completer<RoadObservation>? result;
-  int calls = 0, closes = 0;
+  int calls = 0, closes = 0, initializes = 0;
   @override
   Future<void> initialize() async {
+    initializes++;
     await loading?.future;
   }
 
@@ -65,12 +66,14 @@ void main() {
   if (kIsWeb) return;
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   const permissions = MethodChannel('flutter.baseflow.com/permissions/methods');
+  const deviceInfo = MethodChannel('dev.fluttercommunity.plus/device_info');
   final start = DateTime.utc(2026, 10, 23);
   late DateTime now;
   late _Engine engine;
   late List<_Source> sources;
   late List<FollowingDistanceMeasurement> measurements;
   late int unavailable, permissionStatus, requests;
+  late bool physicalDevice;
   Completer<int>? permission;
 
   setUp(() {
@@ -81,7 +84,42 @@ void main() {
     unavailable = 0;
     permissionStatus = 1;
     requests = 0;
+    physicalDevice = true;
     permission = null;
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      deviceInfo,
+      (call) async => {
+        for (final field in [
+          'board',
+          'bootloader',
+          'brand',
+          'device',
+          'display',
+          'fingerprint',
+          'hardware',
+          'host',
+          'id',
+          'manufacturer',
+          'model',
+          'product',
+          'tags',
+          'type',
+        ])
+          field: 'test',
+        'version': {
+          'sdkInt': 36,
+          'release': '16',
+          'codename': 'REL',
+          'incremental': '1',
+        },
+        'isPhysicalDevice': physicalDevice,
+        'freeDiskSize': 1000000,
+        'totalDiskSize': 2000000,
+        'isLowRamDevice': false,
+        'physicalRamSize': 8192,
+        'availableRamSize': 4096,
+      },
+    );
     binding.defaultBinaryMessenger.setMockMethodCallHandler(permissions, (
       call,
     ) async {
@@ -94,6 +132,7 @@ void main() {
   });
   tearDown(() {
     binding.defaultBinaryMessenger.setMockMethodCallHandler(permissions, null);
+    binding.defaultBinaryMessenger.setMockMethodCallHandler(deviceInfo, null);
   });
 
   Widget camera({
@@ -170,6 +209,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(camera());
       await tester.pumpAndSettle();
+      expect(engine.initializes, 1);
       sources.single.emit(frame(0));
       await tester.pump();
       sources.single.emit(frame(999));
@@ -187,6 +227,33 @@ void main() {
       expect(sources.single.closes, 1);
       expect(engine.closes, 1);
     },
+  );
+
+  testWidgets(
+    'Android emulator never opens a camera or loads native models',
+    (tester) async {
+      physicalDevice = false;
+      final key = GlobalKey<FollowingDistanceCameraState>();
+      await tester.pumpWidget(camera(key: key));
+      await tester.pumpAndSettle();
+      expect(unavailable, 1);
+      expect(sources, isEmpty);
+      expect(engine.initializes, 0);
+      expect(engine.calls, 0);
+      expect(requests, 0);
+      expect(find.byIcon(Icons.videocam_off_outlined), findsOneWidget);
+      // Returning to a Regular trip must not retry expensive initialization.
+      await key.currentState!.pause();
+      await key.currentState!.resume();
+      await tester.pumpAndSettle();
+      expect(unavailable, 2);
+      expect(sources, isEmpty);
+      expect(engine.initializes, 0);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    },
+    variant: TargetPlatformVariant({TargetPlatform.android}),
   );
 
   testWidgets('busy inference drops new frames without creating a backlog', (

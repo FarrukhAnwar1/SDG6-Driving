@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -51,6 +52,7 @@ class FollowingDistanceCameraState extends State<FollowingDistanceCamera> {
   RoadVisionEngine? _engine;
   Future<void> _cameraCleanup = Future.value();
   Future<void>? _stopping;
+  Future<bool>? _deviceSupported;
   DateTime? _lastStarted;
   DateTime? _lastRawFrameTime;
   int _measurementEpoch = 0;
@@ -84,6 +86,25 @@ class FollowingDistanceCameraState extends State<FollowingDistanceCamera> {
   bool _current(int version) =>
       mounted && !_stopped && !_paused && version == _version;
 
+  Future<bool> _supportsDevice() async {
+    if (defaultTargetPlatform != TargetPlatform.android ||
+        const bool.fromEnvironment('ROAD_MONITORING_ON_EMULATOR')) {
+      return true;
+    }
+    final physical = (await DeviceInfoPlugin().androidInfo).isPhysicalDevice;
+    if (!physical) {
+      // Emulated camera/model work can starve GPS and lifecycle delivery, and
+      // its results arrive too late to grade. Check before opening the camera
+      // or allocating either model; a Dart timeout cannot cancel native work.
+      debugPrint(
+        'ROAD MONITORING: disabled on Android emulator. '
+        'Use a physical phone for following-distance grading, or opt in with '
+        '--dart-define=ROAD_MONITORING_ON_EMULATOR=true for model diagnostics.',
+      );
+    }
+    return physical;
+  }
+
   Future<void> _start() async {
     final version = ++_version;
     try {
@@ -92,6 +113,12 @@ class FollowingDistanceCameraState extends State<FollowingDistanceCamera> {
             TargetPlatform.android,
             TargetPlatform.iOS,
           ].contains(defaultTargetPlatform)) {
+        _unavailable(version);
+        return;
+      }
+      final supported = await (_deviceSupported ??= _supportsDevice());
+      if (!_current(version)) return;
+      if (!supported) {
         _unavailable(version);
         return;
       }
