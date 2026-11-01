@@ -4,6 +4,9 @@ See [Live following-distance grading](docs/following_distance.md) for the
 camera baseline, grading thresholds, trip modes, summary/report handoff,
 testing, and the separate backend/Settings integration work.
 
+See [Live Voice Feedback](docs/voice_feedback.md) for the spoken dashboard
+alerts, their rate limits, platform audio behavior, and the separate toggle task.
+
 ## Source and test layout
 
 Widgets and supporting code are grouped one level below `lib/widgets/` by
@@ -19,6 +22,7 @@ feature. Related tests use the same feature folders under `test/`.
 | `grading/` | Speed, smoothness, focus, overall grades, and grade presentation. |
 | `permissions/` | Required platform permissions. |
 | `shared/` | API configuration and reusable error messages. |
+| `voice_feedback/` | Spoken Live Dashboard alerts when the driver starts losing grade points. |
 
 Shared test data lives in `test/fixtures/`. Run all tests with `flutter test`, or
 run one feature with, for example, `flutter test test/following_distance/`.

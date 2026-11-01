@@ -17,6 +17,9 @@ import '../widgets/following_distance/vehicle_distance_estimator.dart';
 import '../widgets/driving/orientation_calibration_service.dart';
 import '../widgets/driving_reports/trip_summary.dart';
 import '../widgets/auth/auth_storage.dart';
+import '../widgets/voice_feedback/voice_alerts.dart';
+import '../widgets/voice_feedback/voice_feedback_service.dart';
+import '../widgets/voice_feedback/voice_output.dart';
 import 'driving_report_screen.dart';
 
 // Formats a duration as mm:ss, or hh:mm:ss if over an hour
@@ -47,6 +50,9 @@ class LiveDashboardScreen extends StatefulWidget {
   final String? ownerUserId;
   final FollowingDistanceCameraBuilder? followingDistanceCameraBuilder;
   final DateTime Function()? clock;
+  // Starting state of Live Voice Feedback; see docs/voice_feedback.md
+  final bool voiceFeedbackEnabled;
+  final VoiceOutput? voiceOutput;
 
   const LiveDashboardScreen({
     super.key,
@@ -54,6 +60,8 @@ class LiveDashboardScreen extends StatefulWidget {
     this.ownerUserId,
     this.followingDistanceCameraBuilder,
     this.clock,
+    this.voiceFeedbackEnabled = true,
+    this.voiceOutput,
   });
 
   @override
@@ -96,6 +104,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   late final FollowingDistanceMonitoringService _followingDistanceMonitoring;
   final _followingDistanceCameraKey = GlobalKey<FollowingDistanceCameraState>();
   bool _cameraResumed = true;
+  // Spoken alerts; the graders above are its only input
+  late final VoiceFeedbackService _voiceFeedback;
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
@@ -129,6 +139,18 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       drivingMode: widget.drivingMode,
       clock: widget.clock,
     );
+    _voiceFeedback = VoiceFeedbackService(
+      detector: VoiceAlertDetector(
+        drivingMode: widget.drivingMode,
+        speedGrading: _properSpeedGrading,
+        smoothnessGrading: _smoothnessGrading,
+        focusedDrivingGrading: _focusedDrivingGrading,
+        followingDistanceMonitoring: _followingDistanceMonitoring,
+      ),
+      output: widget.voiceOutput,
+      clock: widget.clock,
+      enabled: widget.voiceFeedbackEnabled,
+    );
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _cameraResumed =
         lifecycle == null || lifecycle == AppLifecycleState.resumed;
@@ -137,6 +159,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted || _isStoppingTrip) return;
       _followingDistanceMonitoring.checkForInterruption();
+      _voiceFeedback.check();
       setState(() => _elapsed = _now.difference(_tripStartTime));
     });
     _startListening();
@@ -163,6 +186,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         unawaited(_followingDistanceCameraKey.currentState?.pause());
       }
     }
+    _voiceFeedback.check();
     // Coming back to "resumed" may have just closed out a violation and
     // changed the grade, so refresh the displayed numbers.
     if (mounted) setState(() {});
@@ -235,6 +259,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       longitude: position.longitude,
       timestamp: event.timestamp,
     );
+    _voiceFeedback.check();
   }
 
   Future<void> _startListening() async {
@@ -258,6 +283,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _voiceFeedback.stop();
     _elapsedTimer?.cancel();
     _positionSubscription?.cancel();
     _accelerometerSubscription?.cancel();
@@ -371,6 +397,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       longitude: position.longitude,
       timestamp: position.timestamp,
     );
+    _voiceFeedback.check();
 
     if (!mounted) return;
     setState(() {
@@ -456,6 +483,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   Future<void> _stopTrip() async {
     if (_isStoppingTrip) return;
     setState(() => _isStoppingTrip = true);
+    // Before finalizing: closing out the graders must not trigger an alert
+    _voiceFeedback.stop();
     _elapsedTimer?.cancel();
     final now = _now;
     // Close out any in-progress streak so it's counted below
@@ -557,6 +586,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
   void _handleFollowingDistance(FollowingDistanceMeasurement measurement) {
     if (!mounted || _isStoppingTrip) return;
     setState(() => _followingDistanceMonitoring.addMeasurement(measurement));
+    _voiceFeedback.check();
   }
 
   void _handleCameraUnavailable() {
