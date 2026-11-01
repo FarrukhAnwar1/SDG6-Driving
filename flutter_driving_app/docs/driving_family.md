@@ -45,7 +45,8 @@ matching the existing driving report API's grade names and units:
           "brakingGrade": 82,
           "accelerationGrade": 85,
           "turningGrade": 94,
-          "focusGrade": 96
+          "focusGrade": 96,
+          "followingDistanceGrade": 91
         },
         "latestDrive": {
           "reportDate": "2026-10-05T14:30:00Z",
@@ -54,7 +55,8 @@ matching the existing driving report API's grade names and units:
           "brakingGrade": 89,
           "accelerationGrade": 90,
           "turningGrade": 96,
-          "focusGrade": 98
+          "focusGrade": 98,
+          "followingDistanceGrade": 94
         },
         "totalDrivingMinutes": 90.5,
         "totalDistanceMiles": 45.6
@@ -74,9 +76,15 @@ matching the existing driving report API's grade names and units:
 ```
 
 The members list includes the admin and current user. IDs are integers. Grades
-are percentages from 0 to 100; nullable grades display an em dash. The backend
-calculates averages and totals across **all** saved reports and selects the
-latest report by its end/report time. `reportDate` can be null for older reports.
+are percentages from 0 to 100; nullable grades display an em dash. `focusGrade`
+and `followingDistanceGrade` are null when that category was not measured
+(navigation omits focus; pocket omits focus and following distance; older
+reports may also have a null following-distance grade). Averages skip those
+nulls and are themselves null when no measured score exists. A score of 0 is a
+real score and stays in the average. The backend calculates averages and totals
+across **all** saved reports and selects the latest report by its end/report
+time. `reportDate` can be null for older reports. Latest-drive grades are the
+saved report's own grades, including nulls.
 Timestamps with no timezone offset are interpreted as UTC, as in Analytics.
 
 No membership, including a removed member, returns HTTP 200

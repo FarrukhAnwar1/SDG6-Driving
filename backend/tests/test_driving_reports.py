@@ -28,11 +28,14 @@ def valid_report(**overrides) -> dict:
         "overallGrade": 87.0,
         "speedGrade": 87.0,
         "focusGrade": 100.0,
+        "followingDistanceGrade": 100.0,
     }
     body.update(overrides)
-
-    if body.get("drivingMode", "regular") == "navigation" and "focusGrade" not in overrides:
+    mode = body.get("drivingMode", "regular")
+    if mode in ("navigation", "pocket") and "focusGrade" not in overrides:
         body["focusGrade"] = None
+    if mode == "pocket" and "followingDistanceGrade" not in overrides:
+        body["followingDistanceGrade"] = None
 
     return body
 
@@ -124,6 +127,8 @@ def test_rejects_a_distance_too_large_for_the_column() -> None:
         ("accelerationGrade", -1),
         ("turningGrade", 101),
         ("focusGrade", -1),
+        ("followingDistanceGrade", 101),
+        ("followingDistanceGrade", -1),
         ("tripDistanceMiles", -0.1),
     ],
 )
@@ -232,6 +237,66 @@ def test_a_navigation_report_still_takes_the_other_grades() -> None:
     assert report.turning_grade == 88.0
 
 
+def test_regular_and_navigation_require_a_following_distance_score() -> None:
+    for mode in ("regular", "navigation"):
+        body = valid_report(drivingMode=mode)
+        del body["followingDistanceGrade"]
+        with pytest.raises(ValidationError, match="followingDistanceGrade is required"):
+            DrivingReportCreate.model_validate(body)
+
+
+def test_a_zero_following_distance_grade_stays_zero() -> None:
+    report = DrivingReportCreate.model_validate(valid_report(followingDistanceGrade=0))
+    assert report.following_distance_grade == 0
+
+
+def test_a_pocket_report_leaves_focus_and_following_distance_null() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(drivingMode="pocket", brakingGrade=72.5)
+    )
+    assert report.driving_mode == "pocket"
+    assert report.focus_grade is None
+    assert report.following_distance_grade is None
+    assert report.braking_grade == 72.5
+
+
+@pytest.mark.parametrize(
+    "overrides, message",
+    [
+        ({"focusGrade": 90.0}, "focusGrade must be null"),
+        ({"followingDistanceGrade": 0}, "followingDistanceGrade must be null"),
+        ({"followingDistanceGrade": 90.0}, "followingDistanceGrade must be null"),
+    ],
+)
+def test_a_pocket_report_rejects_an_untracked_score(overrides: dict, message: str) -> None:
+    with pytest.raises(ValidationError, match=message):
+        DrivingReportCreate.model_validate(valid_report(drivingMode="pocket", **overrides))
+
+
+def test_a_pocket_report_serializes_null_untracked_grades() -> None:
+    from app import models
+
+    row = models.DrivingReport(
+        id=9,
+        user_id=1,
+        driving_mode="pocket",
+        overall_grade=87.0,
+        speed_grade=87.0,
+        braking_grade=100.0,
+        acceleration_grade=100.0,
+        turning_grade=100.0,
+        focus_grade=None,
+        following_distance_grade=None,
+        report_date=datetime(2026, 7, 30, 10, 30),
+        trip_duration_minutes=30.0,
+        trip_distance_miles=12.4,
+    )
+    body = DrivingReportOut.model_validate(row).model_dump(by_alias=True)
+    assert body["drivingMode"] == "pocket"
+    assert body["focusGrade"] is None
+    assert body["followingDistanceGrade"] is None
+
+
 def test_an_unknown_mode_is_rejected() -> None:
     # It would fail the driving_mode ENUM at INSERT
     with pytest.raises(ValidationError):
@@ -251,6 +316,7 @@ def test_a_navigation_report_serializes_a_null_focus_grade() -> None:
         acceleration_grade=100.0,
         turning_grade=100.0,
         focus_grade=None,
+        following_distance_grade=84.0,
         report_date=datetime(2026, 7, 30, 10, 30),
         trip_duration_minutes=30.0,
         trip_distance_miles=12.4,
@@ -258,4 +324,5 @@ def test_a_navigation_report_serializes_a_null_focus_grade() -> None:
     body = DrivingReportOut.model_validate(row).model_dump(by_alias=True)
 
     assert body["drivingMode"] == "navigation"
+    assert body["followingDistanceGrade"] == 84.0
     assert body["focusGrade"] is None

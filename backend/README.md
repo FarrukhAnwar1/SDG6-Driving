@@ -263,13 +263,14 @@ This table exists in MySQL - `POST /driving-reports` writes to it.
 | `user_id` | `int` | taken from the bearer token, never from the request body |
 | `client_trip_id` | `varchar(36)` | stable upload UUID; unique together with `user_id`; nullable on historical rows |
 | `upload_payload_hash` | `char(64)` | SHA-256 of normalized upload data, used to reject conflicting reuse of a trip ID; nullable on historical rows |
-| `driving_mode` | `enum('regular','navigation')` | `NOT NULL DEFAULT 'regular'`, see *Driving modes* below |
+| `driving_mode` | `enum('regular','navigation','pocket')` | `NOT NULL DEFAULT 'regular'`, see *Driving modes* below |
 | `overall_grade` | `decimal(5,2)` | |
 | `speed_grade` | `decimal(5,2)` | from `SpeedGradingService` |
 | `braking_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
 | `acceleration_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
 | `turning_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
-| `focus_grade` | `decimal(5,2)` | from `FocusedDrivingGradingService`; nullable — `NULL` exactly when `driving_mode` is `navigation` |
+| `focus_grade` | `decimal(5,2)` | from `FocusedDrivingGradingService`; nullable — `NULL` when `driving_mode` is `navigation` or `pocket` |
+| `following_distance_grade` | `decimal(5,2)` | nullable — `NULL` on `pocket` reports and on reports saved before following distance was tracked. A measured `0` stays `0` |
 | `report_date` | `datetime` | set to the trip's end time, not the insert time |
 | `trip_duration_minutes` | `decimal(5,2)` | derived from the timestamps, caps at 999.99 |
 | `trip_distance_miles` | `decimal(6,2)` | caps at 9999.99 |
@@ -291,16 +292,22 @@ Two things to know about the live table:
 
 ### Driving modes
 
-A trip is driven in one of two modes, stored in `driving_mode`:
+A trip is driven in one of three modes, stored in `driving_mode`:
 
-- **`regular`** grades every dimension: speed, braking, acceleration, turning
-  and focus.
+- **`regular`** grades every dimension: speed, braking, acceleration, turning,
+  focus, and following distance.
 - **`navigation`** grades every dimension *except focus*. A driver following
   directions has to look at the phone, so focus isn't tracked: `focus_grade` is
   `NULL` and no `Focused Driving` violations are recorded for the trip.
+  Following distance is still graded.
+- **`pocket`** grades speed, braking, acceleration, and turning only. The phone
+  is not watching the road, so focus and following distance are not tracked:
+  both grades are `NULL`, and the trip records neither `Focused Driving` nor
+  `Adequate Following Distance` violations.
 
 Every report saved before modes existed was a regular drive, and the column's
-default backfills them as such. The migration, for an existing table:
+default backfills them as such. The original mode migration, for an existing
+table that predates modes:
 
 ```sql
 ALTER TABLE driving_reports
@@ -313,11 +320,43 @@ ALTER TABLE driving_reports
     );
 ```
 
+Pocket mode and following distance, for a table that already has the two-mode
+column. Leave existing `following_distance_grade` values `NULL`. Do not
+backfill them with `100` or `0`; those rows were not measured, and averages
+skip nulls. The check allows that historical null on regular and navigation
+rows. New uploads of those two modes are required to send a score by the API.
+
+```sql
+ALTER TABLE driving_reports
+    MODIFY driving_mode ENUM('regular', 'navigation', 'pocket') NOT NULL
+        DEFAULT 'regular',
+    ADD COLUMN following_distance_grade decimal(5,2) NULL AFTER focus_grade,
+    DROP CHECK chk_focus_grade_matches_mode,
+    ADD CONSTRAINT chk_focus_grade_matches_mode CHECK (
+        (driving_mode = 'regular' AND focus_grade IS NOT NULL) OR
+        (driving_mode = 'navigation' AND focus_grade IS NULL) OR
+        (driving_mode = 'pocket' AND focus_grade IS NULL
+            AND following_distance_grade IS NULL)
+    );
+
+ALTER TABLE violations
+    MODIFY violation_type ENUM(
+        'Proper Speed',
+        'Smooth Braking',
+        'Smooth Accelerating',
+        'Smooth Turning',
+        'Focused Driving',
+        'Adequate Following Distance'
+    ) NOT NULL;
+```
+
 Adding a `NOT NULL` column with a default fills every existing row with
-`'regular'`, so no separate `UPDATE` is needed. The `CHECK` keeps a report from
-claiming to be one mode while graded as the other. The API validates the same
-pairing up front (see `POST /driving-reports`), so a mismatch comes back as a
-`422` rather than a constraint failure at `INSERT`.
+`'regular'`, so no separate `UPDATE` is needed for the original mode column.
+The `CHECK` keeps a report from claiming to be one mode while graded as
+another. The API validates the same pairing up front (see
+`POST /driving-reports`), so a mismatch comes back as a `422` rather than a
+constraint failure at `INSERT`. Apply this migration before deploying an API
+that writes `pocket` or `Adequate Following Distance`.
 
 The mode labels are spelled out in `DRIVING_MODES` in `schemas.py`, matching
 the `ENUM` exactly.
@@ -333,7 +372,7 @@ mirrored by `Violation` in `app/models.py`:
 | `id` | `int` | primary key, auto increment |
 | `user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), denormalized from the parent report |
 | `driving_report_id` | `int` | FK → `driving_reports.id` (`ON DELETE CASCADE`) |
-| `violation_type` | `enum` | `Proper Speed`, `Smooth Braking`, `Smooth Accelerating`, `Smooth Turning`, `Focused Driving` |
+| `violation_type` | `enum` | `Proper Speed`, `Smooth Braking`, `Smooth Accelerating`, `Smooth Turning`, `Focused Driving`, `Adequate Following Distance` |
 | `road_name` | `varchar(255)` | nullable — the speed-limit lookup returns no name off-road or outside the OSM extract |
 | `start_time` | `datetime` | |
 | `end_time` | `datetime` | `CHECK (end_time >= start_time)` |
@@ -379,6 +418,7 @@ the violation's shape. `TripSummary` keeps five lists, and they map like this:
 | `acceleratingViolations` | `Smooth Accelerating` |
 | `turningViolations` | `Smooth Turning` |
 | `focusedDrivingViolations` | `Focused Driving` |
+| `followingDistanceViolations` | `Adequate Following Distance` |
 
 The grading services also record details with no column: `speedLimitMph` and
 `peakSpeedMph` on a speeding streak, `peakGForce` on a smoothness violation,
@@ -582,6 +622,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
       "accelerationGrade": 90.0,
       "turningGrade": 88.0,
       "focusGrade": 80.0,
+      "followingDistanceGrade": 76.0,
       "violations": [
         {
           "violationType": "Proper Speed",
@@ -601,7 +642,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     {
       "id": 1, "drivingMode": "regular", "overallGrade": 87.0, "speedGrade": 92.0,
       "brakingGrade": 85.0, "accelerationGrade": 90.0,
-      "turningGrade": 88.0, "focusGrade": 80.0,
+      "turningGrade": 88.0, "focusGrade": 80.0, "followingDistanceGrade": 76.0,
       "reportDate": "2026-07-30T10:30:00",
       "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4,
       "violations": [
@@ -613,14 +654,25 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     }
     ```
 
-    The app sends all five grades. `brakingGrade`, `accelerationGrade`,
-    `turningGrade` and `focusGrade` are still optional and default to `100.0`,
-    left over from when the app graded speed alone.
+    The app sends every grade its current mode tracks. `brakingGrade`,
+    `accelerationGrade`, and `turningGrade` are still optional and default to
+    `100.0`, left over from when the app graded speed alone. `focusGrade` and
+    `followingDistanceGrade` are never filled in with `100` or `0`. A missing
+    score for a tracked category is a `422`. An untracked category is stored
+    and returned as `null`. A sent score of `0` stays `0`.
 
     `drivingMode` is optional and defaults to `"regular"`, so clients that
-    predate driving modes keep working unchanged. A `"navigation"` report must
-    leave focus out entirely: no `focusGrade` (it is stored and returned as
-    `null` rather than defaulted) and no `Focused Driving` violations.
+    predate modes keep working unchanged. It is `"regular"`, `"navigation"`,
+    or `"pocket"`:
+
+    - **`regular`** requires `focusGrade` and `followingDistanceGrade`, each
+      from 0 to 100. Both violation types are allowed.
+    - **`navigation`** requires `focusGrade` to be `null` and
+      `followingDistanceGrade` from 0 to 100. A `Focused Driving` violation is
+      rejected. `Adequate Following Distance` violations are allowed.
+    - **`pocket`** requires both `focusGrade` and `followingDistanceGrade` to
+      be `null`. `Focused Driving` and `Adequate Following Distance` violations
+      are both rejected. Speed and smoothness violations are still accepted.
 
     `tripDurationMinutes` is derived from the two timestamps rather than sent,
     so it can't disagree with them, and `reportDate` is set from `endedAt` so a
@@ -628,7 +680,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
     `violations` is optional and defaults to `[]`, so a client that sends only
     grades keeps working unchanged, and a clean trip legitimately has none. Each
-    violation needs `violationType` (one of the five `ENUM` labels),
+    violation needs `violationType` (one of the six `ENUM` labels),
     `startTime`, `endTime`, `latitude` and `longitude`. The coordinates become
     `road_name` and are not stored. See the `violations` table section above
     for the mapping and what happens to the extra grading fields.
@@ -644,8 +696,15 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
     `endTime` is earlier than its `startTime` (it would fail
     `CHECK (end_time >= start_time)`), if a coordinate is out of range, or if
     more than 500 violations are sent in one report. Also `422` if
-    `drivingMode` isn't `"regular"` or `"navigation"`, or if a navigation
-    report carries a `focusGrade` or a `Focused Driving` violation.
+    `drivingMode` isn't `"regular"`, `"navigation"`, or `"pocket"`, or if a
+    report's grades or violations do not match that mode (a navigation report
+    with a focus score or a `Focused Driving` violation, or a pocket report
+    with either untracked score or either untracked violation).
+
+    Retrying an upload with the same `clientTripId` and the same body returns
+    the existing report. It does not create a second report or more violation
+    rows. The same trip ID with a different body, including a different mode
+    or following-distance score, is `409`.
 
     `driving_reports` has no columns for per-trip counts or total violation
     time (such as `SpeedGradingService.totalSpeedingDuration`); both can be
@@ -661,7 +720,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
         {
           "id": 12, "drivingMode": "regular", "overallGrade": 87.0, "speedGrade": 87.0,
           "brakingGrade": 90.0, "accelerationGrade": 92.0,
-          "turningGrade": 88.0, "focusGrade": 95.0,
+          "turningGrade": 88.0, "focusGrade": 95.0, "followingDistanceGrade": 91.0,
           "reportDate": "2026-07-30T10:30:00",
           "tripDurationMinutes": 30.0, "tripDistanceMiles": 12.4,
           "violations": [
@@ -731,17 +790,24 @@ the feedback more useful. A road name is never required in the message.
 
 To support analysis over time, the backend also calculates:
 
-- Weekly averages for all six grades, with weeks beginning Monday and each trip
-  weighted equally. Weeks with no reports are omitted.
+- Weekly averages for all seven grades, with weeks beginning Monday and each trip
+  weighted equally. Weeks with no reports are omitted. A null grade is left out
+  of its average. The average is `null` when the period has no measured score.
+  A score of `0` is included.
 - Earlier and recent period summaries, splitting the observed time span at its
   midpoint. Grade changes are recent minus earlier averages, in grade points.
+  A grade change is `null` when either period has no measured score.
 - Violation counts and total durations for every violation type, including
   counts per driving hour and violation minutes per driving hour in each period.
   Rate changes account for differing amounts of driving. Rates are `null` when
-  driving duration is zero; violation durations can overlap.
-- Navigation trips don't grade focus, so they are left out of the focus
-  average and the `Focused Driving` rates (whose driving hours count regular
-  trips only). Either is `null` for a period with no regular trips.
+  the eligible driving duration is zero; violation durations can overlap.
+- Focus averages and `Focused Driving` rates use regular driving time only.
+  Following-distance averages and `Adequate Following Distance` rates use
+  regular and navigation driving time only. Pocket time is excluded from both.
+  Either rate is `null` when that eligible time is zero. Speed and smoothness
+  rates still use every mode's driving time. The prompt tells Gemini which
+  categories each mode tracks, and that a change caused only by switching modes
+  is not improvement or decline.
 
 Long-term feedback requires **at least six dated reports spanning 28 days**
 within the selected reports. The returned date range describes that sample,

@@ -92,10 +92,10 @@ class DrivingReport(Base):
     client_trip_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     upload_payload_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    # The column is a MySQL ENUM('regular', 'navigation') - see DRIVING_MODES in
-    # schemas.py. "regular" grades every dimension; "navigation" grades all but
-    # focus, since a driver following directions has to look at the phone.
-    # Reports saved before modes existed were all regular, hence the default
+    # The column is a MySQL ENUM('regular', 'navigation', 'pocket') - see
+    # DRIVING_MODES in schemas.py. "regular" grades every dimension.
+    # "navigation" grades all but focus. "pocket" grades speed and smoothness
+    # only. Reports saved before modes existed were all regular, hence the default
     driving_mode: Mapped[str] = mapped_column(
         String(16), default="regular", server_default="regular"
     )
@@ -108,10 +108,16 @@ class DrivingReport(Base):
     braking_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     acceleration_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     turning_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
-    # From FocusedDrivingGradingService. NULL exactly when driving_mode is
-    # "navigation", which doesn't grade focus.
+    # From FocusedDrivingGradingService. NULL when driving_mode is
+    # "navigation" or "pocket", which don't grade focus.
     # A CHECK constraint on the table enforces the pairing
     focus_grade: Mapped[float | None] = mapped_column(
+        Numeric(5, 2, asdecimal=False), nullable=True
+    )
+    # From the on-device following-distance grader. NULL on pocket reports,
+    # which do not run the road camera, and on reports saved before this
+    # column existed. A measured zero stays zero.
+    following_distance_grade: Mapped[float | None] = mapped_column(
         Numeric(5, 2, asdecimal=False), nullable=True
     )
 
@@ -151,7 +157,7 @@ class Violation(Base):
         ForeignKey("driving_reports.id"), index=True
     )
 
-    # The column is a MySQL ENUM of the five graded dimensions, spelled exactly
+    # The column is a MySQL ENUM of the graded dimensions, spelled exactly
     # as the app labels them - see VIOLATION_TYPES in schemas.py
     violation_type: Mapped[str] = mapped_column(String(32), index=True)
 

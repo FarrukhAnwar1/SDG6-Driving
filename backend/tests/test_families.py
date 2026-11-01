@@ -348,14 +348,77 @@ def test_family_statistics_use_all_categories_ignore_null_focus_and_order_latest
     assert member["averageGrades"] == {
         "overallGrade": 60, "speedGrade": 60.75, "brakingGrade": 61.5,
         "accelerationGrade": 62.25, "turningGrade": 63, "focusGrade": 65,
+        "followingDistanceGrade": None,
     }
     assert member["latestDrive"] == {
         "overallGrade": 90, "speedGrade": 91, "brakingGrade": 92,
         "accelerationGrade": 93, "turningGrade": 94, "focusGrade": 95,
+        "followingDistanceGrade": None,
         "reportDate": "2026-01-03T00:00:00",
     }
     assert member["totalDrivingMinutes"] == 62.5
     assert member["totalDistanceMiles"] == 31.25
+
+
+def test_family_averages_skip_null_scores_and_keep_a_measured_zero(api, family_engine):
+    client, _ = api
+    create(client)
+    with Session(family_engine) as db:
+        db.add_all([
+            models.DrivingReport(
+                user_id=1, driving_mode="regular", report_date=datetime(2026, 2, 1),
+                overall_grade=80, speed_grade=80, braking_grade=80,
+                acceleration_grade=80, turning_grade=80, focus_grade=40,
+                following_distance_grade=0,
+                trip_duration_minutes=10, trip_distance_miles=5,
+            ),
+            models.DrivingReport(
+                user_id=1, driving_mode="navigation", report_date=datetime(2026, 2, 2),
+                overall_grade=80, speed_grade=90, braking_grade=80,
+                acceleration_grade=80, turning_grade=80, focus_grade=None,
+                following_distance_grade=100,
+                trip_duration_minutes=10, trip_distance_miles=5,
+            ),
+            models.DrivingReport(
+                user_id=1, driving_mode="pocket", report_date=datetime(2026, 2, 3),
+                overall_grade=80, speed_grade=70, braking_grade=80,
+                acceleration_grade=80, turning_grade=80, focus_grade=None,
+                following_distance_grade=None,
+                trip_duration_minutes=10, trip_distance_miles=5,
+            ),
+        ])
+        db.commit()
+    member = client.get("/families/me", headers=auth(1)).json()["family"]["members"][0]
+    assert member["driveCount"] == 3
+    assert member["averageGrades"]["focusGrade"] == 40
+    assert member["averageGrades"]["followingDistanceGrade"] == 50
+    assert member["averageGrades"]["speedGrade"] == 80
+    latest = member["latestDrive"]
+    assert latest["reportDate"] == "2026-02-03T00:00:00"
+    assert latest["focusGrade"] is None
+    assert latest["followingDistanceGrade"] is None
+    assert latest["speedGrade"] == 70
+
+
+def test_family_grade_average_is_null_when_nothing_was_measured(api, family_engine):
+    client, _ = api
+    create(client)
+    with Session(family_engine) as db:
+        db.add(models.DrivingReport(
+            user_id=1, driving_mode="pocket", report_date=datetime(2026, 3, 1),
+            overall_grade=70, speed_grade=70, braking_grade=70,
+            acceleration_grade=70, turning_grade=70,
+            focus_grade=None, following_distance_grade=None,
+            trip_duration_minutes=5, trip_distance_miles=1,
+        ))
+        db.commit()
+    grades = client.get("/families/me", headers=auth(1)).json()["family"]["members"][0]["averageGrades"]
+    assert grades["focusGrade"] is None
+    assert grades["followingDistanceGrade"] is None
+    assert grades["speedGrade"] == 70
+    latest = client.get("/families/me", headers=auth(1)).json()["family"]["members"][0]["latestDrive"]
+    assert latest["focusGrade"] is None
+    assert latest["followingDistanceGrade"] is None
 
 
 def test_statistics_are_not_limited_to_a_report_history_page(api, family_engine):

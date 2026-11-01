@@ -5,6 +5,7 @@ from .. import models, schemas
 GRADE_COLUMNS = (
     "overall_grade", "speed_grade", "braking_grade",
     "acceleration_grade", "turning_grade", "focus_grade",
+    "following_distance_grade",
 )
 
 
@@ -21,7 +22,9 @@ def read_family(db: Session, family: models.DrivingFamily) -> schemas.FamilyOut:
     )
     member_ids = [m.id for m in members]
 
-    # One row per member who has reports: count, AVG of each grade, SUM of totals
+    # One row per member who has reports: count, AVG of each grade, SUM of totals.
+    # AVG ignores nulls, so unmeasured focus and following-distance scores stay
+    # out of those averages. The average is null when every score is null.
     totals = {
         row.user_id: row
         for row in db.execute(

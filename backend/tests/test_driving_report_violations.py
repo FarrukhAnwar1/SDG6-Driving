@@ -47,11 +47,14 @@ def valid_report(**overrides) -> dict:
         "overallGrade": 87.0,
         "speedGrade": 87.0,
         "focusGrade": 100.0,
+        "followingDistanceGrade": 100.0,
     }
     body.update(overrides)
-
-    if body.get("drivingMode", "regular") == "navigation" and "focusGrade" not in overrides:
+    mode = body.get("drivingMode", "regular")
+    if mode in ("navigation", "pocket") and "focusGrade" not in overrides:
         body["focusGrade"] = None
+    if mode == "pocket" and "followingDistanceGrade" not in overrides:
+        body["followingDistanceGrade"] = None
 
     return body
 
@@ -240,6 +243,34 @@ def test_navigation_mode_rejects_focus_violations() -> None:
                 violations=[valid_violation(violationType="Focused Driving")],
             )
         )
+
+
+@pytest.mark.parametrize(
+    "violation_type",
+    ["Focused Driving", "Adequate Following Distance"],
+)
+def test_pocket_mode_rejects_untracked_violations(violation_type: str) -> None:
+    with pytest.raises(ValidationError, match="not tracked in pocket mode"):
+        DrivingReportCreate.model_validate(
+            valid_report(
+                drivingMode="pocket",
+                violations=[valid_violation(violationType=violation_type)],
+            )
+        )
+
+
+def test_pocket_mode_keeps_speed_and_smoothness_violations() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(
+            drivingMode="pocket",
+            violations=[
+                valid_violation(violationType=kind)
+                for kind in VIOLATION_TYPES
+                if kind not in ("Focused Driving", "Adequate Following Distance")
+            ],
+        )
+    )
+    assert len(report.violations) == len(VIOLATION_TYPES) - 2
 
 
 def test_navigation_mode_keeps_the_other_violations() -> None:
@@ -558,10 +589,12 @@ def test_a_navigation_upload_stores_its_mode_and_a_null_focus_grade(
     body = response.json()
     assert body["drivingMode"] == "navigation"
     assert body["focusGrade"] is None
+    assert body["followingDistanceGrade"] == 100.0
     with scratch_db() as db:
         report = db.query(models.DrivingReport).one()
     assert report.driving_mode == "navigation"
     assert report.focus_grade is None
+    assert report.following_distance_grade == 100.0
 
 
 def test_an_upload_without_a_mode_is_stored_as_regular(client, scratch_db) -> None:
@@ -573,3 +606,54 @@ def test_an_upload_without_a_mode_is_stored_as_regular(client, scratch_db) -> No
         report = db.query(models.DrivingReport).one()
     assert report.driving_mode == "regular"
     assert report.focus_grade == 100.0
+    assert report.following_distance_grade == 100.0
+
+
+def test_a_pocket_upload_stores_null_untracked_grades_and_keeps_other_violations(
+    client, scratch_db
+) -> None:
+    response = client.post(
+        "/driving-reports",
+        json=valid_report(
+            drivingMode="pocket",
+            violations=[
+                valid_violation(violationType="Smooth Braking"),
+                valid_violation(
+                    violationType="Smooth Turning",
+                    startTime="2026-07-30T10:06:00",
+                    endTime="2026-07-30T10:06:18",
+                    latitude=0.0,
+                    longitude=0.0,
+                ),
+            ],
+        ),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["drivingMode"] == "pocket"
+    assert body["focusGrade"] is None
+    assert body["followingDistanceGrade"] is None
+    assert [violation["violationType"] for violation in body["violations"]] == [
+        "Smooth Braking",
+        "Smooth Turning",
+    ]
+    with scratch_db() as db:
+        report = db.query(models.DrivingReport).one()
+    assert report.focus_grade is None
+    assert report.following_distance_grade is None
+
+
+def test_a_pocket_upload_with_an_untracked_violation_writes_nothing(client, scratch_db) -> None:
+    response = client.post(
+        "/driving-reports",
+        json=valid_report(
+            drivingMode="pocket",
+            violations=[valid_violation(violationType="Adequate Following Distance")],
+        ),
+    )
+
+    assert response.status_code == 422
+    with scratch_db() as db:
+        assert db.query(models.DrivingReport).count() == 0
+        assert db.query(models.Violation).count() == 0
