@@ -71,6 +71,7 @@ def report(**overrides):
         "clientTripId": str(uuid4()),
         "startedAt": "2026-10-18T10:00:00Z", "endedAt": "2026-10-18T10:10:00Z",
         "tripDistanceMiles": 2, "overallGrade": 90, "speedGrade": 90, "focusGrade": 90,
+        "followingDistanceGrade": 90,
         "violations": [{
             "violationType": "Proper Speed", "startTime": "2026-10-18T10:02:00Z",
             "endTime": "2026-10-18T10:02:10Z", "latitude": 40, "longitude": -75,
@@ -161,6 +162,26 @@ def test_retry_returns_same_report_without_duplicate_violations_or_road_lookup(a
     second = client.post("/driving-reports", headers=auth(), json=payload)
     assert first.status_code == second.status_code == 201
     assert first.json() == second.json()
+    assert names.call_count == 1
+    with Session(engine) as db:
+        assert db.scalar(select(func.count()).select_from(models.DrivingReport)) == 1
+        assert db.scalar(select(func.count()).select_from(models.Violation)) == 1
+
+
+def test_an_unchanged_pocket_report_retries_without_a_duplicate(api):
+    client, engine, names = api
+    payload = report(
+        drivingMode="pocket",
+        focusGrade=None,
+        followingDistanceGrade=None,
+    )
+    first = client.post("/driving-reports", headers=auth(), json=payload)
+    second = client.post("/driving-reports", headers=auth(), json=payload)
+    assert first.status_code == second.status_code == 201
+    assert first.json() == second.json()
+    assert first.json()["drivingMode"] == "pocket"
+    assert first.json()["focusGrade"] is None
+    assert first.json()["followingDistanceGrade"] is None
     assert names.call_count == 1
     with Session(engine) as db:
         assert db.scalar(select(func.count()).select_from(models.DrivingReport)) == 1

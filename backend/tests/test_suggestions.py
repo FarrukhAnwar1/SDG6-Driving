@@ -203,6 +203,71 @@ def test_navigation_trips_are_left_out_of_focus_statistics():
     assert comparison["gradeChanges"]["speed_grade"] == 12
 
 
+def test_pocket_time_is_left_out_of_focus_and_following_distance_rates():
+    rows = history_rows()
+    rows[2].driving_mode = "navigation"
+    rows[2].focus_grade = None
+    for row in rows[3:]:
+        row.driving_mode = "pocket"
+        row.focus_grade = None
+        row.following_distance_grade = None
+    rows[0].violations[0].violation_type = "Focused Driving"
+    rows[1].violations[0].violation_type = "Adequate Following Distance"
+    rows[2].violations[0].violation_type = "Adequate Following Distance"
+    history = suggestions.analyze_history(rows)
+    # Regular focus scores are 65 and 69. Navigation and pocket scores are null.
+    assert history["overall"]["averageGrades"]["focus_grade"] == 67
+    # Indexes 0-2 still have following-distance scores 66, 70, and 74.
+    assert history["overall"]["averageGrades"]["following_distance_grade"] == 70
+    focus = history["overall"]["violationsByType"]["Focused Driving"]
+    # Two 30-minute regular trips.
+    assert focus["countPerDrivingHour"] == 1.0
+    following = history["overall"]["violationsByType"]["Adequate Following Distance"]
+    # Regular plus navigation is 90 minutes, and pocket's 180 minutes are excluded.
+    assert following["count"] == 2
+    assert following["countPerDrivingHour"] == round(2 / 1.5, 4)
+    # Speed still uses every mode, including the three 60-minute pocket trips.
+    assert history["overall"]["violationsByType"]["Proper Speed"]["countPerDrivingHour"] == round(3 / 4.5, 4)
+
+
+def test_rates_are_unavailable_when_no_eligible_driving_time_exists():
+    rows = history_rows(2)
+    for row in rows:
+        row.driving_mode = "pocket"
+        row.focus_grade = None
+        row.following_distance_grade = None
+        row.trip_duration_minutes = 30
+    history = suggestions.analyze_history(rows)
+    assert history["overall"]["averageGrades"]["focus_grade"] is None
+    assert history["overall"]["averageGrades"]["following_distance_grade"] is None
+    assert history["overall"]["averageGrades"]["speed_grade"] is not None
+    for kind in ("Focused Driving", "Adequate Following Distance"):
+        rates = history["overall"]["violationsByType"][kind]
+        assert rates["countPerDrivingHour"] is None
+        assert rates["violationMinutesPerDrivingHour"] is None
+    assert history["overall"]["violationsByType"]["Proper Speed"]["countPerDrivingHour"] is not None
+
+
+def test_a_zero_following_distance_grade_counts_in_the_average():
+    rows = history_rows(2)
+    rows[0].following_distance_grade = 0
+    rows[1].driving_mode = "navigation"
+    rows[1].focus_grade = None
+    rows[1].following_distance_grade = 0
+    history = suggestions.analyze_history(rows)
+    assert history["overall"]["averageGrades"]["following_distance_grade"] == 0
+
+
+def test_prompt_explains_which_categories_each_mode_tracks():
+    text = suggestions.SYSTEM_INSTRUCTION
+    assert "Regular trips grade speed, braking, acceleration, turning, focus, and following" in text
+    assert "Pocket trips grade speed, braking" in text
+    assert "Adequate Following Distance" in text
+    assert "navigation driving time only" in text
+    assert "switching driving modes" in text
+    assert "not a score of zero" in text
+
+
 def test_endpoint_reads_navigation_reports_with_null_focus(api, gemini):
     client, engine = api
     rows = [report(index) for index in range(6)]

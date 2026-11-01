@@ -104,9 +104,10 @@ def _to_naive_utc(value: datetime) -> datetime:
     return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-# The app sends all five grades, but it once sent speed alone and the braking,
-# acceleration, turning and focus columns are NOT NULL. A client that omits one
-# still gets this full marks placeholder rather than a failed INSERT
+# The app once graded speed alone, and braking, acceleration, and turning are
+# NOT NULL. A client that omits one of those three still gets this placeholder.
+# Focus and following distance are not filled in: an untracked category stays
+# null, and a real zero stays zero.
 UNGRADED_DIMENSION = 100.0
 
 # driving_reports.trip_duration_minutes is DECIMAL(5,2) and trip_distance_miles
@@ -115,22 +116,25 @@ UNGRADED_DIMENSION = 100.0
 MAX_TRIP_DURATION_MINUTES = 999.99
 MAX_TRIP_DISTANCE_MILES = 9999.99
 
-# The five graded dimensions, spelled exactly 
-# as the violations.violation_type ENUM in MySQL spells them
+# Spelled exactly as the violations.violation_type ENUM in MySQL spells them
 ViolationType = Literal[
     "Proper Speed",
     "Smooth Braking",
     "Smooth Accelerating",
     "Smooth Turning",
     "Focused Driving",
+    "Adequate Following Distance",
 ]
 VIOLATION_TYPES = get_args(ViolationType)
 
 # How the trip was driven, spelled exactly as the driving_reports.driving_mode
-# ENUM in MySQL spells it. "regular" grades every dimension; "navigation" grades
-# every dimension except focus, since following directions means glancing at
-# the phone, so focus_grade is NULL and focus violations aren't recorded
-DrivingMode = Literal["regular", "navigation"]
+# ENUM in MySQL spells it.
+# "regular" grades every dimension.
+# "navigation" grades every dimension except focus, since following directions
+# means glancing at the phone.
+# "pocket" grades speed and the three smoothness dimensions only. Focus and
+# following distance are null, and neither of those violation types is recorded.
+DrivingMode = Literal["regular", "navigation", "pocket"]
 DRIVING_MODES = get_args(DrivingMode)
 
 # Max violation count in case of bugs to prevent violations from keep on going on
@@ -183,8 +187,10 @@ class DrivingReportCreate(BaseModel):
     tagged with the ENUM label each maps to.
 
     driving_mode defaults to "regular" so clients that predate modes keep
-    working unchanged. A "navigation" report must leave focus out entirely: no
-    focusGrade and no Focused Driving violations.
+    working unchanged. Navigation leaves focus null and records no Focused
+    Driving violations. Pocket leaves both focus and following distance null
+    and records neither of those violation types. Regular and navigation
+    reports must send a following-distance score. Untracked grades stay null.
     """
 
     model_config = _CAMEL_CONFIG
@@ -202,9 +208,12 @@ class DrivingReportCreate(BaseModel):
     braking_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     acceleration_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
     turning_grade: float = Field(default=UNGRADED_DIMENSION, ge=0, le=100)
-    # None until validated: a regular report then falls back to
-    # UNGRADED_DIMENSION, while a navigation report keeps it None
+    # Required on a regular report. Null on navigation and pocket reports.
     focus_grade: Optional[float] = Field(default=None, ge=0, le=100)
+    # Required on regular and navigation reports. Null on a pocket report.
+    # Never defaulted: a missing score is a 422, and an untracked category
+    # stays null rather than becoming 100 or 0.
+    following_distance_grade: Optional[float] = Field(default=None, ge=0, le=100)
 
     # Optional, so the clients that only send grades keep working unchanged.
     # A trip with nothing to report legitimately has none
@@ -226,19 +235,44 @@ class DrivingReportCreate(BaseModel):
         return self
 
     @model_validator(mode="after")
-    def focus_matches_driving_mode(self):
-        # driving_reports carries a CHECK pairing focus_grade IS NULL with
-        # navigation mode, so a mismatch is caught here as a 422 rather than
-        # failing the INSERT as a 500
-        if self.driving_mode == "navigation":
+    def grades_match_driving_mode(self):
+        # The driving_reports CHECK pairs a null focus grade with navigation
+        # and pocket. Following distance is null for pocket only. Catch a
+        # mismatch here as a 422 rather than failing the INSERT as a 500.
+        focus_violations = any(
+            violation.violation_type == "Focused Driving" for violation in self.violations
+        )
+        following_violations = any(
+            violation.violation_type == "Adequate Following Distance"
+            for violation in self.violations
+        )
+        if self.driving_mode == "pocket":
+            if self.focus_grade is not None:
+                raise ValueError("focusGrade must be null in pocket mode")
+            if self.following_distance_grade is not None:
+                raise ValueError("followingDistanceGrade must be null in pocket mode")
+            if focus_violations:
+                raise ValueError(
+                    "Focused Driving violations are not tracked in pocket mode"
+                )
+            if following_violations:
+                raise ValueError(
+                    "Adequate Following Distance violations are not tracked in pocket mode"
+                )
+        elif self.driving_mode == "navigation":
             if self.focus_grade is not None:
                 raise ValueError("focusGrade must be omitted in navigation mode")
-            if any(v.violation_type == "Focused Driving" for v in self.violations):
+            if self.following_distance_grade is None:
+                raise ValueError("followingDistanceGrade is required in navigation mode")
+            if focus_violations:
                 raise ValueError(
                     "Focused Driving violations are not tracked in navigation mode"
                 )
-        elif self.focus_grade is None:
-              raise ValueError("focusGrade is required in regular mode")
+        else:
+            if self.focus_grade is None:
+                raise ValueError("focusGrade is required in regular mode")
+            if self.following_distance_grade is None:
+                raise ValueError("followingDistanceGrade is required in regular mode")
         return self
 
     @property
@@ -260,8 +294,11 @@ class DrivingReportOut(BaseModel):
     braking_grade: float
     acceleration_grade: float
     turning_grade: float
-    # Null on navigation reports, which don't grade focus
+    # Null on navigation and pocket reports, which don't grade focus
     focus_grade: Optional[float] = None
+    # Null on pocket reports, and on regular or navigation reports saved
+    # before following distance was tracked
+    following_distance_grade: Optional[float] = None
     report_date: Optional[datetime] = None
     trip_duration_minutes: float
     trip_distance_miles: float
@@ -401,7 +438,7 @@ _CAMEL_OUT_CONFIG = ConfigDict(
 
 
 class FamilyGradesOut(BaseModel):
-    # A member's six grades, 0-100. Null grades display as an em dash in the app
+    # A member's grades, 0-100. Null means that category was not measured.
     model_config = _CAMEL_OUT_CONFIG
 
     overall_grade: Optional[float] = None
@@ -410,6 +447,8 @@ class FamilyGradesOut(BaseModel):
     acceleration_grade: Optional[float] = None
     turning_grade: Optional[float] = None
     focus_grade: Optional[float] = None
+    # Null when none of the member's reports measured following distance
+    following_distance_grade: Optional[float] = None
 
 
 class FamilyLatestDriveOut(FamilyGradesOut):

@@ -17,16 +17,32 @@ MIN_REPORTS = 6
 MIN_HISTORY_DAYS = 28
 GRADE_FIELDS = (
     "overall_grade", "speed_grade", "braking_grade", "acceleration_grade",
-    "turning_grade", "focus_grade",
+    "turning_grade", "focus_grade", "following_distance_grade",
 )
 
 
 def _average_grade(reports: list[DrivingReportWithViolationsOut], field: str) -> float | None:
-    # focus_grade is null on navigation trips, which don't grade focus, so those
-    # are left out of its average rather than counted as zero
+    # Untracked categories are null. Leave them out of the average, and return
+    # null when the period has no measured score. A real zero still counts.
     grades = [getattr(report, field) for report in reports]
     grades = [grade for grade in grades if grade is not None]
     return round(fmean(grades), 2) if grades else None
+
+
+def _eligible_minutes(reports: list[DrivingReportWithViolationsOut], kind: str) -> float:
+    # Focus is graded on regular trips only. Following distance is graded on
+    # regular and navigation trips. Every other category includes pocket time.
+    if kind == "Focused Driving":
+        modes = {"regular"}
+    elif kind == "Adequate Following Distance":
+        modes = {"regular", "navigation"}
+    else:
+        modes = None
+    return sum(
+        report.trip_duration_minutes
+        for report in reports
+        if modes is None or report.driving_mode in modes
+    )
 
 
 SYSTEM_INSTRUCTION = """You are a supportive driving coach writing directly to the driver.
@@ -37,23 +53,31 @@ constructive feedback. Both should address patterns across the history, not
 just the most recent trip. Return only the requested JSON with a message field;
 the message must be plain text with no headings, lists, Markdown, or HTML.
 
-Treat every supplied grade and violation as accurate. Consider all six grades,
+Treat every supplied grade and violation as accurate. Consider all seven grades,
 trip dates, distances, durations, and all violation types and timestamps.
 Higher grades are better. Violation type labels name the affected dimension:
 even labels such as 'Proper Speed' denote a violation, not a positive event.
 Use weekly patterns and the earlier/recent calendar-period comparison, taking
 sample sizes and driving exposure into account. Grade changes are percentage
 points on a 0-100 scale, not relative percentages. Rate changes are absolute.
-Null rates mean driving duration is zero; do not interpret them as zero rates.
-Each report has a drivingMode. Navigation trips (the driver was following
-directions on the phone) do not grade focus: their focusGrade is null and they
-record no Focused Driving violations. Focus averages and Focused Driving rates
-cover regular trips only; a null focus value means there were no regular trips
-in that period, not a zero. Overall grades use different category sets depending on drivingMode:
-regular trips include focus, while navigation trips exclude focus.
-Do not interpret a change in overall grade caused solely by switching
-driving modes as evidence of improvement or decline. Compare grades
-within the same mode when assessing overall driving progress.
+Null rates mean no eligible driving time for that category; do not interpret
+them as zero rates.
+Each report has a drivingMode, and each mode tracks a different set of categories.
+Regular trips grade speed, braking, acceleration, turning, focus, and following
+distance. Navigation trips (the driver was following directions on the phone) do
+not grade focus: focusGrade is null and they record no Focused Driving violations,
+but they do grade following distance. Pocket trips grade speed, braking,
+acceleration, and turning only: focusGrade and followingDistanceGrade are null,
+and they record neither Focused Driving nor Adequate Following Distance violations.
+Focus averages and Focused Driving rates use regular driving time only.
+Following-distance averages and Adequate Following Distance rates use regular
+and navigation driving time only. A null grade or rate means that category was
+not measured in the period, not a score of zero. Overall grades use different
+category sets depending on drivingMode: regular includes focus and following
+distance, navigation excludes focus, and pocket excludes both. Do not interpret
+a change caused solely by switching driving modes as evidence of improvement
+or decline. Compare grades within the same mode when assessing overall driving
+progress.
 Missing weeks are unobserved, not zero-violation weeks. Undated reports contribute
 to overall statistics but cannot support temporal claims. Violation durations
 may overlap, so their sum is not necessarily unique time spent violating.
@@ -76,12 +100,6 @@ history. Write warmly and respectfully without guarantees of safety.
 
 def _summarize(reports: list[DrivingReportWithViolationsOut]) -> dict:
     minutes = sum(report.trip_duration_minutes for report in reports)
-    # Navigation trips can't record focus violations, so counting their time
-    # toward the focus rate would make it look better than it was
-    regular_minutes = sum(
-        report.trip_duration_minutes for report in reports
-        if report.driving_mode == "regular"
-    )
     dated = [report.report_date for report in reports if report.report_date is not None]
     violations = [violation for report in reports for violation in report.violations]
     by_type = {}
@@ -91,7 +109,7 @@ def _summarize(reports: list[DrivingReportWithViolationsOut]) -> dict:
             (violation.end_time - violation.start_time).total_seconds()
             for violation in matching
         )
-        exposure = regular_minutes if kind == "Focused Driving" else minutes
+        exposure = _eligible_minutes(reports, kind)
         by_type[kind] = {
             "count": len(matching),
             "durationSeconds": round(seconds, 2),
