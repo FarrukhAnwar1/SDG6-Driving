@@ -53,6 +53,7 @@ def write_driving_report(
         acceleration_grade=payload.acceleration_grade,
         turning_grade=payload.turning_grade,
         focus_grade=payload.focus_grade,
+        following_distance_grade=payload.following_distance_grade,
         # When the trip ended, rather than the column's CURRENT_TIMESTAMP default,
         # so a report that uploads late still dates to the drive itself
         report_date=payload.ended_at,

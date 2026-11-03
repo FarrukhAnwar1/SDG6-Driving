@@ -1,3 +1,4 @@
+
 """Tests for the violations half of POST /driving-reports.
 
 These cover what the endpoint accepts from the app, how coordinates become road
@@ -47,11 +48,17 @@ def valid_report(**overrides) -> dict:
         "overallGrade": 87.0,
         "speedGrade": 87.0,
         "focusGrade": 100.0,
+        "followingDistanceGrade": 100.0,
     }
     body.update(overrides)
 
-    if body.get("drivingMode", "regular") == "navigation" and "focusGrade" not in overrides:
+    mode = body.get("drivingMode", "regular")
+
+    if mode in ("navigation", "pocket") and "focusGrade" not in overrides:
         body["focusGrade"] = None
+
+    if mode == "pocket" and "followingDistanceGrade" not in overrides:
+        body["followingDistanceGrade"] = None
 
     return body
 
@@ -130,8 +137,7 @@ def test_a_violation_is_parsed_from_camel_case() -> None:
 
 @pytest.mark.parametrize("violation_type", VIOLATION_TYPES)
 def test_every_enum_label_is_accepted(violation_type: str) -> None:
-    # TripSummary keeps five separate violation lists and all five ENUM labels have
-    # to arrive through this one field
+    # All six violation types must be accepted by the request schema.
     report = DrivingReportCreate.model_validate(
         valid_report(violations=[valid_violation(violationType=violation_type)])
     )
@@ -154,8 +160,11 @@ def test_extra_grading_fields_are_ignored_not_rejected() -> None:
         valid_report(
             violations=[
                 valid_violation(
-                    speedLimitMph=35.0, peakSpeedMph=52.0, peakGForce=0.42,
-                    speedAtStartMph=31.0, durationSeconds=18,
+                    speedLimitMph=35.0,
+                    peakSpeedMph=52.0,
+                    peakGForce=0.42,
+                    speedAtStartMph=31.0,
+                    durationSeconds=18,
                 )
             ]
         )
@@ -185,7 +194,12 @@ def test_accepts_an_instantaneous_violation() -> None:
 
 @pytest.mark.parametrize(
     "field, bad_value",
-    [("latitude", 91), ("latitude", -91), ("longitude", 181), ("longitude", -181)],
+    [
+        ("latitude", 91),
+        ("latitude", -91),
+        ("longitude", 181),
+        ("longitude", -181),
+    ],
 )
 def test_rejects_impossible_coordinates(field: str, bad_value: float) -> None:
     with pytest.raises(ValidationError):
@@ -194,8 +208,10 @@ def test_rejects_impossible_coordinates(field: str, bad_value: float) -> None:
         )
 
 
-@pytest.mark.parametrize("field", ["violationType", "startTime", "endTime",
-                                   "latitude", "longitude"])
+@pytest.mark.parametrize(
+    "field",
+    ["violationType", "startTime", "endTime", "latitude", "longitude"],
+)
 def test_violation_fields_are_all_required(field: str) -> None:
     violation = valid_violation()
     del violation[field]
@@ -222,7 +238,9 @@ def test_violation_timestamps_are_normalized_to_naive_utc() -> None:
 
 
 def test_the_violation_list_is_capped() -> None:
-    too_many = [valid_violation() for _ in range(MAX_VIOLATIONS_PER_REPORT + 1)]
+    too_many = [
+        valid_violation() for _ in range(MAX_VIOLATIONS_PER_REPORT + 1)
+    ]
     with pytest.raises(ValidationError):
         DrivingReportCreate.model_validate(valid_report(violations=too_many))
 
@@ -253,8 +271,60 @@ def test_navigation_mode_keeps_the_other_violations() -> None:
     assert len(report.violations) == len(VIOLATION_TYPES) - 1
 
 
+def test_pocket_mode_has_null_focus_and_following_distance() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(drivingMode="pocket")
+    )
+    assert report.driving_mode == "pocket"
+    assert report.focus_grade is None
+    assert report.following_distance_grade is None
+
+
+def test_pocket_mode_rejects_focus_violations() -> None:
+    with pytest.raises(ValidationError):
+        DrivingReportCreate.model_validate(
+            valid_report(
+                drivingMode="pocket",
+                violations=[valid_violation(violationType="Focused Driving")],
+            )
+        )
+
+
+def test_pocket_mode_rejects_following_distance_violations() -> None:
+    with pytest.raises(ValidationError):
+        DrivingReportCreate.model_validate(
+            valid_report(
+                drivingMode="pocket",
+                violations=[
+                    valid_violation(
+                        violationType="Adequate Following Distance"
+                    )
+                ],
+            )
+        )
+
+
+def test_pocket_mode_keeps_other_violations() -> None:
+    report = DrivingReportCreate.model_validate(
+        valid_report(
+            drivingMode="pocket",
+            violations=[
+                valid_violation(violationType=kind)
+                for kind in VIOLATION_TYPES
+                if kind not in (
+                    "Focused Driving",
+                    "Adequate Following Distance",
+                )
+            ],
+        )
+    )
+    assert len(report.violations) == len(VIOLATION_TYPES) - 2
+
+
 def test_the_cap_itself_is_accepted() -> None:
-    at_cap = [valid_violation() for _ in range(MAX_VIOLATIONS_PER_REPORT)]
+    at_cap = [
+        valid_violation() for _ in range(MAX_VIOLATIONS_PER_REPORT)
+    ]
     report = DrivingReportCreate.model_validate(valid_report(violations=at_cap))
     assert len(report.violations) == MAX_VIOLATIONS_PER_REPORT
 
@@ -272,16 +342,29 @@ def test_no_points_means_no_query() -> None:
 def test_names_come_back_in_the_order_the_points_went_in() -> None:
     # The rows are what the join happens to return; position is carried by idx.
     # If this slips, a violation is attributed to another violation's road
-    pg_db = FakePgSession(rows=[FakeRow(3, "Cottman Ave"), FakeRow(1, "Roosevelt Blvd")])
+    pg_db = FakePgSession(
+        rows=[
+            FakeRow(3, "Cottman Ave"),
+            FakeRow(1, "Roosevelt Blvd"),
+        ]
+    )
     names = resolve_road_names(
-        pg_db, [(40.0379, -75.0182), (40.04, -75.02), (40.05, -75.03)]
+        pg_db,
+        [
+            (40.0379, -75.0182),
+            (40.04, -75.02),
+            (40.05, -75.03),
+        ],
     )
     assert names == ["Roosevelt Blvd", None, "Cottman Ave"]
 
 
 def test_points_are_passed_as_matching_lat_lng_arrays() -> None:
     pg_db = FakePgSession(rows=[])
-    resolve_road_names(pg_db, [(40.0379, -75.0182), (39.95, -75.16)])
+    resolve_road_names(
+        pg_db,
+        [(40.0379, -75.0182), (39.95, -75.16)],
+    )
     params = pg_db.executed[0]
     # Swapping these silently looks up a point on the far side of the world
     assert params["lats"] == [40.0379, 39.95]
@@ -291,12 +374,18 @@ def test_points_are_passed_as_matching_lat_lng_arrays() -> None:
 def test_a_point_with_no_nearby_road_resolves_to_none() -> None:
     # Off-road, or outside the OSM extract's coverage means the column is nullable
     pg_db = FakePgSession(rows=[FakeRow(1, None)])
-    assert resolve_road_names(pg_db, [(40.0379, -75.0182)]) == [None]
+    assert resolve_road_names(
+        pg_db, [(40.0379, -75.0182)]
+    ) == [None]
 
 
 def test_an_overlong_road_name_is_truncated_to_the_column() -> None:
-    pg_db = FakePgSession(rows=[FakeRow(1, "R" * (MAX_ROAD_NAME_LENGTH + 50))])
-    (name,) = resolve_road_names(pg_db, [(40.0379, -75.0182)])
+    pg_db = FakePgSession(
+        rows=[FakeRow(1, "R" * (MAX_ROAD_NAME_LENGTH + 50))]
+    )
+    (name,) = resolve_road_names(
+        pg_db, [(40.0379, -75.0182)]
+    )
     assert len(name) == MAX_ROAD_NAME_LENGTH
 
 
@@ -304,9 +393,14 @@ def test_an_unreachable_road_database_does_not_lose_the_trip() -> None:
     # PostGIS and MySQL are separate databases. Losing the names is recoverable,
     # losing the drive is not
     pg_db = FakePgSession(
-        error=OperationalError("SELECT 1", {}, Exception("connection refused"))
+        error=OperationalError(
+            "SELECT 1", {}, Exception("connection refused")
+        )
     )
-    names = resolve_road_names(pg_db, [(40.0379, -75.0182), (39.95, -75.16)])
+    names = resolve_road_names(
+        pg_db,
+        [(40.0379, -75.0182), (39.95, -75.16)],
+    )
     assert names == [None, None]
     assert pg_db.rolled_back
 
@@ -325,7 +419,9 @@ def test_the_report_and_its_violations_are_written_together() -> None:
     )
     db = FakeDbSession()
 
-    report = write_driving_report(db, 42, payload, ["Roosevelt Blvd", None])
+    report = write_driving_report(
+        db, 42, payload, ["Roosevelt Blvd", None]
+    )
 
     # One add for the parent: the violations ride along on the relationship, so
     # the whole trip commits or none of it does
@@ -334,6 +430,7 @@ def test_the_report_and_its_violations_are_written_together() -> None:
     assert report.user_id == 42
     assert report.report_date == datetime(2026, 7, 30, 10, 30)
     assert report.trip_duration_minutes == 30.0
+    assert report.following_distance_grade == 100.0
 
     first, second = report.violations
     assert first.violation_type == "Proper Speed"
@@ -348,11 +445,18 @@ def test_the_report_and_its_violations_are_written_together() -> None:
 def test_every_violation_is_stamped_with_the_tokens_user() -> None:
     # user_id is denormalized onto the row and must never come from the body
     payload = DrivingReportCreate.model_validate(
-        valid_report(violations=[valid_violation(), valid_violation(userId=999)])
+        valid_report(
+            violations=[
+                valid_violation(),
+                valid_violation(userId=999),
+            ]
+        )
     )
     db = FakeDbSession()
 
-    report = write_driving_report(db, 42, payload, ["Roosevelt Blvd", "Cottman Ave"])
+    report = write_driving_report(
+        db, 42, payload, ["Roosevelt Blvd", "Cottman Ave"]
+    )
 
     assert [violation.user_id for violation in report.violations] == [42, 42]
 
@@ -371,10 +475,17 @@ def test_mismatched_road_names_fail_loudly() -> None:
     # If the lookup ever returned a different number of names than there are
     # violations, zip would silently pair them off and drop the tail
     payload = DrivingReportCreate.model_validate(
-        valid_report(violations=[valid_violation(), valid_violation()])
+        valid_report(
+            violations=[
+                valid_violation(),
+                valid_violation(),
+            ]
+        )
     )
     with pytest.raises(ValueError):
-        write_driving_report(FakeDbSession(), 42, payload, ["Roosevelt Blvd"])
+        write_driving_report(
+            FakeDbSession(), 42, payload, ["Roosevelt Blvd"]
+        )
 
 
 # response
@@ -389,22 +500,37 @@ def test_the_route_still_requires_a_token() -> None:
 def test_the_response_returns_the_saved_violations() -> None:
     # The client learns the road names the server resolved without rereading
     row = models.DrivingReport(
-        id=7, user_id=1, driving_mode="regular", overall_grade=87.0, speed_grade=87.0, braking_grade=100.0,
-        acceleration_grade=100.0, turning_grade=100.0, focus_grade=100.0,
+        id=7,
+        user_id=1,
+        driving_mode="regular",
+        overall_grade=87.0,
+        speed_grade=87.0,
+        braking_grade=100.0,
+        acceleration_grade=100.0,
+        turning_grade=100.0,
+        focus_grade=100.0,
+        following_distance_grade=100.0,
         report_date=datetime(2026, 7, 30, 10, 30),
-        trip_duration_minutes=30.0, trip_distance_miles=12.4,
+        trip_duration_minutes=30.0,
+        trip_distance_miles=12.4,
         violations=[
             models.Violation(
-                id=3, user_id=1, driving_report_id=7, violation_type="Proper Speed",
+                id=3,
+                user_id=1,
+                driving_report_id=7,
+                violation_type="Proper Speed",
                 road_name="Roosevelt Blvd",
                 start_time=datetime(2026, 7, 30, 10, 5),
                 end_time=datetime(2026, 7, 30, 10, 5, 18),
             )
         ],
     )
-    body = DrivingReportWithViolationsOut.model_validate(row).model_dump(by_alias=True)
+    body = DrivingReportWithViolationsOut.model_validate(row).model_dump(
+        by_alias=True
+    )
 
     assert body["id"] == 7
+    assert body["followingDistanceGrade"] == 100.0
     assert body["violations"][0]["roadName"] == "Roosevelt Blvd"
     assert body["violations"][0]["violationType"] == "Proper Speed"
     # The coordinates were only ever a means to the road name
@@ -431,7 +557,9 @@ def scratch_db():
     from app.database import Base
 
     engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     Base.metadata.create_all(engine)
     session_factory = sessionmaker(bind=engine)
@@ -439,7 +567,10 @@ def scratch_db():
     with session_factory() as seed:
         seed.add(
             models.User(
-                id=1, username="driver", email="driver@example.com", password_hash="x"
+                id=1,
+                username="driver",
+                email="driver@example.com",
+                password_hash="x",
             )
         )
         seed.commit()
@@ -464,7 +595,12 @@ def client(scratch_db):
     def override_pg():
         # The road data is queried through this session; the lookup itself is
         # covered above, so hand back a fixed name per point
-        yield FakePgSession(rows=[FakeRow(1, "Roosevelt Blvd"), FakeRow(2, None)])
+        yield FakePgSession(
+            rows=[
+                FakeRow(1, "Roosevelt Blvd"),
+                FakeRow(2, None),
+            ]
+        )
 
     def override_user():
         with scratch_db() as db:
@@ -499,6 +635,7 @@ def test_an_upload_lands_in_both_tables(client, scratch_db) -> None:
 
     assert response.status_code == 201
     body = response.json()
+    assert body["followingDistanceGrade"] == 100.0
     assert body["violations"][0]["roadName"] == "Roosevelt Blvd"
     # Nothing near this point, and the column takes NULL
     assert body["violations"][1]["roadName"] is None
@@ -509,10 +646,17 @@ def test_an_upload_lands_in_both_tables(client, scratch_db) -> None:
 
     assert report.user_id == 1
     assert report.report_date == datetime(2026, 7, 30, 10, 30)
+    assert report.following_distance_grade == 100.0
     # Both rows point at the report that was just created, and carry its owner
-    assert [v.driving_report_id for v in violations] == [report.id, report.id]
+    assert [v.driving_report_id for v in violations] == [
+        report.id,
+        report.id,
+    ]
     assert [v.user_id for v in violations] == [1, 1]
-    assert [v.violation_type for v in violations] == ["Proper Speed", "Smooth Braking"]
+    assert [v.violation_type for v in violations] == [
+        "Proper Speed",
+        "Smooth Braking",
+    ]
 
 
 def test_a_report_with_no_violations_still_saves(client, scratch_db) -> None:
@@ -528,7 +672,11 @@ def test_a_report_with_no_violations_still_saves(client, scratch_db) -> None:
 def test_a_rejected_body_writes_nothing(client, scratch_db) -> None:
     response = client.post(
         "/driving-reports",
-        json=valid_report(violations=[valid_violation(violationType="Tailgating")]),
+        json=valid_report(
+            violations=[
+                valid_violation(violationType="Tailgating")
+            ]
+        ),
     )
 
     assert response.status_code == 422
@@ -546,7 +694,11 @@ def test_a_navigation_upload_stores_its_mode_and_a_null_focus_grade(
             drivingMode="navigation",
             violations=[
                 valid_violation(),
-                valid_violation(violationType="Smooth Turning", latitude=0.0, longitude=0.0),
+                valid_violation(
+                    violationType="Smooth Turning",
+                    latitude=0.0,
+                    longitude=0.0,
+                ),
             ],
         ),
     )
@@ -555,18 +707,52 @@ def test_a_navigation_upload_stores_its_mode_and_a_null_focus_grade(
     body = response.json()
     assert body["drivingMode"] == "navigation"
     assert body["focusGrade"] is None
+    assert body["followingDistanceGrade"] == 100.0
+
     with scratch_db() as db:
         report = db.query(models.DrivingReport).one()
+
     assert report.driving_mode == "navigation"
     assert report.focus_grade is None
+    assert report.following_distance_grade == 100.0
 
 
-def test_an_upload_without_a_mode_is_stored_as_regular(client, scratch_db) -> None:
-    response = client.post("/driving-reports", json=valid_report())
+def test_an_upload_without_a_mode_is_stored_as_regular(
+    client, scratch_db
+) -> None:
+    response = client.post(
+        "/driving-reports",
+        json=valid_report(),
+    )
 
     assert response.status_code == 201
     assert response.json()["drivingMode"] == "regular"
+
     with scratch_db() as db:
         report = db.query(models.DrivingReport).one()
+
     assert report.driving_mode == "regular"
     assert report.focus_grade == 100.0
+    assert report.following_distance_grade == 100.0
+
+
+def test_a_pocket_upload_stores_null_focus_and_following_distance(
+    client, scratch_db
+) -> None:
+    response = client.post(
+        "/driving-reports",
+        json=valid_report(drivingMode="pocket"),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["drivingMode"] == "pocket"
+    assert body["focusGrade"] is None
+    assert body["followingDistanceGrade"] is None
+
+    with scratch_db() as db:
+        report = db.query(models.DrivingReport).one()
+
+    assert report.driving_mode == "pocket"
+    assert report.focus_grade is None
+    assert report.following_distance_grade is None

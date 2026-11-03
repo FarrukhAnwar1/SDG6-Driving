@@ -92,6 +92,7 @@ class DrivingReportApi {
           'turningGrade': turningGrade,
           // Null means focus wasn't measured for this mode
           'focusGrade': focusedDrivingGrade,
+          // 'followingDistanceGrade': 100,
           'violations': violations,
         }),
       );

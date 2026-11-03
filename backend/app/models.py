@@ -86,9 +86,10 @@ class DrivingReport(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
-    # The column is a MySQL ENUM('regular', 'navigation') - see DRIVING_MODES in
-    # schemas.py. "regular" grades every dimension; "navigation" grades all but
-    # focus, since a driver following directions has to look at the phone.
+    # The column is a MySQL ENUM('regular', 'navigation', 'pocket') - see
+    # DRIVING_MODES in schemas.py. "regular" grades every dimension;
+    # "navigation" grades all but focus, since a driver following directions has
+    # to look at the phone; "pocket" grades neither focus nor following distance.
     # Reports saved before modes existed were all regular, hence the default
     driving_mode: Mapped[str] = mapped_column(
         String(16), default="regular", server_default="regular"
@@ -103,9 +104,14 @@ class DrivingReport(Base):
     acceleration_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     turning_grade: Mapped[float] = mapped_column(Numeric(5, 2, asdecimal=False))
     # From FocusedDrivingGradingService. NULL exactly when driving_mode is
-    # "navigation", which doesn't grade focus.
+    # "navigation" or "pocket", which don't grade focus.
     # A CHECK constraint on the table enforces the pairing
     focus_grade: Mapped[float | None] = mapped_column(
+        Numeric(5, 2, asdecimal=False), nullable=True
+    )
+    # Adequate Following Distance, 0-100. NULL exactly when driving_mode is
+    # "pocket", which doesn't grade it. A CHECK constraint enforces the pairing
+    following_distance_grade: Mapped[float | None] = mapped_column(
         Numeric(5, 2, asdecimal=False), nullable=True
     )
 
@@ -145,7 +151,7 @@ class Violation(Base):
         ForeignKey("driving_reports.id"), index=True
     )
 
-    # The column is a MySQL ENUM of the five graded dimensions, spelled exactly
+    # The column is a MySQL ENUM of the six graded dimensions, spelled exactly
     # as the app labels them - see VIOLATION_TYPES in schemas.py
     violation_type: Mapped[str] = mapped_column(String(32), index=True)
 

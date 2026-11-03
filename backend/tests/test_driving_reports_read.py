@@ -1,3 +1,4 @@
+
 """Tests for GET /driving-reports.
 
 These cover the response contract - what the endpoint promises to return, how
@@ -34,6 +35,7 @@ def report_row(violations: list[models.Violation] | None = None) -> models.Drivi
         acceleration_grade=92.0,
         turning_grade=88.0,
         focus_grade=95.0,
+        following_distance_grade=100.0,
         report_date=datetime(2026, 7, 30, 10, 30),
         trip_duration_minutes=30.0,
         trip_distance_miles=12.4,
@@ -78,7 +80,7 @@ def test_limit_is_optional_and_bounded() -> None:
     assert limit["schema"]["maximum"] == MAX_REPORT_LIMIT
 
 
-def test_violation_types_are_the_five_graded_dimensions() -> None:
+def test_violation_types_are_the_six_graded_dimensions() -> None:
     # These strings are the violations.violation_type ENUM labels in MySQL. If
     # they drift, writes fail at INSERT and reads reject rows that are fine
     assert VIOLATION_TYPES == (
@@ -87,6 +89,7 @@ def test_violation_types_are_the_five_graded_dimensions() -> None:
         "Smooth Accelerating",
         "Smooth Turning",
         "Focused Driving",
+        "Adequate Following Distance",
     )
 
 
@@ -99,6 +102,7 @@ def test_a_report_carries_its_violations_in_camel_case() -> None:
 
     assert body["id"] == 7
     assert body["speedGrade"] == 87.0
+    assert body["followingDistanceGrade"] == 100.0
     assert len(body["violations"]) == 1
 
     violation = body["violations"][0]
