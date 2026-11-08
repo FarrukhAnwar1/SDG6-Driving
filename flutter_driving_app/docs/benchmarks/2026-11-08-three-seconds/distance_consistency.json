@@ -1,0 +1,21 @@
+{
+  "comparedFrames": 166,
+  "comparison": "Fresh three-second phone run versus archived improved-distance outputs under the earlier 1.5-second policy",
+  "samePerceptionOutputFields": [
+    "status",
+    "distanceMeters",
+    "leadVehicleId",
+    "roadVisible",
+    "vehicles"
+  ],
+  "changedIdsByField": {
+    "status": [],
+    "distanceMeters": [],
+    "leadVehicleId": [],
+    "roadVisible": [],
+    "vehicles": []
+  },
+  "maximumAbsoluteDistanceDifferenceMeters": 0.0,
+  "distanceOutputsUnchanged": true,
+  "note": "The unsafe-gap labels and penalty severities use different thresholds; classification metrics from these two policies are not directly comparable."
+}

@@ -1,0 +1,627 @@
+{
+  "scope": "KITTI pilot; actual production Flutter/ONNX perception, lead selection and grading run on phone; offline source-time replay at 1 Hz",
+  "gradingPolicy": {
+    "requiredHeadwaySeconds": 3.0,
+    "minimumSpeedMph": 25,
+    "graceSeconds": 5,
+    "maxSampleGapSeconds": 1.5,
+    "pointsPerSecond": 1,
+    "secondsPerPenaltyStep": 0.5,
+    "unsafeComparison": "headwaySeconds < requiredHeadwaySeconds"
+  },
+  "totalInferredFrames": 99,
+  "scoredFrames": 65,
+  "referenceReview": {
+    "createdBeforeInference": true,
+    "method": "Visual review of all 99 sampled left-camera frames; lead IDs come from KITTI 3D tracklets. Ambiguous transition frames excluded. Review by assistant, not independently human-adjudicated.",
+    "ranges": {
+      "2011_09_26_drive_0056": [
+        {
+          "firstFrame": 0,
+          "lastFrame": 290,
+          "trackId": "0"
+        }
+      ],
+      "2011_09_26_drive_0015": [
+        {
+          "firstFrame": 0,
+          "lastFrame": 290,
+          "trackId": "31"
+        }
+      ],
+      "2011_09_26_drive_0032": [
+        {
+          "firstFrame": 50,
+          "lastFrame": 70,
+          "trackId": "8"
+        },
+        {
+          "firstFrame": 140,
+          "lastFrame": 210,
+          "trackId": "8"
+        },
+        {
+          "firstFrame": 270,
+          "lastFrame": 330,
+          "trackId": "8"
+        }
+      ]
+    }
+  },
+  "unsafeHeadway": {
+    "n": 65,
+    "counts": {
+      "truePositive": 55,
+      "trueNegative": 4,
+      "falsePositive": 1,
+      "falseNegative": 5
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.9076923076923077,
+        "numerator": 59,
+        "denominator": 65,
+        "wilson95": [
+          0.8128799948403962,
+          0.9570049103886591
+        ]
+      },
+      "recall": {
+        "value": 0.9166666666666666,
+        "numerator": 55,
+        "denominator": 60,
+        "wilson95": [
+          0.8193105798166558,
+          0.9638795433982692
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.2,
+        "numerator": 1,
+        "denominator": 5,
+        "wilson95": [
+          0.03622410863243014,
+          0.6244653702374747
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.08333333333333333,
+        "numerator": 5,
+        "denominator": 60,
+        "wilson95": [
+          0.03612045660173077,
+          0.1806894201833441
+        ]
+      },
+      "precision": {
+        "value": 0.9821428571428571,
+        "numerator": 55,
+        "denominator": 56,
+        "wilson95": [
+          0.9055436285060242,
+          0.9968407896580255
+        ]
+      },
+      "specificity": {
+        "value": 0.8,
+        "numerator": 4,
+        "denominator": 5,
+        "wilson95": [
+          0.37553462976252533,
+          0.9637758913675698
+        ]
+      }
+    },
+    "f1": 0.9482758620689655
+  },
+  "availableOnly": {
+    "n": 59,
+    "counts": {
+      "truePositive": 55,
+      "trueNegative": 3,
+      "falsePositive": 1,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.9830508474576272,
+        "numerator": 58,
+        "denominator": 59,
+        "wilson95": [
+          0.9100427403585771,
+          0.9970017660816444
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 55,
+        "denominator": 55,
+        "wilson95": [
+          0.9347150988829137,
+          1
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.25,
+        "numerator": 1,
+        "denominator": 4,
+        "wilson95": [
+          0.04558726080970055,
+          0.6993581574175981
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 55,
+        "wilson95": [
+          0,
+          0.06528490111708637
+        ]
+      },
+      "precision": {
+        "value": 0.9821428571428571,
+        "numerator": 55,
+        "denominator": 56,
+        "wilson95": [
+          0.9055436285060242,
+          0.9968407896580255
+        ]
+      },
+      "specificity": {
+        "value": 0.75,
+        "numerator": 3,
+        "denominator": 4,
+        "wilson95": [
+          0.30064184258240184,
+          0.9544127391902995
+        ]
+      }
+    },
+    "f1": 0.990990990990991
+  },
+  "coverage": 0.9076923076923077,
+  "penalizingFrameClassification": {
+    "n": 65,
+    "counts": {
+      "truePositive": 27,
+      "trueNegative": 29,
+      "falsePositive": 1,
+      "falseNegative": 8
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.8615384615384616,
+        "numerator": 56,
+        "denominator": 65,
+        "wilson95": [
+          0.7573190275365485,
+          0.9254090959684629
+        ]
+      },
+      "recall": {
+        "value": 0.7714285714285715,
+        "numerator": 27,
+        "denominator": 35,
+        "wilson95": [
+          0.6098268310800976,
+          0.879341201658083
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.03333333333333333,
+        "numerator": 1,
+        "denominator": 30,
+        "wilson95": [
+          0.005908590381612455,
+          0.16670390991409173
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.22857142857142856,
+        "numerator": 8,
+        "denominator": 35,
+        "wilson95": [
+          0.12065879834191687,
+          0.3901731689199025
+        ]
+      },
+      "precision": {
+        "value": 0.9642857142857143,
+        "numerator": 27,
+        "denominator": 28,
+        "wilson95": [
+          0.8228780225664668,
+          0.9936674801509623
+        ]
+      },
+      "specificity": {
+        "value": 0.9666666666666667,
+        "numerator": 29,
+        "denominator": 30,
+        "wilson95": [
+          0.8332960900859082,
+          0.9940914096183874
+        ]
+      }
+    },
+    "f1": 0.8571428571428571
+  },
+  "referenceConfirmedViolations": 5,
+  "predictedConfirmedViolations": 3,
+  "excludingPointOneSecondBoundaryBand": {
+    "n": 62,
+    "counts": {
+      "truePositive": 55,
+      "trueNegative": 4,
+      "falsePositive": 0,
+      "falseNegative": 3
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.9516129032258065,
+        "numerator": 59,
+        "denominator": 62,
+        "wilson95": [
+          0.8671196207267605,
+          0.9834083141494193
+        ]
+      },
+      "recall": {
+        "value": 0.9482758620689655,
+        "numerator": 55,
+        "denominator": 58,
+        "wilson95": [
+          0.8586059880915734,
+          0.9822538653405896
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 4,
+        "wilson95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.05172413793103448,
+        "numerator": 3,
+        "denominator": 58,
+        "wilson95": [
+          0.017746134659410502,
+          0.14139401190842663
+        ]
+      },
+      "precision": {
+        "value": 1.0,
+        "numerator": 55,
+        "denominator": 55,
+        "wilson95": [
+          0.9347150988829137,
+          1
+        ]
+      },
+      "specificity": {
+        "value": 1.0,
+        "numerator": 4,
+        "denominator": 4,
+        "wilson95": [
+          0.5101091635454027,
+          1
+        ]
+      }
+    },
+    "f1": 0.9734513274336283
+  },
+  "originalStraightRoadGeometricSubset": {
+    "n": 51,
+    "counts": {
+      "truePositive": 41,
+      "trueNegative": 4,
+      "falsePositive": 1,
+      "falseNegative": 5
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.8823529411764706,
+        "numerator": 45,
+        "denominator": 51,
+        "wilson95": [
+          0.7661915568567753,
+          0.9449492632208182
+        ]
+      },
+      "recall": {
+        "value": 0.8913043478260869,
+        "numerator": 41,
+        "denominator": 46,
+        "wilson95": [
+          0.7696217135574916,
+          0.9526685414190106
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.2,
+        "numerator": 1,
+        "denominator": 5,
+        "wilson95": [
+          0.03622410863243014,
+          0.6244653702374747
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.10869565217391304,
+        "numerator": 5,
+        "denominator": 46,
+        "wilson95": [
+          0.04733145858098943,
+          0.2303782864425083
+        ]
+      },
+      "precision": {
+        "value": 0.9761904761904762,
+        "numerator": 41,
+        "denominator": 42,
+        "wilson95": [
+          0.8767879842623334,
+          0.9957845958655673
+        ]
+      },
+      "specificity": {
+        "value": 0.8,
+        "numerator": 4,
+        "denominator": 5,
+        "wilson95": [
+          0.37553462976252533,
+          0.9637758913675698
+        ]
+      }
+    },
+    "f1": 0.9318181818181818
+  },
+  "leadVehicleDetectionRecallAtIoUPointFive": {
+    "matched": 65,
+    "referenceLeads": 65,
+    "recall": 1.0
+  },
+  "correctSelectedLeadsAtIoUPointFive": 58,
+  "distanceAllAvailable": {
+    "n": 59,
+    "maeMeters": 1.3276387030747463,
+    "rmseMeters": 1.5923863858005392,
+    "meanBiasMeters": -0.6438899478016376,
+    "medianAbsoluteErrorMeters": 1.146294979379082
+  },
+  "distanceMatchedLeadOnly": {
+    "n": 58,
+    "maeMeters": 1.3504329586970938,
+    "rmseMeters": 1.6060550225334116,
+    "meanBiasMeters": -0.6548954317813452,
+    "medianAbsoluteErrorMeters": 1.1538418498714726,
+    "absoluteRelativeError": 0.050880287509100286,
+    "deltaOneWithinFactorOnePointTwoFive": 1
+  },
+  "perSequenceHeadway": {
+    "2011_09_26_drive_0056": {
+      "n": 30,
+      "counts": {
+        "truePositive": 30,
+        "trueNegative": 0,
+        "falsePositive": 0,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 1.0,
+          "numerator": 30,
+          "denominator": 30,
+          "wilson95": [
+            0.8864866068260312,
+            0.9999999999999999
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "numerator": 30,
+          "denominator": 30,
+          "wilson95": [
+            0.8864866068260312,
+            0.9999999999999999
+          ]
+        },
+        "falsePositiveRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falseNegativeRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 30,
+          "wilson95": [
+            0,
+            0.11351339317396876
+          ]
+        },
+        "precision": {
+          "value": 1.0,
+          "numerator": 30,
+          "denominator": 30,
+          "wilson95": [
+            0.8864866068260312,
+            0.9999999999999999
+          ]
+        },
+        "specificity": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        }
+      },
+      "f1": 1.0
+    },
+    "2011_09_26_drive_0015": {
+      "n": 17,
+      "counts": {
+        "truePositive": 15,
+        "trueNegative": 0,
+        "falsePositive": 0,
+        "falseNegative": 2
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 0.8823529411764706,
+          "numerator": 15,
+          "denominator": 17,
+          "wilson95": [
+            0.6566364940511412,
+            0.9671202262362074
+          ]
+        },
+        "recall": {
+          "value": 0.8823529411764706,
+          "numerator": 15,
+          "denominator": 17,
+          "wilson95": [
+            0.6566364940511412,
+            0.9671202262362074
+          ]
+        },
+        "falsePositiveRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falseNegativeRate": {
+          "value": 0.11764705882352941,
+          "numerator": 2,
+          "denominator": 17,
+          "wilson95": [
+            0.03287977376379267,
+            0.3433635059488588
+          ]
+        },
+        "precision": {
+          "value": 1.0,
+          "numerator": 15,
+          "denominator": 15,
+          "wilson95": [
+            0.7961166989641515,
+            1
+          ]
+        },
+        "specificity": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        }
+      },
+      "f1": 0.9375
+    },
+    "2011_09_26_drive_0032": {
+      "n": 18,
+      "counts": {
+        "truePositive": 10,
+        "trueNegative": 4,
+        "falsePositive": 1,
+        "falseNegative": 3
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 0.7777777777777778,
+          "numerator": 14,
+          "denominator": 18,
+          "wilson95": [
+            0.5478541568378739,
+            0.9099907189139831
+          ]
+        },
+        "recall": {
+          "value": 0.7692307692307693,
+          "numerator": 10,
+          "denominator": 13,
+          "wilson95": [
+            0.49743624053272495,
+            0.9182047128150143
+          ]
+        },
+        "falsePositiveRate": {
+          "value": 0.2,
+          "numerator": 1,
+          "denominator": 5,
+          "wilson95": [
+            0.03622410863243014,
+            0.6244653702374747
+          ]
+        },
+        "falseNegativeRate": {
+          "value": 0.23076923076923078,
+          "numerator": 3,
+          "denominator": 13,
+          "wilson95": [
+            0.08179528718498569,
+            0.5025637594672749
+          ]
+        },
+        "precision": {
+          "value": 0.9090909090909091,
+          "numerator": 10,
+          "denominator": 11,
+          "wilson95": [
+            0.6226415635484043,
+            0.9837678271141151
+          ]
+        },
+        "specificity": {
+          "value": 0.8,
+          "numerator": 4,
+          "denominator": 5,
+          "wilson95": [
+            0.37553462976252533,
+            0.9637758913675698
+          ]
+        }
+      },
+      "f1": 0.8333333333333334
+    }
+  },
+  "finalGrades": {
+    "2011_09_26_drive_0056": {
+      "referenceGrade": 1.1509363688852003,
+      "predictedGrade": 0.0
+    },
+    "2011_09_26_drive_0015": {
+      "referenceGrade": 83.49661564670663,
+      "predictedGrade": 95.96295658314918
+    },
+    "2011_09_26_drive_0032": {
+      "referenceGrade": 97.58320511768295,
+      "predictedGrade": 99.6987600962438
+    }
+  },
+  "inferenceSeconds": {
+    "median": 1.958946,
+    "mean": 1.9866907676767678,
+    "max": 2.182548
+  },
+  "sha256": {
+    "manifest": "86f55b9bd2facd319111d38cbc8837a0b8240e9e3e891e3807568f9b0c46ab82",
+    "referenceReview": "ce9b996b24bf486b9f898e1086aef114ac8187b9b624a59e8a243bc9b19887dd",
+    "predictions": "180ed8cced79248549a304eff218d0272362ccec11b76194b87c6405f4441569"
+  },
+  "limitations": [
+    "3 deliberately selected daytime drives; correlated frames; 60 unsafe examples, not independent events.",
+    "Reference lead IDs visually reviewed by assistant; no independent human adjudication or official following-distance labels.",
+    "Reference distance is nearest annotated 3D-box camera-forward surface; not directly measured bumper-to-bumper headway.",
+    "No model weights or distance scale were fitted for this threshold rerun; crop preprocessing was previously selected using development examples. Upstream pretrained models may have seen KITTI.",
+    "Missing/uncertain predictions count as no unsafe-gap detection in primary metrics; available-only metrics and coverage are also reported.",
+    "Offline 1 Hz replay does not include live camera/GPS failures or inference frame drops; observed phone throughput is slower than 1 Hz.",
+    "Wilson intervals treat frames as independent and are optimistic for correlated video; use separate drives/events for stronger uncertainty estimates."
+  ]
+}

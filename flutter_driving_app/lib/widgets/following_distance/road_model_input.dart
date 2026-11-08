@@ -32,27 +32,83 @@ class RoadCameraFrame {
 }
 
 class ModelLetterbox {
-  ModelLetterbox(int sourceWidth, int sourceHeight, this.width, this.height)
-    : scale = math.min(width / sourceWidth, height / sourceHeight) {
-    imageWidth = (sourceWidth * scale).round();
-    imageHeight = (sourceHeight * scale).round();
+  ModelLetterbox(int sourceWidth, int sourceHeight, int width, int height)
+    : this._(
+        sourceWidth,
+        sourceHeight,
+        width,
+        height,
+        const Rect.fromLTWH(0, 0, 1, 1),
+      );
+
+  // Fill the fixed depth-network input with a centered, aspect-preserving crop.
+  // The detector still sees the full camera image. Keep this region in camera
+  // coordinates so depth lookups cannot mistake cropped pixels for full-frame
+  // pixels or sample a vehicle outside the depth network's field of view.
+  factory ModelLetterbox.crop(
+    int sourceWidth,
+    int sourceHeight,
+    int width,
+    int height,
+  ) {
+    var cropWidth = sourceWidth, cropHeight = sourceHeight;
+    if (sourceWidth * height > sourceHeight * width) {
+      cropWidth = (sourceHeight * width / height).round().clamp(1, sourceWidth);
+    } else {
+      cropHeight = (sourceWidth * height / width).round().clamp(
+        1,
+        sourceHeight,
+      );
+    }
+    final cropLeft = (sourceWidth - cropWidth) ~/ 2;
+    final cropTop = (sourceHeight - cropHeight) ~/ 2;
+    return ModelLetterbox._(
+      sourceWidth,
+      sourceHeight,
+      width,
+      height,
+      Rect.fromLTWH(
+        cropLeft / sourceWidth,
+        cropTop / sourceHeight,
+        cropWidth / sourceWidth,
+        cropHeight / sourceHeight,
+      ),
+    );
+  }
+
+  ModelLetterbox._(
+    int sourceWidth,
+    int sourceHeight,
+    this.width,
+    this.height,
+    this.sourceRegion,
+  ) : scale = math.min(
+        width / (sourceWidth * sourceRegion.width),
+        height / (sourceHeight * sourceRegion.height),
+      ) {
+    imageWidth = (sourceWidth * sourceRegion.width * scale).round();
+    imageHeight = (sourceHeight * sourceRegion.height * scale).round();
     left = (width - imageWidth) ~/ 2;
     top = (height - imageHeight) ~/ 2;
   }
   final int width, height;
   final double scale;
+  final Rect sourceRegion;
   late final int imageWidth, imageHeight, left, top;
 
   Rect toCamera(Rect pixels) => Rect.fromLTRB(
-    (pixels.left - left) / imageWidth,
-    (pixels.top - top) / imageHeight,
-    (pixels.right - left) / imageWidth,
-    (pixels.bottom - top) / imageHeight,
+    sourceRegion.left + (pixels.left - left) / imageWidth * sourceRegion.width,
+    sourceRegion.top + (pixels.top - top) / imageHeight * sourceRegion.height,
+    sourceRegion.left + (pixels.right - left) / imageWidth * sourceRegion.width,
+    sourceRegion.top +
+        (pixels.bottom - top) / imageHeight * sourceRegion.height,
   );
 
   Offset toModel(Offset normalized) => Offset(
-    left + normalized.dx * imageWidth,
-    top + normalized.dy * imageHeight,
+    left +
+        (normalized.dx - sourceRegion.left) / sourceRegion.width * imageWidth,
+    top +
+        (normalized.dy - sourceRegion.top) / sourceRegion.height * imageHeight,
   );
 }
 
@@ -78,7 +134,10 @@ const _std = [0.229, 0.224, 0.225];
 
 // Run in a worker isolate. Respect row/pixel strides: Android chroma planes
 // are often interleaved, and iOS BGRA rows can include trailing padding.
-PreparedRoadFrame prepareRoadFrame(RoadCameraFrame frame) {
+PreparedRoadFrame prepareRoadFrame(
+  RoadCameraFrame frame, {
+  bool cropDepth = true,
+}) {
   if (frame.width <= 0 ||
       frame.height <= 0 ||
       ![0, 90, 180, 270].contains(frame.clockwiseRotation)) {
@@ -130,7 +189,9 @@ PreparedRoadFrame prepareRoadFrame(RoadCameraFrame frame) {
     detectorSide,
     detectorSide,
   );
-  final depthLayout = ModelLetterbox(width, height, depthWidth, depthHeight);
+  final depthLayout = cropDepth
+      ? ModelLetterbox.crop(width, height, depthWidth, depthHeight)
+      : ModelLetterbox(width, height, depthWidth, depthHeight);
   return PreparedRoadFrame(
     timestamp: frame.timestamp,
     detector: _resize(
@@ -155,6 +216,10 @@ Float32List _resize(
 }) {
   final area = layout.width * layout.height;
   final output = Float32List(3 * area);
+  final sourceLeft = (layout.sourceRegion.left * width).round();
+  final sourceTop = (layout.sourceRegion.top * height).round();
+  final sourceWidth = (layout.sourceRegion.width * width).round();
+  final sourceHeight = (layout.sourceRegion.height * height).round();
   if (detectorPadding) {
     for (var c = 0; c < 3; c++) {
       output.fillRange(
@@ -165,18 +230,24 @@ Float32List _resize(
     }
   }
   for (var y = 0; y < layout.imageHeight; y++) {
-    final sourceY = ((y + 0.5) * height / layout.imageHeight - 0.5).clamp(
-      0.0,
-      height - 1.0,
-    );
-    final y0 = sourceY.floor(), y1 = math.min(y0 + 1, height - 1);
+    final sourceY =
+        ((y + 0.5) * sourceHeight / layout.imageHeight - 0.5).clamp(
+          0.0,
+          sourceHeight - 1.0,
+        ) +
+        sourceTop;
+    final y0 = sourceY.floor(),
+        y1 = math.min(y0 + 1, sourceTop + sourceHeight - 1);
     final fy = sourceY - y0;
     for (var x = 0; x < layout.imageWidth; x++) {
-      final sourceX = ((x + 0.5) * width / layout.imageWidth - 0.5).clamp(
-        0.0,
-        width - 1.0,
-      );
-      final x0 = sourceX.floor(), x1 = math.min(x0 + 1, width - 1);
+      final sourceX =
+          ((x + 0.5) * sourceWidth / layout.imageWidth - 0.5).clamp(
+            0.0,
+            sourceWidth - 1.0,
+          ) +
+          sourceLeft;
+      final x0 = sourceX.floor(),
+          x1 = math.min(x0 + 1, sourceLeft + sourceWidth - 1);
       final fx = sourceX - x0;
       final target = (y + layout.top) * layout.width + x + layout.left;
       for (var c = 0; c < 3; c++) {

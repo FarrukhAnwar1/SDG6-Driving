@@ -28,8 +28,10 @@ One normal rear camera at 1x supplies both the preview and raw frames through
 Flutter's `camera` plugin. Frames stay on the device; they are not recorded,
 uploaded or retained in the trip. Audio is disabled. Android YUV420 plane
 strides and sensor rotation, and iOS's already-oriented BGRA output, are handled
-before either network sees the image. Model inputs preserve aspect ratio with
-letterboxing; preview cropping never changes inference coordinates.
+before either network sees the image. Both model inputs preserve aspect ratio.
+YOLOP letterboxes the full camera frame. UniDepth uses a centered crop matching
+its fixed portrait input, with an explicit mapping back to full-camera
+coordinates. Preview cropping never changes inference coordinates.
 
 1. [YOLOP](https://github.com/hustvl/YOLOP) supplies pretrained BDD100K vehicle
    detections, drivable-surface segmentation and lane segmentation at 640x640.
@@ -40,7 +42,12 @@ letterboxing; preview cropping never changes inference coordinates.
    contains 208,544 pixels, within the upstream 200k–600k range, with dimensions
    divisible by 14. The export returns camera-forward Z in metres from the
    predicted 3D points. No assumed vehicle width, guessed focal length, or
-   arbitrary distance multiplier is used.
+   arbitrary distance multiplier is used. Filling the depth input avoids the
+   large padding regions that biased learned camera intrinsics on wide images.
+   For a 480x640 upright camera frame, the crop is 472x640 (four pixels removed
+   from each side). Wide or landscape frames lose more horizontal coverage.
+   A vehicle outside, or clipped by, this depth crop has unavailable distance;
+   its coordinates are never clamped onto a different visible patch.
 3. Simple lead selection uses the current ego-lane detections and learned
    distances, without a separate tracking stage. A new lead needs confidence
    of at least 0.25 and can supply distance on its first sighting. A box matching
@@ -83,10 +90,16 @@ These are pretrained components, not a validated following-distance product.
 Monocular metric depth can still have scale bias, especially with unusual
 mounts, poor light, small/distant vehicles, curves, or occlusion. Synthetic
 regressions and export comparisons do not establish physical distance accuracy.
-There is no claim of a fixed accuracy percentage, phone latency, or RAM target.
-Recorded drives with measured distances/headways are needed to assess this
-phone and mounting arrangement; BDD100K fine-tuning and KITTI/nuScenes validation
-are not part of this frontend task.
+The [initial phone/KITTI pilot](benchmarks/2026-11-08/README.md) records the
+original distance overestimation. The [depth-preprocessing comparison](benchmarks/2026-11-08-improved-distance/README.md)
+records the crop change, before/after results and separate validation drives.
+These limited offline replays do not establish deployed-road accuracy. Recorded
+drives with measured distances/headways are still needed for this phone and
+mounting arrangement. No model was fine-tuned. The
+[three-second grading benchmark](benchmarks/2026-11-08-three-seconds/README.md)
+records a separate experiment using a three-second threshold. The current
+grader has returned to **1.5 seconds**; archived reports retain the policy
+used for their respective runs.
 
 ## One-FPS timing and grading
 

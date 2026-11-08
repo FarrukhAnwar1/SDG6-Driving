@@ -32,7 +32,7 @@ void main() {
     sample(service, 6);
     expect(service.isPenalizing, isTrue);
     expect(service.grade, lessThan(100));
-    sample(service, 7, headway: 2);
+    sample(service, 7, headway: 1.5);
     expect(service.isPenalizing, isFalse);
     for (var second = 8; second <= 13; second++) {
       sample(service, second);
@@ -48,7 +48,7 @@ void main() {
     final observed = FollowingDistanceGradingService();
     final unobserved = FollowingDistanceGradingService();
     for (var second = 0; second <= 20; second++) {
-      final headway = second % 9 < 7 ? 1.0 : 2.0;
+      final headway = second % 9 < 7 ? 1.0 : 1.5;
       sample(observed, second, headway: headway);
       observed.isPenalizing;
       sample(unobserved, second, headway: headway);

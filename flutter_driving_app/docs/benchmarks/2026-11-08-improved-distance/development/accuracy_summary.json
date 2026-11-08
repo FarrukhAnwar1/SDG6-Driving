@@ -1,0 +1,612 @@
+{
+  "scope": "KITTI pilot; actual production Flutter/ONNX perception, lead selection and grading run on phone; offline source-time replay at 1 Hz",
+  "totalInferredFrames": 99,
+  "scoredFrames": 65,
+  "referenceReview": {
+    "createdBeforeInference": true,
+    "method": "Visual review of all 99 sampled left-camera frames; lead IDs come from KITTI 3D tracklets. Ambiguous transition frames excluded. Review by assistant, not independently human-adjudicated.",
+    "ranges": {
+      "2011_09_26_drive_0056": [
+        {
+          "firstFrame": 0,
+          "lastFrame": 290,
+          "trackId": "0"
+        }
+      ],
+      "2011_09_26_drive_0015": [
+        {
+          "firstFrame": 0,
+          "lastFrame": 290,
+          "trackId": "31"
+        }
+      ],
+      "2011_09_26_drive_0032": [
+        {
+          "firstFrame": 50,
+          "lastFrame": 70,
+          "trackId": "8"
+        },
+        {
+          "firstFrame": 140,
+          "lastFrame": 210,
+          "trackId": "8"
+        },
+        {
+          "firstFrame": 270,
+          "lastFrame": 330,
+          "trackId": "8"
+        }
+      ]
+    }
+  },
+  "unsafeHeadway": {
+    "n": 65,
+    "counts": {
+      "truePositive": 10,
+      "trueNegative": 44,
+      "falsePositive": 11,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.8307692307692308,
+        "numerator": 54,
+        "denominator": 65,
+        "wilson95": [
+          0.7218357836377647,
+          0.9027878187178839
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 10,
+        "denominator": 10,
+        "wilson95": [
+          0.7224672001371107,
+          0.9999999999999999
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.2,
+        "numerator": 11,
+        "denominator": 55,
+        "wilson95": [
+          0.11552214909761245,
+          0.32364879157263937
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 10,
+        "wilson95": [
+          0,
+          0.2775327998628892
+        ]
+      },
+      "precision": {
+        "value": 0.47619047619047616,
+        "numerator": 10,
+        "denominator": 21,
+        "wilson95": [
+          0.2834400610153417,
+          0.6763046541715557
+        ]
+      },
+      "specificity": {
+        "value": 0.8,
+        "numerator": 44,
+        "denominator": 55,
+        "wilson95": [
+          0.6763512084273607,
+          0.8844778509023875
+        ]
+      }
+    },
+    "f1": 0.6451612903225806
+  },
+  "availableOnly": {
+    "n": 59,
+    "counts": {
+      "truePositive": 10,
+      "trueNegative": 38,
+      "falsePositive": 11,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.8135593220338984,
+        "numerator": 48,
+        "denominator": 59,
+        "wilson95": [
+          0.6962104955303725,
+          0.8925727805799468
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 10,
+        "denominator": 10,
+        "wilson95": [
+          0.7224672001371107,
+          0.9999999999999999
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.22448979591836735,
+        "numerator": 11,
+        "denominator": 49,
+        "wilson95": [
+          0.13024970149659185,
+          0.35878787235959997
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 10,
+        "wilson95": [
+          0,
+          0.2775327998628892
+        ]
+      },
+      "precision": {
+        "value": 0.47619047619047616,
+        "numerator": 10,
+        "denominator": 21,
+        "wilson95": [
+          0.2834400610153417,
+          0.6763046541715557
+        ]
+      },
+      "specificity": {
+        "value": 0.7755102040816326,
+        "numerator": 38,
+        "denominator": 49,
+        "wilson95": [
+          0.6412121276403999,
+          0.869750298503408
+        ]
+      }
+    },
+    "f1": 0.6451612903225806
+  },
+  "coverage": 0.9076923076923077,
+  "penalizingFrameClassification": {
+    "n": 65,
+    "counts": {
+      "truePositive": 4,
+      "trueNegative": 53,
+      "falsePositive": 8,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.8769230769230769,
+        "numerator": 57,
+        "denominator": 65,
+        "wilson95": [
+          0.7754850591783848,
+          0.9362953249013077
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 4,
+        "denominator": 4,
+        "wilson95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.13114754098360656,
+        "numerator": 8,
+        "denominator": 61,
+        "wilson95": [
+          0.0679807727490011,
+          0.23801880192993463
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 4,
+        "wilson95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "precision": {
+        "value": 0.3333333333333333,
+        "numerator": 4,
+        "denominator": 12,
+        "wilson95": [
+          0.13812009109121315,
+          0.6093779111272004
+        ]
+      },
+      "specificity": {
+        "value": 0.8688524590163934,
+        "numerator": 53,
+        "denominator": 61,
+        "wilson95": [
+          0.7619811980700654,
+          0.932019227250999
+        ]
+      }
+    },
+    "f1": 0.5
+  },
+  "referenceConfirmedViolations": 1,
+  "predictedConfirmedViolations": 1,
+  "excludingPointOneSecondBoundaryBand": {
+    "n": 45,
+    "counts": {
+      "truePositive": 4,
+      "trueNegative": 41,
+      "falsePositive": 0,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 1.0,
+        "numerator": 45,
+        "denominator": 45,
+        "wilson95": [
+          0.9213484012671117,
+          1
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 4,
+        "denominator": 4,
+        "wilson95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 41,
+        "wilson95": [
+          0,
+          0.08566757018443186
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 4,
+        "wilson95": [
+          0,
+          0.4898908364545973
+        ]
+      },
+      "precision": {
+        "value": 1.0,
+        "numerator": 4,
+        "denominator": 4,
+        "wilson95": [
+          0.5101091635454027,
+          1
+        ]
+      },
+      "specificity": {
+        "value": 1.0,
+        "numerator": 41,
+        "denominator": 41,
+        "wilson95": [
+          0.9143324298155681,
+          0.9999999999999999
+        ]
+      }
+    },
+    "f1": 1.0
+  },
+  "originalStraightRoadGeometricSubset": {
+    "n": 51,
+    "counts": {
+      "truePositive": 7,
+      "trueNegative": 41,
+      "falsePositive": 3,
+      "falseNegative": 0
+    },
+    "metrics": {
+      "accuracy": {
+        "value": 0.9411764705882353,
+        "numerator": 48,
+        "denominator": 51,
+        "wilson95": [
+          0.8407537395119957,
+          0.9797933605775353
+        ]
+      },
+      "recall": {
+        "value": 1.0,
+        "numerator": 7,
+        "denominator": 7,
+        "wilson95": [
+          0.6456695649333126,
+          1
+        ]
+      },
+      "falsePositiveRate": {
+        "value": 0.06818181818181818,
+        "numerator": 3,
+        "denominator": 44,
+        "wilson95": [
+          0.023459395907381622,
+          0.18225044370221527
+        ]
+      },
+      "falseNegativeRate": {
+        "value": 0.0,
+        "numerator": 0,
+        "denominator": 7,
+        "wilson95": [
+          5.551115123125783e-17,
+          0.35433043506668743
+        ]
+      },
+      "precision": {
+        "value": 0.7,
+        "numerator": 7,
+        "denominator": 10,
+        "wilson95": [
+          0.39677814746114537,
+          0.8922087325936989
+        ]
+      },
+      "specificity": {
+        "value": 0.9318181818181818,
+        "numerator": 41,
+        "denominator": 44,
+        "wilson95": [
+          0.8177495562977846,
+          0.9765406040926183
+        ]
+      }
+    },
+    "f1": 0.8235294117647058
+  },
+  "leadVehicleDetectionRecallAtIoUPointFive": {
+    "matched": 65,
+    "referenceLeads": 65,
+    "recall": 1.0
+  },
+  "correctSelectedLeadsAtIoUPointFive": 58,
+  "distanceAllAvailable": {
+    "n": 59,
+    "maeMeters": 1.3276387030747463,
+    "rmseMeters": 1.5923863858005392,
+    "meanBiasMeters": -0.6438899478016376,
+    "medianAbsoluteErrorMeters": 1.146294979379082
+  },
+  "distanceMatchedLeadOnly": {
+    "n": 58,
+    "maeMeters": 1.3504329586970938,
+    "rmseMeters": 1.6060550225334116,
+    "meanBiasMeters": -0.6548954317813452,
+    "medianAbsoluteErrorMeters": 1.1538418498714726,
+    "absoluteRelativeError": 0.050880287509100286,
+    "deltaOneWithinFactorOnePointTwoFive": 1
+  },
+  "perSequenceHeadway": {
+    "2011_09_26_drive_0056": {
+      "n": 30,
+      "counts": {
+        "truePositive": 10,
+        "trueNegative": 9,
+        "falsePositive": 11,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 0.6333333333333333,
+          "numerator": 19,
+          "denominator": 30,
+          "wilson95": [
+            0.4551356365479487,
+            0.7812607919389929
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "numerator": 10,
+          "denominator": 10,
+          "wilson95": [
+            0.7224672001371107,
+            0.9999999999999999
+          ]
+        },
+        "falsePositiveRate": {
+          "value": 0.55,
+          "numerator": 11,
+          "denominator": 20,
+          "wilson95": [
+            0.34208534245034233,
+            0.7418021417443759
+          ]
+        },
+        "falseNegativeRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 10,
+          "wilson95": [
+            0,
+            0.2775327998628892
+          ]
+        },
+        "precision": {
+          "value": 0.47619047619047616,
+          "numerator": 10,
+          "denominator": 21,
+          "wilson95": [
+            0.2834400610153417,
+            0.6763046541715557
+          ]
+        },
+        "specificity": {
+          "value": 0.45,
+          "numerator": 9,
+          "denominator": 20,
+          "wilson95": [
+            0.2581978582556243,
+            0.6579146575496577
+          ]
+        }
+      },
+      "f1": 0.6451612903225806
+    },
+    "2011_09_26_drive_0015": {
+      "n": 17,
+      "counts": {
+        "truePositive": 0,
+        "trueNegative": 17,
+        "falsePositive": 0,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 1.0,
+          "numerator": 17,
+          "denominator": 17,
+          "wilson95": [
+            0.8156818649911483,
+            1
+          ]
+        },
+        "recall": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falsePositiveRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 17,
+          "wilson95": [
+            0,
+            0.1843181350088518
+          ]
+        },
+        "falseNegativeRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "precision": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "specificity": {
+          "value": 1.0,
+          "numerator": 17,
+          "denominator": 17,
+          "wilson95": [
+            0.8156818649911483,
+            1
+          ]
+        }
+      },
+      "f1": null
+    },
+    "2011_09_26_drive_0032": {
+      "n": 18,
+      "counts": {
+        "truePositive": 0,
+        "trueNegative": 18,
+        "falsePositive": 0,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 1.0,
+          "numerator": 18,
+          "denominator": 18,
+          "wilson95": [
+            0.8241207763533425,
+            1
+          ]
+        },
+        "recall": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falsePositiveRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 18,
+          "wilson95": [
+            0,
+            0.17587922364665765
+          ]
+        },
+        "falseNegativeRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "precision": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "specificity": {
+          "value": 1.0,
+          "numerator": 18,
+          "denominator": 18,
+          "wilson95": [
+            0.8241207763533425,
+            1
+          ]
+        }
+      },
+      "f1": null
+    }
+  },
+  "finalGrades": {
+    "2011_09_26_drive_0056": {
+      "referenceGrade": 96.06427144300788,
+      "predictedGrade": 85.50389146068648
+    },
+    "2011_09_26_drive_0015": {
+      "referenceGrade": 100.0,
+      "predictedGrade": 100.0
+    },
+    "2011_09_26_drive_0032": {
+      "referenceGrade": 100.0,
+      "predictedGrade": 100.0
+    }
+  },
+  "inferenceSeconds": {
+    "median": 2.094632,
+    "mean": 2.04676001010101,
+    "max": 2.153305
+  },
+  "sha256": {
+    "manifest": "2171568205e1b6de6e820a765e4bc26c619d1b31b68cfe887dc58439c9399072",
+    "referenceReview": "e656d06e0384d17ce5e323ba3e1162e546f6a1dca4374cc23c240c4dbb498432",
+    "predictions": "2af1227d6ac9f8f17995467c52d12bfc5e11a33929bd91b470b8e33c35f88445"
+  },
+  "limitations": [
+    "3 deliberately selected daytime drives; correlated frames; 10 unsafe examples, not independent events.",
+    "Reference lead IDs visually reviewed by assistant; no independent human adjudication or official following-distance labels.",
+    "Reference distance is nearest annotated 3D-box camera-forward surface; not directly measured bumper-to-bumper headway.",
+    "KITTI labels were not used for training or tuning in this evaluation; upstream pretrained models may have seen KITTI.",
+    "Missing/uncertain predictions count as no unsafe-gap detection in primary metrics; available-only metrics and coverage are also reported.",
+    "Offline 1 Hz replay does not include live camera/GPS failures or inference frame drops; observed phone throughput is slower than 1 Hz.",
+    "Wilson intervals treat frames as independent and are optimistic for correlated video; use separate drives/events for stronger uncertainty estimates."
+  ]
+}

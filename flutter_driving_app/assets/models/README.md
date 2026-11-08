@@ -15,6 +15,13 @@ UniDepth's exported input is ImageNet-normalized RGB `[1,3,532,392]`. Outputs
 are `depth_meters` (camera-forward Z, `[1,1,532,392]`), `confidence` of the same
 shape, and predicted `[1,3,3]` `intrinsics`. The export wraps upstream's
 `points = rays * radius` and selects Z without changing its learned scale.
+Production preprocessing fills this fixed input with an aspect-preserving
+center crop. The detector retains the full frame; depth sampling maps its
+boxes into the crop and rejects vehicles cut by its boundary. This addresses
+the strong padding-related scale bias observed with wide images, without
+changing the weights, adding a distance multiplier, or changing grading rules.
+See the [before/after evaluation](../../docs/benchmarks/2026-11-08-improved-distance/README.md)
+for measurements, coverage tradeoffs and validation limits.
 Large weights are stored in float16 with explicit casts back to float32.
 Operators and input/output remain float32 for CPU portability. This reduces
 the bundled depth asset to about 71MB; it does not imply
