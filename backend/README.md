@@ -254,7 +254,7 @@ The public `GET /users` directory has been removed; profiles use `GET /me`.
 Passwords are limited consistently to 72 UTF-8 bytes, including Unicode input.
 
 This table exists in MySQL - `POST /driving-reports` writes to it.
-`app/models.py` mirrors it exactly, once the driving-modes migration under
+`app/models.py` mirrors it exactly, once the migrations under
 *Driving modes* below has been run:
 
 | Column | Type | Notes |
@@ -270,7 +270,7 @@ This table exists in MySQL - `POST /driving-reports` writes to it.
 | `acceleration_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
 | `turning_grade` | `decimal(5,2)` | from `SmoothnessGradingService` |
 | `focus_grade` | `decimal(5,2)` | from `FocusedDrivingGradingService`; nullable — `NULL` when `driving_mode` is `navigation` or `pocket` |
-| `following_distance_grade` | `decimal(5,2)` | nullable — `NULL` on `pocket` reports and on reports saved before following distance was tracked. A measured `0` stays `0` |
+| `following_distance_grade` | `decimal(5,2)` | Adequate Following Distance, 0–100; required on `regular` and `navigation` reports, `NULL` on `pocket` reports. A measured `0` stays `0` |
 | `report_date` | `datetime` | set to the trip's end time, not the insert time |
 | `trip_duration_minutes` | `decimal(5,2)` | derived from the timestamps, caps at 999.99 |
 | `trip_distance_miles` | `decimal(6,2)` | caps at 9999.99 |
@@ -282,13 +282,13 @@ Two things to know about the live table:
   depend on one either way (SQLAlchemy deletes a user's reports itself, so
   `DELETE /users/me` cleans up regardless), but without an FK nothing stops an
   orphaned report if rows are ever deleted outside the API.
-- **Reports saved before the other dimensions were graded hold `100.00`.**
-  The app used to grade speed alone, and the API filled braking, acceleration,
-  turning and focus with a `100.00` placeholder. Those rows are
-  indistinguishable from genuine full marks, so averages over older history
-  (including `GET /advanced-suggestion`'s) skew high on those four dimensions.
-  The app now sends all five grades; the API still defaults any that are
-  omitted to `100.00` so an older client can't fail the `NOT NULL` columns.
+- **The placeholder for omitted grades.** The app used to grade speed alone, so
+  the API still fills `braking_grade`, `acceleration_grade` and `turning_grade`
+  with `100.00` when a client omits them, rather than failing the `NOT NULL`
+  columns. `focus_grade` and `following_distance_grade` get no placeholder:
+  measured scores are required when tracked, and untracked grades stay `NULL`.
+  The following-distance and Pocket-mode migration below deletes prior reports
+  and their violations instead of inventing scores for unmeasured categories.
 
 ### Driving modes
 
@@ -305,6 +305,17 @@ A trip is driven in one of three modes, stored in `driving_mode`:
   both grades are `NULL`, and the trip records neither `Focused Driving` nor
   `Adequate Following Distance` violations.
 
+| `driving_mode` | `focus_grade` | `following_distance_grade` |
+| --- | --- | --- |
+| `regular` | required | required |
+| `navigation` | `NULL` | required |
+| `pocket` | `NULL` | `NULL` |
+
+The mode labels are spelled out in `DRIVING_MODES` in `schemas.py`, matching
+the `ENUM` exactly.
+
+#### Migration 1: driving modes (`regular` and `navigation`)
+
 Every report saved before modes existed was a regular drive, and the column's
 default backfills them as such. The original mode migration, for an existing
 table that predates modes:
@@ -320,24 +331,44 @@ ALTER TABLE driving_reports
     );
 ```
 
-Pocket mode and following distance, for a table that already has the two-mode
-column. Leave existing `following_distance_grade` values `NULL`. Do not
-backfill them with `100` or `0`; those rows were not measured, and averages
-skip nulls. The check allows that historical null on regular and navigation
-rows. New uploads of those two modes are required to send a score by the API.
+Adding a `NOT NULL` column with a default fills every existing row with
+`'regular'`, so no separate `UPDATE` is needed for the original mode column.
+
+#### Migration 2: following distance and Pocket mode
+
+This one-time migration upgrades the two-mode schema from migration 1. It adds
+the nullable `following_distance_grade` column, the `pocket` mode and the
+`Adequate Following Distance` violation type, and enforces both grade/mode
+pairings in the table above.
+
+**The column, enum additions and both grade/mode constraints are already present
+on the shared `permit_grading_db` database. Do not rerun this migration there.**
+For another database, inspect `SHOW CREATE TABLE driving_reports` and
+`SHOW CREATE TABLE violations` first. The SQL below assumes that
+`following_distance_grade` does not yet exist and that the original two-mode
+`chk_focus_grade_matches_mode` constraint is present.
+
+**This deletes every existing driving report and violation.** Earlier reports
+have no measured following-distance score, so they cannot satisfy the new
+required-grade constraint. User accounts, family memberships, family invitations
+and settings are untouched. Pause report uploads until the migration is complete;
+MySQL schema changes commit implicitly, so the entire migration is not atomic.
 
 ```sql
+-- Reset reports and their violations. Violations first, because they
+-- reference driving_reports. Commit the reset before the schema changes.
+START TRANSACTION;
+DELETE FROM violations;
+DELETE FROM driving_reports;
+COMMIT;
+
+-- The old CHECK only knows two modes, so drop it before changing the columns.
+ALTER TABLE driving_reports DROP CHECK chk_focus_grade_matches_mode;
+
 ALTER TABLE driving_reports
     MODIFY driving_mode ENUM('regular', 'navigation', 'pocket') NOT NULL
         DEFAULT 'regular',
-    ADD COLUMN following_distance_grade decimal(5,2) NULL AFTER focus_grade,
-    DROP CHECK chk_focus_grade_matches_mode,
-    ADD CONSTRAINT chk_focus_grade_matches_mode CHECK (
-        (driving_mode = 'regular' AND focus_grade IS NOT NULL) OR
-        (driving_mode = 'navigation' AND focus_grade IS NULL) OR
-        (driving_mode = 'pocket' AND focus_grade IS NULL
-            AND following_distance_grade IS NULL)
-    );
+    ADD COLUMN following_distance_grade decimal(5,2) NULL AFTER focus_grade;
 
 ALTER TABLE violations
     MODIFY violation_type ENUM(
@@ -348,18 +379,37 @@ ALTER TABLE violations
         'Focused Driving',
         'Adequate Following Distance'
     ) NOT NULL;
+
+ALTER TABLE driving_reports
+    ADD CONSTRAINT chk_focus_grade_matches_mode CHECK (
+        (driving_mode = 'regular' AND focus_grade IS NOT NULL) OR
+        (driving_mode IN ('navigation', 'pocket') AND focus_grade IS NULL)
+    ),
+    ADD CONSTRAINT chk_following_distance_matches_mode CHECK (
+        (driving_mode IN ('regular', 'navigation')
+            AND following_distance_grade IS NOT NULL) OR
+        (driving_mode = 'pocket' AND following_distance_grade IS NULL)
+    );
 ```
 
-Adding a `NOT NULL` column with a default fills every existing row with
-`'regular'`, so no separate `UPDATE` is needed for the original mode column.
-The `CHECK` keeps a report from claiming to be one mode while graded as
-another. The API validates the same pairing up front (see
+The `CHECK` constraints require following-distance scores on regular and
+navigation reports and forbid them on pocket reports. Focus is required only
+on regular reports. The API validates the same pairings up front (see
 `POST /driving-reports`), so a mismatch comes back as a `422` rather than a
-constraint failure at `INSERT`. Apply this migration before deploying an API
-that writes `pocket` or `Adequate Following Distance`.
+constraint failure at `INSERT`. The 0–100 grade range is enforced by the API,
+like the other grades. Apply this migration before deploying an API that writes
+`pocket` or `Adequate Following Distance`.
 
-The mode labels are spelled out in `DRIVING_MODES` in `schemas.py`, matching
-the `ENUM` exactly.
+To verify the reset and schema changes together, use a disposable MySQL database
+with the two-mode schema and sample users, family memberships, reports and
+violations. Run migration 2, then confirm that both report tables are empty and
+the user and family records are unchanged. Start a transaction, then try inserts
+for each mode with null, zero and nonzero grades: the combinations in the table
+above must succeed, and
+every other null/required-grade combination must fail a `CHECK`. Confirm that an
+`Adequate Following Distance` violation can be saved for a valid report. Roll
+back the verification inserts. On an already migrated database, inspect the
+table definitions and enforced constraints without repeating the reset.
 
 ## The violations table
 
