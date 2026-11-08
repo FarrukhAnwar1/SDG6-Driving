@@ -15,6 +15,70 @@ void main() {
   late Float32List detections, road, lanes, depth, confidence;
   final area = detectorSide * detectorSide;
 
+  test(
+    'crop-relative body lookup samples the vehicle instead of its background',
+    () {
+      final crop = ModelLetterbox.crop(1000, 500, 400, 500);
+      final values = Float32List(400 * 500)..fillRange(0, 400 * 500, 70);
+      final quality = Float32List(values.length)
+        ..fillRange(0, values.length, 1);
+      // Camera x=340..420 becomes depth x=40..120 after the 300-pixel crop.
+      for (var y = 150; y <= 350; y++) {
+        for (var x = 40; x <= 120; x++) {
+          values[y * 400 + x] = 18;
+        }
+      }
+      expect(
+        metricVehicleDepth(
+          values,
+          quality,
+          crop,
+          const Rect.fromLTRB(0.34, 0.3, 0.42, 0.7),
+        ),
+        18,
+      );
+    },
+  );
+
+  test(
+    'depth never samples a different pixel when a vehicle leaves its crop',
+    () {
+      final crop = ModelLetterbox.crop(1242, 375, depthWidth, depthHeight);
+      final values = Float32List(depthWidth * depthHeight)
+        ..fillRange(0, depthWidth * depthHeight, 18);
+      final quality = Float32List(values.length)
+        ..fillRange(0, values.length, 1);
+      expect(
+        metricVehicleDepth(
+          values,
+          quality,
+          crop,
+          const Rect.fromLTRB(0.47, 0.3, 0.53, 0.7),
+        ),
+        18,
+      );
+      expect(
+        metricVehicleDepth(
+          values,
+          quality,
+          crop,
+          const Rect.fromLTRB(0.7, 0.3, 0.76, 0.7),
+        ),
+        isNull,
+      );
+      // Its interior patch would fit, but the whole vehicle is clipped by the crop.
+      expect(
+        metricVehicleDepth(
+          values,
+          quality,
+          crop,
+          const Rect.fromLTRB(0.37, 0.3, 0.5, 0.7),
+        ),
+        isNull,
+      );
+    },
+  );
+
   setUp(() {
     detections = Float32List(25200 * 6);
     road = Float32List(area * 2)..fillRange(area, area * 2, 1);

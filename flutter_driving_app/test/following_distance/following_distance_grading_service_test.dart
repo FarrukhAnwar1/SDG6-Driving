@@ -33,7 +33,7 @@ void main() {
 
   test('headway threshold scales distance with speed; equality is safe', () {
     for (final speed in [25.0, 30.0, 70.0]) {
-      for (final headway in [1.5, 2.0, 3.0]) {
+      for (final headway in [1.5, 1.51, 2.0, 3.0]) {
         final service = FollowingDistanceGradingService();
         for (var second = 0; second <= 15; second++) {
           sample(service, second.toDouble(), speed: speed, headway: headway);
@@ -54,6 +54,26 @@ void main() {
       service.finalizeTrip();
       expect(service.grade, closeTo(98.98, 1e-9));
       expect(service.violations, hasLength(1));
+    }
+  });
+
+  test('returning to 1.5 through 3 seconds ends the penalty streak', () {
+    for (final headway in [1.5, 2.0, 2.5, 3.0]) {
+      final service = FollowingDistanceGradingService();
+      unsafe(service, 6);
+      expect(service.grade, closeTo(98, 1e-9));
+      expect(service.isPenalizing, isTrue);
+      for (var second = 7; second <= 15; second++) {
+        sample(service, second.toDouble(), headway: headway);
+        expect(service.grade, closeTo(98, 1e-9));
+        expect(service.isPenalizing, isFalse);
+      }
+      service.finalizeTrip();
+      expect(service.violations, hasLength(1));
+      expect(
+        service.violations.single.endTime,
+        start.add(const Duration(seconds: 6)),
+      );
     }
   });
 
@@ -130,7 +150,7 @@ void main() {
     () {
       final service = FollowingDistanceGradingService();
       unsafe(service, 4);
-      sample(service, 5, headway: 3);
+      sample(service, 5, headway: 1.5);
       for (var second = 6; second <= 10; second++) {
         sample(service, second.toDouble());
       }
@@ -310,7 +330,7 @@ void main() {
       service.finalizeTrip();
       expect(service.grade, 0);
       expect(service.violations, hasLength(1));
-      sample(service, 61, headway: 3);
+      sample(service, 61, headway: 1.5);
       service.finalizeTrip();
       expect(service.grade, 0);
       expect(service.violations, hasLength(1));

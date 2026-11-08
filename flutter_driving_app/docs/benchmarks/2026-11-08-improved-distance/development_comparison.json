@@ -1,0 +1,271 @@
+{
+  "scoredFrames": 65,
+  "inputFrames": 99,
+  "pairedCorrectLeadDistances": {
+    "baseline": {
+      "n": 54,
+      "maeMeters": 16.191511275839606,
+      "meanBiasMeters": 16.191511275839606,
+      "medianAbsoluteErrorMeters": 14.827839364265657
+    },
+    "candidate": {
+      "n": 54,
+      "maeMeters": 1.3082241246845914,
+      "meanBiasMeters": -0.6024937825902524,
+      "medianAbsoluteErrorMeters": 1.1538418498714726
+    },
+    "relativeMaeReduction": 0.9192030871981248,
+    "frameIds": [
+      "2011_09_26_drive_0056/0000000000",
+      "2011_09_26_drive_0056/0000000010",
+      "2011_09_26_drive_0056/0000000020",
+      "2011_09_26_drive_0056/0000000030",
+      "2011_09_26_drive_0056/0000000040",
+      "2011_09_26_drive_0056/0000000050",
+      "2011_09_26_drive_0056/0000000060",
+      "2011_09_26_drive_0056/0000000070",
+      "2011_09_26_drive_0056/0000000080",
+      "2011_09_26_drive_0056/0000000090",
+      "2011_09_26_drive_0056/0000000100",
+      "2011_09_26_drive_0056/0000000110",
+      "2011_09_26_drive_0056/0000000120",
+      "2011_09_26_drive_0056/0000000130",
+      "2011_09_26_drive_0056/0000000140",
+      "2011_09_26_drive_0056/0000000150",
+      "2011_09_26_drive_0056/0000000160",
+      "2011_09_26_drive_0056/0000000170",
+      "2011_09_26_drive_0056/0000000180",
+      "2011_09_26_drive_0056/0000000190",
+      "2011_09_26_drive_0056/0000000200",
+      "2011_09_26_drive_0056/0000000210",
+      "2011_09_26_drive_0056/0000000220",
+      "2011_09_26_drive_0056/0000000230",
+      "2011_09_26_drive_0056/0000000240",
+      "2011_09_26_drive_0056/0000000250",
+      "2011_09_26_drive_0056/0000000260",
+      "2011_09_26_drive_0056/0000000270",
+      "2011_09_26_drive_0056/0000000280",
+      "2011_09_26_drive_0056/0000000290",
+      "2011_09_26_drive_0015/0000000000",
+      "2011_09_26_drive_0015/0000000010",
+      "2011_09_26_drive_0015/0000000020",
+      "2011_09_26_drive_0015/0000000030",
+      "2011_09_26_drive_0015/0000000040",
+      "2011_09_26_drive_0015/0000000050",
+      "2011_09_26_drive_0015/0000000060",
+      "2011_09_26_drive_0015/0000000200",
+      "2011_09_26_drive_0015/0000000210",
+      "2011_09_26_drive_0015/0000000220",
+      "2011_09_26_drive_0015/0000000230",
+      "2011_09_26_drive_0015/0000000270",
+      "2011_09_26_drive_0015/0000000290",
+      "2011_09_26_drive_0032/0000000140",
+      "2011_09_26_drive_0032/0000000150",
+      "2011_09_26_drive_0032/0000000180",
+      "2011_09_26_drive_0032/0000000190",
+      "2011_09_26_drive_0032/0000000200",
+      "2011_09_26_drive_0032/0000000210",
+      "2011_09_26_drive_0032/0000000270",
+      "2011_09_26_drive_0032/0000000280",
+      "2011_09_26_drive_0032/0000000290",
+      "2011_09_26_drive_0032/0000000300",
+      "2011_09_26_drive_0032/0000000310"
+    ]
+  },
+  "unsafeGapClassification": {
+    "baseline": {
+      "n": 65,
+      "counts": {
+        "truePositive": 0,
+        "trueNegative": 55,
+        "falsePositive": 0,
+        "falseNegative": 10
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 0.8461538461538461,
+          "numerator": 55,
+          "denominator": 65,
+          "wilson95": [
+            0.7394468036002149,
+            0.914229059330115
+          ]
+        },
+        "recall": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 10,
+          "wilson95": [
+            0,
+            0.2775327998628892
+          ]
+        },
+        "falsePositiveRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 55,
+          "wilson95": [
+            0,
+            0.06528490111708637
+          ]
+        },
+        "falseNegativeRate": {
+          "value": 1.0,
+          "numerator": 10,
+          "denominator": 10,
+          "wilson95": [
+            0.7224672001371107,
+            0.9999999999999999
+          ]
+        },
+        "precision": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "specificity": {
+          "value": 1.0,
+          "numerator": 55,
+          "denominator": 55,
+          "wilson95": [
+            0.9347150988829137,
+            1
+          ]
+        }
+      },
+      "f1": 0.0
+    },
+    "candidate": {
+      "n": 65,
+      "counts": {
+        "truePositive": 10,
+        "trueNegative": 44,
+        "falsePositive": 11,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 0.8307692307692308,
+          "numerator": 54,
+          "denominator": 65,
+          "wilson95": [
+            0.7218357836377647,
+            0.9027878187178839
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "numerator": 10,
+          "denominator": 10,
+          "wilson95": [
+            0.7224672001371107,
+            0.9999999999999999
+          ]
+        },
+        "falsePositiveRate": {
+          "value": 0.2,
+          "numerator": 11,
+          "denominator": 55,
+          "wilson95": [
+            0.11552214909761245,
+            0.32364879157263937
+          ]
+        },
+        "falseNegativeRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 10,
+          "wilson95": [
+            0,
+            0.2775327998628892
+          ]
+        },
+        "precision": {
+          "value": 0.47619047619047616,
+          "numerator": 10,
+          "denominator": 21,
+          "wilson95": [
+            0.2834400610153417,
+            0.6763046541715557
+          ]
+        },
+        "specificity": {
+          "value": 0.8,
+          "numerator": 44,
+          "denominator": 55,
+          "wilson95": [
+            0.6763512084273607,
+            0.8844778509023875
+          ]
+        }
+      },
+      "f1": 0.6451612903225806
+    }
+  },
+  "coverage": {
+    "baseline": 0.9076923076923077,
+    "candidate": 0.9076923076923077,
+    "lostUsableIds": [
+      "2011_09_26_drive_0015/0000000250",
+      "2011_09_26_drive_0032/0000000160",
+      "2011_09_26_drive_0032/0000000170"
+    ],
+    "gainedUsableIds": [
+      "2011_09_26_drive_0015/0000000260",
+      "2011_09_26_drive_0032/0000000060",
+      "2011_09_26_drive_0032/0000000070"
+    ]
+  },
+  "matchedLeadDistanceMetrics": {
+    "baseline": {
+      "n": 57,
+      "maeMeters": 16.509078893711973,
+      "rmseMeters": 17.511723295844565,
+      "meanBiasMeters": 16.509078893711973,
+      "medianAbsoluteErrorMeters": 15.161037247703675,
+      "absoluteRelativeError": 0.6327034584929858,
+      "deltaOneWithinFactorOnePointTwoFive": 0.03508771929824561
+    },
+    "candidate": {
+      "n": 58,
+      "maeMeters": 1.3504329586970938,
+      "rmseMeters": 1.6060550225334116,
+      "meanBiasMeters": -0.6548954317813452,
+      "medianAbsoluteErrorMeters": 1.1538418498714726,
+      "absoluteRelativeError": 0.050880287509100286,
+      "deltaOneWithinFactorOnePointTwoFive": 1
+    }
+  },
+  "gradeResults": {
+    "baseline": {
+      "2011_09_26_drive_0056": {
+        "referenceGrade": 96.06427144300788,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0015": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0032": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      }
+    },
+    "candidate": {
+      "2011_09_26_drive_0056": {
+        "referenceGrade": 96.06427144300788,
+        "predictedGrade": 85.50389146068648
+      },
+      "2011_09_26_drive_0015": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0032": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      }
+    }
+  },
+  "note": "Paired distance metrics include the same correctly selected, usable reference leads in both runs; coverage changes are reported separately."
+}

@@ -1,0 +1,21 @@
+{
+  "method": "Visual lead-ID review of all 67 frames, frozen before either inference run; assistant review, not independently adjudicated.",
+  "createdBeforeInference": true,
+  "ranges": {
+    "2011_09_26_drive_0013": [
+      {
+        "firstFrame": 50,
+        "lastFrame": 140,
+        "trackId": "1"
+      }
+    ],
+    "2011_09_26_drive_0070": [
+      {
+        "firstFrame": 30,
+        "lastFrame": 200,
+        "trackId": "7"
+      }
+    ],
+    "2011_09_26_drive_0079": []
+  }
+}

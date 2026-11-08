@@ -1,0 +1,217 @@
+{
+  "scoredFrames": 21,
+  "inputFrames": 67,
+  "pairedCorrectLeadDistances": {
+    "baseline": {
+      "n": 19,
+      "maeMeters": 32.82739622812339,
+      "meanBiasMeters": 32.82739622812339,
+      "medianAbsoluteErrorMeters": 35.670128922160785
+    },
+    "candidate": {
+      "n": 19,
+      "maeMeters": 3.24710099204817,
+      "meanBiasMeters": -2.405859158229146,
+      "medianAbsoluteErrorMeters": 2.896880373862146
+    },
+    "relativeMaeReduction": 0.9010856368417558,
+    "frameIds": [
+      "2011_09_26_drive_0013/0000000080",
+      "2011_09_26_drive_0013/0000000090",
+      "2011_09_26_drive_0013/0000000100",
+      "2011_09_26_drive_0013/0000000110",
+      "2011_09_26_drive_0013/0000000120",
+      "2011_09_26_drive_0013/0000000130",
+      "2011_09_26_drive_0013/0000000140",
+      "2011_09_26_drive_0070/0000000080",
+      "2011_09_26_drive_0070/0000000090",
+      "2011_09_26_drive_0070/0000000100",
+      "2011_09_26_drive_0070/0000000110",
+      "2011_09_26_drive_0070/0000000120",
+      "2011_09_26_drive_0070/0000000130",
+      "2011_09_26_drive_0070/0000000140",
+      "2011_09_26_drive_0070/0000000150",
+      "2011_09_26_drive_0070/0000000160",
+      "2011_09_26_drive_0070/0000000170",
+      "2011_09_26_drive_0070/0000000180",
+      "2011_09_26_drive_0070/0000000190"
+    ]
+  },
+  "unsafeGapClassification": {
+    "baseline": {
+      "n": 21,
+      "counts": {
+        "truePositive": 0,
+        "trueNegative": 21,
+        "falsePositive": 0,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 1.0,
+          "numerator": 21,
+          "denominator": 21,
+          "wilson95": [
+            0.8453609810751531,
+            1
+          ]
+        },
+        "recall": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falsePositiveRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 21,
+          "wilson95": [
+            0,
+            0.154639018924847
+          ]
+        },
+        "falseNegativeRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "precision": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "specificity": {
+          "value": 1.0,
+          "numerator": 21,
+          "denominator": 21,
+          "wilson95": [
+            0.8453609810751531,
+            1
+          ]
+        }
+      },
+      "f1": null
+    },
+    "candidate": {
+      "n": 21,
+      "counts": {
+        "truePositive": 0,
+        "trueNegative": 21,
+        "falsePositive": 0,
+        "falseNegative": 0
+      },
+      "metrics": {
+        "accuracy": {
+          "value": 1.0,
+          "numerator": 21,
+          "denominator": 21,
+          "wilson95": [
+            0.8453609810751531,
+            1
+          ]
+        },
+        "recall": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "falsePositiveRate": {
+          "value": 0.0,
+          "numerator": 0,
+          "denominator": 21,
+          "wilson95": [
+            0,
+            0.154639018924847
+          ]
+        },
+        "falseNegativeRate": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "precision": {
+          "value": null,
+          "numerator": 0,
+          "denominator": 0,
+          "wilson95": null
+        },
+        "specificity": {
+          "value": 1.0,
+          "numerator": 21,
+          "denominator": 21,
+          "wilson95": [
+            0.8453609810751531,
+            1
+          ]
+        }
+      },
+      "f1": null
+    }
+  },
+  "coverage": {
+    "baseline": 0.9523809523809523,
+    "candidate": 0.9523809523809523,
+    "lostUsableIds": [
+      "2011_09_26_drive_0070/0000000070"
+    ],
+    "gainedUsableIds": [
+      "2011_09_26_drive_0070/0000000200"
+    ]
+  },
+  "matchedLeadDistanceMetrics": {
+    "baseline": {
+      "n": 19,
+      "maeMeters": 32.82739622812339,
+      "rmseMeters": 36.369412393127,
+      "meanBiasMeters": 32.82739622812339,
+      "medianAbsoluteErrorMeters": 35.670128922160785,
+      "absoluteRelativeError": 0.6159268154269761,
+      "deltaOneWithinFactorOnePointTwoFive": 0
+    },
+    "candidate": {
+      "n": 19,
+      "maeMeters": 3.24710099204817,
+      "rmseMeters": 3.905549503961107,
+      "meanBiasMeters": -2.405859158229146,
+      "medianAbsoluteErrorMeters": 2.896880373862146,
+      "absoluteRelativeError": 0.06139637195732796,
+      "deltaOneWithinFactorOnePointTwoFive": 1
+    }
+  },
+  "gradeResults": {
+    "baseline": {
+      "2011_09_26_drive_0013": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0070": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0079": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      }
+    },
+    "candidate": {
+      "2011_09_26_drive_0013": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0070": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      },
+      "2011_09_26_drive_0079": {
+        "referenceGrade": 100.0,
+        "predictedGrade": 100.0
+      }
+    }
+  },
+  "note": "Paired distance metrics include the same correctly selected, usable reference leads in both runs; coverage changes are reported separately."
+}

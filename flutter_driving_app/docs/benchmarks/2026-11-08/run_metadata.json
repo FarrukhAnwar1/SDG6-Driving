@@ -1,0 +1,67 @@
+{
+  "date": "2026-11-08",
+  "createdAtUtc": "2026-11-08T15:25:25.972779+00:00",
+  "buildMode": "profile",
+  "flutterVersion": "3.44.1",
+  "dartVersion": "3.12.1",
+  "pythonEvaluation": "3.13.5",
+  "pythonMemoryCollector": "3.10.12",
+  "pythonPackages": {
+    "numpy": "2.3.5",
+    "requests": "2.32.5",
+    "Pillow": "12.0.0"
+  },
+  "phone": {
+    "ro.product.model": "CPH2655",
+    "ro.build.version.release": "16",
+    "ro.build.version.sdk": "36",
+    "ro.product.cpu.abi": "arm64-v8a"
+  },
+  "initialDiagnosticPackageState": "Not installed, verified with ADB package queries",
+  "finalDiagnosticPackageState": "Temporary diagnostic uninstalled; original stay_on_while_plugged_in=0 restored",
+  "modelBytes": {
+    "unidepth_v2_small.onnx": 70706263,
+    "yolop_640.onnx": 35902568
+  },
+  "sha256": {
+    "build/app/outputs/flutter-apk/app-profile.apk": "19267716bf1b8727250ec6fe0319c9d595070bead71298813ee6e0c176da5ce4",
+    "tool/following_distance_benchmark_probe.dart": "9d1f245898219cbb69573f2176343adcaf91000d5cc37800465395a2a8201228",
+    "tool/kitti_following_distance_benchmark.py": "69e53f30346ce720ed37ffb9bc897da48056e85f53fa9dd831ec2b8fee5b566b",
+    "tool/capture_following_distance_memory.py": "0b00c94e94011f6ad4c2d084e92e54c7646ae235268be43f7922f29a46608cfc",
+    "tool/following_distance_benchmark_replay_test.dart": "9a4f352437de9137f520e703b77e8401cd54c70c5c6eb12c04102841d15b5b6c"
+  },
+  "artifactSha256": {
+    "accuracy_summary.json": "7ff9b6da40f0fa55c7ba30aaae870ad5584e94f90e6f38d7d08eea840d2b02a2",
+    "dataset_events.jsonl": "4bbb19f5ce804a6b9c061dc5c0d3999ec9baa02806016afcef899c9dede5506a",
+    "manifest.json": "e562f9dc96651c23676c9dc5b927542e62da085f9e86da5bb39d4294b127de1f",
+    "memory_events.jsonl": "87e0d9f1eef2a9d2995d4928f986d81f80e887e022034ebaf4e9e6003b89749b",
+    "memory_samples.jsonl.gz": "1333e0c48f74785e5a6c2eab5665b4da6150eb249a610ff04745ee02a7e26072",
+    "memory_summary.json": "96ab139851e7ae4c6aa5a15988e897c554ef092dfd192c5f2a899c411fc7d94b",
+    "phone_predictions.jsonl": "dbcf345e6b801d06ebf9cbc55fe235604d85721591e20e98aa45bc6cbf72ccd5",
+    "reference_review.json": "e656d06e0384d17ce5e323ba3e1162e546f6a1dca4374cc23c240c4dbb498432",
+    "scored_frames.csv": "2ab432758cda8a7829466ad0da6b5e859c6e5a441393be95481f470eb6841de1",
+    "verification.txt": "e11f627bc3ac819a3b974f8e0c8ef9f06e8697ad6ea340da384c180135d83942"
+  },
+  "kittiAnnotationSources": {
+    "calibration.zip": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_calib.zip",
+      "bytes": 4068,
+      "sha256": "e0108cfd000cf802c14ed94fba38601185c792e5640abba015a34b7a85b812e0"
+    },
+    "2011_09_26_drive_0056_tracklets.zip": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0056/2011_09_26_drive_0056_tracklets.zip",
+      "bytes": 467079,
+      "sha256": "f39332e6b0fc9c43c316448a3d6f38d49a5eacb90037f89be0fbf0f63cdc058b"
+    },
+    "2011_09_26_drive_0015_tracklets.zip": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0015/2011_09_26_drive_0015_tracklets.zip",
+      "bytes": 725461,
+      "sha256": "14b07f3b594a7f1d10fe0c141995677bc74bacec2f1a62f2df1ee3e5789f9633"
+    },
+    "2011_09_26_drive_0032_tracklets.zip": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0032/2011_09_26_drive_0032_tracklets.zip",
+      "bytes": 679338,
+      "sha256": "37828206701b1d838df2c7fd478f7a51bffb6d847da534b62ea4ce4ec972f63d"
+    }
+  }
+}

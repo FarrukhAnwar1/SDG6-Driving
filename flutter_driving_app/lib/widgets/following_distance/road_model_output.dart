@@ -251,7 +251,11 @@ double? metricVehicleDepth(
       box.right >= 0.995 ||
       box.bottom >= 0.995 ||
       box.width <= 0 ||
-      box.height <= 0) {
+      box.height <= 0 ||
+      box.left < layout.sourceRegion.left ||
+      box.top < layout.sourceRegion.top ||
+      box.right > layout.sourceRegion.right ||
+      box.bottom > layout.sourceRegion.bottom) {
     return null;
   }
   final from = layout.toModel(

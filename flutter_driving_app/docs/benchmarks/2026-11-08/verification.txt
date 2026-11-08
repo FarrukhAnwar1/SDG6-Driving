@@ -1,0 +1,27 @@
+Verification performed on 2026-11-08
+
+flutter build apk --profile --target-platform android-arm64 --target tool/following_distance_benchmark_probe.dart --no-pub
+PASS: final diagnostic APK built and installed on CPH2655.
+
+dart analyze tool
+PASS: No issues found.
+
+python tool/kitti_following_distance_benchmark.py self-test
+PASS: Known confusion matrix, undefined denominators, five-second grace, target changes, threshold equality, and IoU checks.
+
+flutter test tool/following_distance_benchmark_replay_test.dart --reporter expanded
+PASS: 2 tests.
+- All 99 recorded observations reproduce production lead selection and grades.
+- Reviewed reference distances reproduce reported grades using the production Dart grader; exactly 1 confirmed violation.
+
+python3 -m py_compile tool/capture_following_distance_memory.py tool/kitti_following_distance_benchmark.py
+PASS: Python sources compile.
+
+Artifact integrity
+PASS: Every archived artifact SHA-256 matches run_metadata.json.
+PASS: 150 raw memory samples; 99 unique complete phone predictions; 65 scored CSV rows.
+PASS: Production following-distance Dart files and ONNX model checksums still match the pre-inference manifest.
+
+Phone cleanup
+PASS: Temporary com.example.flutter_driving_app diagnostic uninstalled after preserving outputs.
+PASS: stay_on_while_plugged_in restored and verified as 0.

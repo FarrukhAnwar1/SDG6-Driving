@@ -13,9 +13,15 @@ abstract class RoadVisionEngine {
 }
 
 class PretrainedRoadVisionEngine implements RoadVisionEngine {
-  PretrainedRoadVisionEngine({this.onTiming});
+  PretrainedRoadVisionEngine({
+    this.onTiming,
+    this.framePreparer = prepareRoadFrame,
+  });
 
   final void Function(Map<String, Duration> timings)? onTiming;
+  // A top-level callback allows controlled preprocessing comparisons with
+  // identical model assets and decoding/grading code.
+  final PreparedRoadFrame Function(RoadCameraFrame) framePreparer;
   final OnnxRuntime _runtime = OnnxRuntime();
   OrtSession? _detector, _depth;
   Future<void>? _initialization;
@@ -78,7 +84,7 @@ class PretrainedRoadVisionEngine implements RoadVisionEngine {
   Future<RoadObservation> _analyze(RoadCameraFrame frame) async {
     final timer = Stopwatch()..start();
     final timings = <String, Duration>{};
-    final prepared = await compute(prepareRoadFrame, frame);
+    final prepared = await compute(framePreparer, frame);
     timings['preprocess'] = timer.elapsed;
     timer.reset();
     // Execute sequentially to bound peak native memory. Input timestamps stay
