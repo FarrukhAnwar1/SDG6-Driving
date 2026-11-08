@@ -1,0 +1,339 @@
+{
+  "device": {
+    "ro.product.model": "CPH2655",
+    "ro.build.version.release": "16",
+    "ro.build.version.sdk": "36",
+    "ro.product.cpu.abi": "arm64-v8a"
+  },
+  "buildMode": "profile",
+  "samplingIntervalSeconds": 1,
+  "scope": "Diagnostic Flutter process using production camera, models and monitoring/grading; not the complete signed-in dashboard",
+  "phases": {
+    "idle_transition": {
+      "samples": 2,
+      "pssMiB": {
+        "min": 173.8,
+        "median": 175.05,
+        "p95": 176.3,
+        "max": 176.3
+      },
+      "rssMiB": {
+        "min": 319.0,
+        "median": 320.57,
+        "p95": 322.14,
+        "max": 322.14
+      },
+      "nativeHeapMiB": {
+        "min": 29.07,
+        "median": 29.14,
+        "p95": 29.21,
+        "max": 29.21
+      }
+    },
+    "idle": {
+      "samples": 9,
+      "pssMiB": {
+        "min": 166.73,
+        "median": 166.86,
+        "p95": 168.51,
+        "max": 168.51
+      },
+      "rssMiB": {
+        "min": 312.02,
+        "median": 312.11,
+        "p95": 313.75,
+        "max": 313.75
+      },
+      "nativeHeapMiB": {
+        "min": 27.65,
+        "median": 27.67,
+        "p95": 29.21,
+        "max": 29.21
+      }
+    },
+    "camera_only_start_transition": {
+      "samples": 1,
+      "pssMiB": {
+        "min": 166.68,
+        "median": 166.68,
+        "p95": 166.68,
+        "max": 166.68
+      },
+      "rssMiB": {
+        "min": 311.98,
+        "median": 311.98,
+        "p95": 311.98,
+        "max": 311.98
+      },
+      "nativeHeapMiB": {
+        "min": 27.65,
+        "median": 27.65,
+        "p95": 27.65,
+        "max": 27.65
+      }
+    },
+    "camera_only_transition": {
+      "samples": 3,
+      "pssMiB": {
+        "min": 173.36,
+        "median": 181.24,
+        "p95": 190.93,
+        "max": 190.93
+      },
+      "rssMiB": {
+        "min": 321.28,
+        "median": 330.12,
+        "p95": 339.82,
+        "max": 339.82
+      },
+      "nativeHeapMiB": {
+        "min": 29.7,
+        "median": 37.26,
+        "p95": 43.92,
+        "max": 43.92
+      }
+    },
+    "camera_only": {
+      "samples": 15,
+      "pssMiB": {
+        "min": 186.89,
+        "median": 195.81,
+        "p95": 202.18,
+        "max": 202.18
+      },
+      "rssMiB": {
+        "min": 335.79,
+        "median": 344.75,
+        "p95": 351.11,
+        "max": 351.11
+      },
+      "nativeHeapMiB": {
+        "min": 44.55,
+        "median": 49.23,
+        "p95": 52.84,
+        "max": 52.84
+      }
+    },
+    "camera_switch_transition": {
+      "samples": 3,
+      "pssMiB": {
+        "min": 186.24,
+        "median": 195.04,
+        "p95": 195.88,
+        "max": 195.88
+      },
+      "rssMiB": {
+        "min": 334.73,
+        "median": 344.04,
+        "p95": 344.82,
+        "max": 344.82
+      },
+      "nativeHeapMiB": {
+        "min": 45.67,
+        "median": 48.02,
+        "p95": 49.44,
+        "max": 49.44
+      }
+    },
+    "vision_start_transition": {
+      "samples": 3,
+      "pssMiB": {
+        "min": 185.84,
+        "median": 486.96,
+        "p95": 566.65,
+        "max": 566.65
+      },
+      "rssMiB": {
+        "min": 334.34,
+        "median": 636.05,
+        "p95": 715.69,
+        "max": 715.69
+      },
+      "nativeHeapMiB": {
+        "min": 45.36,
+        "median": 335.16,
+        "p95": 394.89,
+        "max": 394.89
+      }
+    },
+    "vision_start": {
+      "samples": 6,
+      "pssMiB": {
+        "min": 679.06,
+        "median": 903.1,
+        "p95": 965.07,
+        "max": 965.07
+      },
+      "rssMiB": {
+        "min": 827.97,
+        "median": 1051.76,
+        "p95": 1113.04,
+        "max": 1113.04
+      },
+      "nativeHeapMiB": {
+        "min": 477.82,
+        "median": 724.93,
+        "p95": 790.95,
+        "max": 790.95
+      }
+    },
+    "vision_steady": {
+      "samples": 81,
+      "pssMiB": {
+        "min": 946.17,
+        "median": 963.82,
+        "p95": 999.25,
+        "max": 1022.91
+      },
+      "rssMiB": {
+        "min": 1093.64,
+        "median": 1111.25,
+        "p95": 1146.57,
+        "max": 1170.34
+      },
+      "nativeHeapMiB": {
+        "min": 782.07,
+        "median": 788.54,
+        "p95": 795.4,
+        "max": 796.79
+      }
+    },
+    "released_transition": {
+      "samples": 3,
+      "pssMiB": {
+        "min": 820.62,
+        "median": 939.2,
+        "p95": 967.88,
+        "max": 967.88
+      },
+      "rssMiB": {
+        "min": 967.2,
+        "median": 1086.29,
+        "p95": 1115.34,
+        "max": 1115.34
+      },
+      "nativeHeapMiB": {
+        "min": 673.29,
+        "median": 770.09,
+        "p95": 787.66,
+        "max": 787.66
+      }
+    },
+    "released": {
+      "samples": 7,
+      "pssMiB": {
+        "min": 667.72,
+        "median": 667.73,
+        "p95": 668.51,
+        "max": 668.51
+      },
+      "rssMiB": {
+        "min": 814.3,
+        "median": 814.31,
+        "p95": 815.1,
+        "max": 815.1
+      },
+      "nativeHeapMiB": {
+        "min": 520.48,
+        "median": 520.49,
+        "p95": 521.25,
+        "max": 521.25
+      }
+    },
+    "done_transition": {
+      "samples": 3,
+      "pssMiB": {
+        "min": 667.72,
+        "median": 667.74,
+        "p95": 667.74,
+        "max": 667.74
+      },
+      "rssMiB": {
+        "min": 814.3,
+        "median": 814.32,
+        "p95": 814.32,
+        "max": 814.32
+      },
+      "nativeHeapMiB": {
+        "min": 520.48,
+        "median": 520.48,
+        "p95": 520.48,
+        "max": 520.48
+      }
+    },
+    "done": {
+      "samples": 14,
+      "pssMiB": {
+        "min": 667.73,
+        "median": 667.73,
+        "p95": 667.73,
+        "max": 667.73
+      },
+      "rssMiB": {
+        "min": 814.32,
+        "median": 814.32,
+        "p95": 814.32,
+        "max": 814.32
+      },
+      "nativeHeapMiB": {
+        "min": 520.47,
+        "median": 520.47,
+        "p95": 520.47,
+        "max": 520.47
+      }
+    }
+  },
+  "overall": {
+    "samples": 150,
+    "pssMiB": {
+      "min": 166.68,
+      "median": 954.42,
+      "p95": 995.66,
+      "max": 1022.91
+    },
+    "rssMiB": {
+      "min": 311.98,
+      "median": 1101.86,
+      "p95": 1143.12,
+      "max": 1170.34
+    },
+    "nativeHeapMiB": {
+      "min": 27.65,
+      "median": 785.42,
+      "p95": 793.47,
+      "max": 796.79
+    }
+  },
+  "completedFrames": 28,
+  "inferenceSeconds": [
+    3.101433,
+    3.042615,
+    3.132988,
+    2.920571,
+    2.925797,
+    3.060258,
+    3.065672,
+    3.137917,
+    3.102968,
+    3.097407,
+    3.133925,
+    3.176411,
+    3.155147,
+    3.142057,
+    3.140731,
+    3.171172,
+    3.143902,
+    3.113124,
+    3.060485,
+    3.104113,
+    3.24003,
+    3.175923,
+    3.358494,
+    3.236535,
+    3.180139,
+    3.257156,
+    3.316109,
+    3.222305
+  ],
+  "errors": []
+}

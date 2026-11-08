@@ -1,0 +1,2489 @@
+{
+  "dataset": "KITTI raw, left color image_02, 1 Hz subset",
+  "drives": [
+    "0013",
+    "0070",
+    "0079"
+  ],
+  "protocol": "Prepare a reproducible KITTI raw pilot and score the production Dart probe.\n\nKITTI does not annotate following-distance violations or ego-lane membership.\nThe pilot uses a declared geometric lead proxy on straight road sections:\nnearest annotated Car/Van/Truck with |LiDAR lateral center| <= 1.5 m.\nFrames without an unambiguous annotated lead are excluded from classification.\nThis is a conditional diagnostic, not an official KITTI or on-road safety score.\n",
+  "sourceHashes": {
+    "lib/widgets/following_distance/following_distance_camera.dart": "601890c776fde7895e3df115cd2e6c67729590727e6fca2a7b6e547217ef351e",
+    "lib/widgets/following_distance/following_distance_grading_service.dart": "3120629c2c8a9a275c0f4505bdaf490c053df05982ae65e06e14e360d905ca1a",
+    "lib/widgets/following_distance/following_distance_measurement.dart": "af35d30d9acbfa307f95eaf8b073e319d71c9415bc833ca16e23ff57e548c339",
+    "lib/widgets/following_distance/following_distance_monitoring_service.dart": "1fdc49febd0d2948cb6f7257a4564697094e2d1a702a62434464d26e373e0668",
+    "lib/widgets/following_distance/road_camera_source.dart": "3eacaa1ad5617e99ca84b1c17a2bf935445a7c0f919da82854b9d6369a851d96",
+    "lib/widgets/following_distance/road_model_input.dart": "5967b2ca05bed5724e9313e5ad8068e1d617fdb68bef153479af6503b9148353",
+    "lib/widgets/following_distance/road_model_output.dart": "c09ceb048216fb2bd2f48aa8f8acac900b26b06b9b4d5fd4d2b33b5c71b098d7",
+    "lib/widgets/following_distance/road_vision_engine.dart": "71fff12d9b93855ce49326c27588a0276a16f04cdaac13bbf2d83b929ed82d73",
+    "lib/widgets/following_distance/vehicle_distance_estimator.dart": "ec098a243a54e7b84e6a9e6f9676d364a53692983ecc294961d51381d3d3bca3",
+    "assets/models/unidepth_v2_small.onnx": "197d2d77a4eae1c735abac322134b9349f8c26c847d76a9bbac9e41d9c9010fe",
+    "assets/models/yolop_640.onnx": "cd66a3e0087a7258ae07768cc02cb742eed93865727ae4c9baf969b8fa190696"
+  },
+  "frames": [
+    {
+      "id": "2011_09_26_drive_0013/0000000000",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 0,
+      "timestampUs": 1317042651168593,
+      "speedMph": 26.490646532453717,
+      "latitude": 49.013141872681,
+      "longitude": 8.4378138518088,
+      "yawRate": 0.014784000000000574,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 5.048330685609806,
+          "lateralMeters": -3.3929271546982513,
+          "distanceMeters": 2.7080945072982585,
+          "box": [
+            0.7204253818556842,
+            0.5084007855336532,
+            1.3957116317548628,
+            1.5418537967701123
+          ],
+          "occlusion": 0,
+          "truncation": 1
+        },
+        {
+          "trackId": "2",
+          "type": "Car",
+          "forwardMeters": 52.2262034619824,
+          "lateralMeters": 21.441266835322402,
+          "distanceMeters": 50.093577743830224,
+          "box": [
+            0.23545677641297888,
+            0.47176980656775147,
+            0.26713146954800715,
+            0.5265785872594103
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000000.png",
+      "imageSha256": "df507b2749c769a0fbd5bc9cbbdd762ddc3cc5940163cc80b901c40e6ffd25da"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000010",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 10,
+      "timestampUs": 1317042652204035,
+      "speedMph": 25.739549148592918,
+      "latitude": 49.013245563978,
+      "longitude": 8.4377689458191,
+      "yawRate": 0.016944999999999766,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 7.957161013360168,
+          "lateralMeters": -3.176132748679628,
+          "distanceMeters": 5.589452835543801,
+          "box": [
+            0.6346294517455585,
+            0.495115014155732,
+            0.9108005520472959,
+            0.9858986748111114
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "2",
+          "type": "Car",
+          "forwardMeters": 40.44053254113627,
+          "lateralMeters": 20.969983490435542,
+          "distanceMeters": 38.314808774714116,
+          "box": [
+            0.16382088113656607,
+            0.4703192456820199,
+            0.21108442758015156,
+            0.5419773850673919
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        },
+        {
+          "trackId": "3",
+          "type": "Car",
+          "forwardMeters": 44.562313703167135,
+          "lateralMeters": 21.07861017486612,
+          "distanceMeters": 42.48518516984365,
+          "box": [
+            0.19392724710845688,
+            0.4723102987324113,
+            0.23491072735432905,
+            0.5326016357849263
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000010.png",
+      "imageSha256": "7db89ac26d3bfb24ddb4cc5517cc4be9c434c20cf404b8f11b2e9fe4ea176656"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000020",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 20,
+      "timestampUs": 1317042653239613,
+      "speedMph": 25.000115407146446,
+      "latitude": 49.013347352971,
+      "longitude": 8.4377242286681,
+      "yawRate": 0.011941000000000201,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 11.178236979627574,
+          "lateralMeters": -3.2042280864924755,
+          "distanceMeters": 8.81089532028392,
+          "box": [
+            0.6000537168283361,
+            0.4838416530319009,
+            0.7601495507658131,
+            0.7899054417102502
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "2",
+          "type": "Car",
+          "forwardMeters": 29.071438203666844,
+          "lateralMeters": 20.091566554022283,
+          "distanceMeters": 26.968729480744702,
+          "box": [
+            0.04370341600660069,
+            0.49001861488212317,
+            0.1250074999621119,
+            0.5930560314784831
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "3",
+          "type": "Car",
+          "forwardMeters": 33.30569307331345,
+          "lateralMeters": 20.13493592115681,
+          "distanceMeters": 31.240709334716996,
+          "box": [
+            0.10397986882496972,
+            0.4911350490280241,
+            0.1684279792801091,
+            0.5742767102995446
+          ],
+          "occlusion": 1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000020.png",
+      "imageSha256": "3eba05cfa65f2fc1db1d250c3f27d8ed01fb2fddf5c893bb44bf845008fda4e7"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000030",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 30,
+      "timestampUs": 1317042654275547,
+      "speedMph": 24.375686318392123,
+      "latitude": 49.013446462654,
+      "longitude": 8.4376799320822,
+      "yawRate": -0.016464000000000034,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 14.848410047664311,
+          "lateralMeters": -2.913136887272007,
+          "distanceMeters": 12.470812311168212,
+          "box": [
+            0.5648764530122992,
+            0.49635976432632506,
+            0.6690574127095699,
+            0.7167363846868687
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 4.610555257013663,
+          "lateralMeters": -3.7440810759702985,
+          "distanceMeters": 2.528200553897789,
+          "box": [
+            0.7705812130608785,
+            0.39953719184393816,
+            1.552121265682862,
+            1.6261972035676542
+          ],
+          "occlusion": 0,
+          "truncation": 1
+        },
+        {
+          "trackId": "3",
+          "type": "Car",
+          "forwardMeters": 21.836175015054497,
+          "lateralMeters": 20.184507001204622,
+          "distanceMeters": 19.77218627740624,
+          "box": [
+            -0.12176926810666988,
+            0.49554875388457065,
+            0.008688215801179308,
+            0.6277069533949886
+          ],
+          "occlusion": 1,
+          "truncation": 2
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000030.png",
+      "imageSha256": "c5de56570545c1ee321ed8bf3a03717669548e09a94aa28c99b5bdd11106cd9a"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000040",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 40,
+      "timestampUs": 1317042655311507,
+      "speedMph": 23.779402521969246,
+      "latitude": 49.013543150777,
+      "longitude": 8.4376403943852,
+      "yawRate": -0.03552199999999983,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 18.928501194717334,
+          "lateralMeters": -1.6081196157541755,
+          "distanceMeters": 16.53211896760852,
+          "box": [
+            0.5117818408632322,
+            0.4856758505750148,
+            0.5818241743802688,
+            0.6490617122798805
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 7.4824208319179695,
+          "lateralMeters": -2.8572089838037886,
+          "distanceMeters": 5.341617853400541,
+          "box": [
+            0.6155364945483525,
+            0.4264609697596817,
+            0.9057470526931694,
+            1.0062058438465922
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000040.png",
+      "imageSha256": "da53defd49da653c421612a87c97f59bab5562f6d4e6e220dfc895b4d6907c27"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000050",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 50,
+      "timestampUs": 1317042656346687,
+      "speedMph": 24.13429984781006,
+      "latitude": 49.013640855521,
+      "longitude": 8.4376028679312,
+      "yawRate": 0.002130999999999883,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 10.874101253968728,
+        "lateralMeters": -1.4894376654343904,
+        "distanceMeters": 8.726561306489211,
+        "box": [
+          0.5156806453763881,
+          0.45234925932468945,
+          0.6594479746250963,
+          0.8077746761744864
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 22.940338742284027,
+          "lateralMeters": 0.1310400427971738,
+          "distanceMeters": 20.518115206889206,
+          "box": [
+            0.46505316303479355,
+            0.48417765313443495,
+            0.517970803108911,
+            0.6153181024765014
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 10.874101253968728,
+          "lateralMeters": -1.4894376654343904,
+          "distanceMeters": 8.726561306489211,
+          "box": [
+            0.5156806453763881,
+            0.45234925932468945,
+            0.6594479746250963,
+            0.8077746761744864
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000050.png",
+      "imageSha256": "fb5333c9487b67aed57637b38de6a93e0e44980553de8fe3577fc67b50f1e0a3"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000060",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 60,
+      "timestampUs": 1317042657382127,
+      "speedMph": 24.25577355425572,
+      "latitude": 49.013737467811,
+      "longitude": 8.4375623626769,
+      "yawRate": 0.026692999999999856,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 14.622513980040406,
+        "lateralMeters": -0.4641866854178247,
+        "distanceMeters": 12.474952922153856,
+        "box": [
+          0.4727241951513591,
+          0.4616633015849275,
+          0.562526091347542,
+          0.7104670140183998
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 26.66690511646799,
+          "lateralMeters": 1.370377583929157,
+          "distanceMeters": 24.255069733147213,
+          "box": [
+            0.44390513049613545,
+            0.48416203112192646,
+            0.4834305656904438,
+            0.59516913124022
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 14.622513980040406,
+          "lateralMeters": -0.4641866854178247,
+          "distanceMeters": 12.474952922153856,
+          "box": [
+            0.4727241951513591,
+            0.4616633015849275,
+            0.562526091347542,
+            0.7104670140183998
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "4",
+          "type": "Car",
+          "forwardMeters": 52.81217396364026,
+          "lateralMeters": 26.734889559551657,
+          "distanceMeters": 50.30271835914517,
+          "box": [
+            0.1759005411486075,
+            0.4838795606486062,
+            0.2144956483606027,
+            0.5407689886727924
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000060.png",
+      "imageSha256": "6b81496ff47546b5e8cea0d39496390ddbc0f082ae215ec8f3e57bc7392b0bf1"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000070",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 70,
+      "timestampUs": 1317042658417691,
+      "speedMph": 24.968109488068553,
+      "latitude": 49.013835926448,
+      "longitude": 8.4375155364584,
+      "yawRate": 0.02537099999999981,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 17.966251287079203,
+        "lateralMeters": 0.474925276104245,
+        "distanceMeters": 15.819587522187945,
+        "box": [
+          0.44767386245190177,
+          0.4558360946320693,
+          0.5134496646134256,
+          0.6519716090443289
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 30.108127762114957,
+          "lateralMeters": 1.9706058249991925,
+          "distanceMeters": 27.723343905872472,
+          "box": [
+            0.43791701570459407,
+            0.48354685008898596,
+            0.46985139630561734,
+            0.580715723942237
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 17.966251287079203,
+          "lateralMeters": 0.474925276104245,
+          "distanceMeters": 15.819587522187945,
+          "box": [
+            0.44767386245190177,
+            0.4558360946320693,
+            0.5134496646134256,
+            0.6519716090443289
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "4",
+          "type": "Car",
+          "forwardMeters": 41.899228098117376,
+          "lateralMeters": 25.536874415412985,
+          "distanceMeters": 39.40543803560411,
+          "box": [
+            0.10574077523567904,
+            0.4779257878752225,
+            0.16209411255190218,
+            0.550422082321281
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        },
+        {
+          "trackId": "5",
+          "type": "Van",
+          "forwardMeters": 66.85803739978523,
+          "lateralMeters": 24.7490697370745,
+          "distanceMeters": 63.864994699123145,
+          "box": [
+            0.260223726056122,
+            0.43570328668028824,
+            0.28957040154390296,
+            0.5164691425656405
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000070.png",
+      "imageSha256": "b8920596ef32362d73317c922899a241242477f2ad299bbc4d528e2211c753a9"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000080",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 80,
+      "timestampUs": 1317042659453254,
+      "speedMph": 25.64275770256472,
+      "latitude": 49.013935274642,
+      "longitude": 8.4374643465654,
+      "yawRate": 0.04333100000000023,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 20.700155971113645,
+        "lateralMeters": 0.8643283266754749,
+        "distanceMeters": 18.571377612113317,
+        "box": [
+          0.4441619296846712,
+          0.4695091902198222,
+          0.49661472896832914,
+          0.6367703857586823
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 20.700155971113645,
+          "lateralMeters": 0.8643283266754749,
+          "distanceMeters": 18.571377612113317,
+          "box": [
+            0.4441619296846712,
+            0.4695091902198222,
+            0.49661472896832914,
+            0.6367703857586823
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "4",
+          "type": "Car",
+          "forwardMeters": 31.10803563405083,
+          "lateralMeters": 24.12318491761362,
+          "distanceMeters": 28.640177664239808,
+          "box": [
+            -0.011912113340304332,
+            0.47414681857544666,
+            0.08063069217742742,
+            0.5738896807763723
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "5",
+          "type": "Van",
+          "forwardMeters": 42.11436326371328,
+          "lateralMeters": 21.500494570861,
+          "distanceMeters": 39.14535367022809,
+          "box": [
+            0.1614158412354229,
+            0.4187920506198379,
+            0.2212322817413838,
+            0.5505794074402371
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000080.png",
+      "imageSha256": "aa96c2b9ad4fafb384af048bc0866985442dabe018600ce1a3e76b221c7c41ae"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000090",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 90,
+      "timestampUs": 1317042660489078,
+      "speedMph": 25.53504535727458,
+      "latitude": 49.01403521396,
+      "longitude": 8.4374073928288,
+      "yawRate": 0.023233999999999977,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 23.189334667514718,
+        "lateralMeters": 0.7112287202281528,
+        "distanceMeters": 21.078246846291663,
+        "box": [
+          0.4529418342101454,
+          0.4639180423045001,
+          0.4989876288973788,
+          0.611283797445229
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 23.189334667514718,
+          "lateralMeters": 0.7112287202281528,
+          "distanceMeters": 21.078246846291663,
+          "box": [
+            0.4529418342101454,
+            0.4639180423045001,
+            0.4989876288973788,
+            0.611283797445229
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000090.png",
+      "imageSha256": "e17a63a66b9e3bf6e20e5feeafb070d29a28145394ebfa0d73d53b2c5207797d"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000100",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 100,
+      "timestampUs": 1317042661524761,
+      "speedMph": 25.726000243321305,
+      "latitude": 49.014134021262,
+      "longitude": 8.4373478232102,
+      "yawRate": 0.01003799999999977,
+      "eligible": true,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 26.12806647045622,
+        "lateralMeters": 0.6605670100629933,
+        "distanceMeters": 24.0362278560297,
+        "box": [
+          0.4576678624856319,
+          0.4735067574644063,
+          0.4981171836313894,
+          0.6028004891511766
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 26.12806647045622,
+          "lateralMeters": 0.6605670100629933,
+          "distanceMeters": 24.0362278560297,
+          "box": [
+            0.4576678624856319,
+            0.4735067574644063,
+            0.4981171836313894,
+            0.6028004891511766
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "6",
+          "type": "Car",
+          "forwardMeters": 53.484043936005754,
+          "lateralMeters": 23.833571367317287,
+          "distanceMeters": 51.26362023178138,
+          "box": [
+            0.21190723509705928,
+            0.45902704110166026,
+            0.24946312123435732,
+            0.5132889398319258
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        },
+        {
+          "trackId": "8",
+          "type": "Car",
+          "forwardMeters": 59.90172429893271,
+          "lateralMeters": 24.08401561096002,
+          "distanceMeters": 57.56989174254663,
+          "box": [
+            0.24108738514147154,
+            0.45899019874304675,
+            0.2715823354005387,
+            0.5096617916436774
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000100.png",
+      "imageSha256": "d681fc1adafebf3a3eb877c83b243ffa14131a0f82c44b1efbf595348a2c799f"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000110",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 110,
+      "timestampUs": 1317042662560334,
+      "speedMph": 27.060178844697546,
+      "latitude": 49.014235008778,
+      "longitude": 8.4372854058939,
+      "yawRate": 0.008008999999999933,
+      "eligible": true,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 29.412776420626553,
+        "lateralMeters": 0.5739691809811608,
+        "distanceMeters": 27.34293690662993,
+        "box": [
+          0.4624799881455885,
+          0.47133733638573944,
+          0.4980699661906635,
+          0.5850077499210078
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 29.412776420626553,
+          "lateralMeters": 0.5739691809811608,
+          "distanceMeters": 27.34293690662993,
+          "box": [
+            0.4624799881455885,
+            0.47133733638573944,
+            0.4980699661906635,
+            0.5850077499210078
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "6",
+          "type": "Car",
+          "forwardMeters": 41.52120233621354,
+          "lateralMeters": 23.521617644353494,
+          "distanceMeters": 39.302966266647765,
+          "box": [
+            0.13150078146534513,
+            0.47484349206835175,
+            0.18695981612055684,
+            0.545631996831593
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Car",
+          "forwardMeters": 55.19110216296938,
+          "lateralMeters": 24.280928563365208,
+          "distanceMeters": 52.60003567108006,
+          "box": [
+            0.21531759014885588,
+            0.47472813864797947,
+            0.25258475192053514,
+            0.5302688048072695
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        },
+        {
+          "trackId": "8",
+          "type": "Car",
+          "forwardMeters": 47.84408008671879,
+          "lateralMeters": 23.633964304161992,
+          "distanceMeters": 45.51283496121604,
+          "box": [
+            0.18055121958491216,
+            0.47445288397536867,
+            0.22373228732352432,
+            0.5385750817133748
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000110.png",
+      "imageSha256": "e5a79f80d97b5730c3f4b17211d4696f0f5b56d2ef6ef7ba5d2620d9c9faccff"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000120",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 120,
+      "timestampUs": 1317042663595771,
+      "speedMph": 29.1534364858921,
+      "latitude": 49.014343873063,
+      "longitude": 8.4372164970974,
+      "yawRate": 0.009540000000000326,
+      "eligible": true,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 32.39557918431872,
+        "lateralMeters": 0.3955578917117219,
+        "distanceMeters": 30.32417117173186,
+        "box": [
+          0.46871706041873956,
+          0.48056361125766944,
+          0.5008112593920228,
+          0.5830669682163943
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 32.39557918431872,
+          "lateralMeters": 0.3955578917117219,
+          "distanceMeters": 30.32417117173186,
+          "box": [
+            0.46871706041873956,
+            0.48056361125766944,
+            0.5008112593920228,
+            0.5830669682163943
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "6",
+          "type": "Car",
+          "forwardMeters": 28.622625452263144,
+          "lateralMeters": 23.23417146024275,
+          "distanceMeters": 26.400188913917184,
+          "box": [
+            -0.03786976253055816,
+            0.473129570860265,
+            0.06323023039421843,
+            0.5784631124750765
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Car",
+          "forwardMeters": 42.17868773392297,
+          "lateralMeters": 23.672222002245654,
+          "distanceMeters": 39.59401422185937,
+          "box": [
+            0.13344837324921846,
+            0.47926555523348036,
+            0.19068185735035942,
+            0.5530666827493596
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        },
+        {
+          "trackId": "8",
+          "type": "Car",
+          "forwardMeters": 35.05399710617336,
+          "lateralMeters": 23.281090640712055,
+          "distanceMeters": 32.72887395642249,
+          "box": [
+            0.06532242997087187,
+            0.4831330771653295,
+            0.13675340100008054,
+            0.5725219415647552
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000120.png",
+      "imageSha256": "6964cfa8c7e7a28d3da6167d91bf8a1234ce772f43da89e5ac5d069f229d2abb"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000130",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 130,
+      "timestampUs": 1317042664631086,
+      "speedMph": 30.369143822869408,
+      "latitude": 49.014458311163,
+      "longitude": 8.4371417917632,
+      "yawRate": 0.013260999999999967,
+      "eligible": true,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 34.23668137749061,
+        "lateralMeters": 0.41010085346254516,
+        "distanceMeters": 32.16693009444274,
+        "box": [
+          0.4696940081917591,
+          0.4705617606281982,
+          0.4999504577269811,
+          0.5671862009368897
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 34.23668137749061,
+          "lateralMeters": 0.41010085346254516,
+          "distanceMeters": 32.16693009444274,
+          "box": [
+            0.4696940081917591,
+            0.4705617606281982,
+            0.4999504577269811,
+            0.5671862009368897
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Car",
+          "forwardMeters": 28.307656575899866,
+          "lateralMeters": 23.26629300857639,
+          "distanceMeters": 25.73122691692039,
+          "box": [
+            -0.05037989762744862,
+            0.4821726392289375,
+            0.06148431829129115,
+            0.59576342886075
+          ],
+          "occlusion": 1,
+          "truncation": 1
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000130.png",
+      "imageSha256": "c2d7e863906dc225503a9f3afd69d97d73b6bd2f4895fd8a7aee1179388d559c"
+    },
+    {
+      "id": "2011_09_26_drive_0013/0000000140",
+      "sequence": "2011_09_26_drive_0013",
+      "frame": 140,
+      "timestampUs": 1317042665666406,
+      "speedMph": 29.943163364877282,
+      "latitude": 49.014574105535,
+      "longitude": 8.437064411362,
+      "yawRate": 0.003926250000000353,
+      "eligible": true,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 35.634852498441745,
+        "lateralMeters": 0.16177934466041252,
+        "distanceMeters": 33.56318837199323,
+        "box": [
+          0.4749037880793724,
+          0.4807439291291415,
+          0.5039034511879363,
+          0.5733561292542032
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 35.634852498441745,
+          "lateralMeters": 0.16177934466041252,
+          "distanceMeters": 33.56318837199323,
+          "box": [
+            0.4749037880793724,
+            0.4807439291291415,
+            0.5039034511879363,
+            0.5733561292542032
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0013/0000000140.png",
+      "imageSha256": "25efc55b8dd371dc324a514560062add5106a50438bca2868b0d5d5f7c65432b"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000000",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 0,
+      "timestampUs": 1317048237479629,
+      "speedMph": 1.5959055414827272,
+      "latitude": 48.947557349122,
+      "longitude": 8.41274027723085,
+      "yawRate": -0.11404899999999962,
+      "eligible": false,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 7.7414264514717805,
+        "lateralMeters": 0.18369183516590715,
+        "distanceMeters": 5.862398393027861,
+        "box": [
+          0.2855570088557243,
+          0.3633136002991774,
+          0.6681253120292754,
+          0.9784929554331494
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 7.7414264514717805,
+          "lateralMeters": 0.18369183516590715,
+          "distanceMeters": 5.862398393027861,
+          "box": [
+            0.2855570088557243,
+            0.3633136002991774,
+            0.6681253120292754,
+            0.9784929554331494
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000000.png",
+      "imageSha256": "a5f729d71b595737529132ab776a2b7ba4515baad0b0d2f0fc3b4dcdca1e6ff3"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000010",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 10,
+      "timestampUs": 1317048238515695,
+      "speedMph": 3.49508550600857,
+      "latitude": 48.947557101971,
+      "longitude": 8.4127247980522,
+      "yawRate": -0.2868709999999872,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000010.png",
+      "imageSha256": "6fb29fbe0b5bf878af4e5736937ebb03b028def706f06e046b817f9f723bba36"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000020",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 20,
+      "timestampUs": 1317048239552512,
+      "speedMph": 6.47840182242324,
+      "latitude": 48.947562800043,
+      "longitude": 8.4126935529394,
+      "yawRate": -0.5541140000000002,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000020.png",
+      "imageSha256": "0871979fbed8dc62701ae35c285567788554c41323891d42fa7171a0b98fde03"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000030",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 30,
+      "timestampUs": 1317048240588710,
+      "speedMph": 9.372822958854478,
+      "latitude": 48.947587151612,
+      "longitude": 8.4126589309975,
+      "yawRate": -0.649578,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 31.015698106290216,
+          "lateralMeters": -22.460796046416384,
+          "distanceMeters": 28.347204377510234,
+          "box": [
+            0.8924882134978551,
+            0.4826523564022139,
+            0.9398825065803584,
+            0.6121828006908696
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000030.png",
+      "imageSha256": "13420338a09bda82975f8215620c3d69056f7169edb1de4dcc2a663bbe1b929f"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000040",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 40,
+      "timestampUs": 1317048241622784,
+      "speedMph": 13.44801043454226,
+      "latitude": 48.947634258881,
+      "longitude": 8.4126503776947,
+      "yawRate": -0.35136699999999976,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 47.70477864905166,
+          "lateralMeters": -4.872402872012492,
+          "distanceMeters": 45.06479084231804,
+          "box": [
+            0.5394451265686202,
+            0.4807747776751878,
+            0.5640027971866283,
+            0.5615759992781488
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000040.png",
+      "imageSha256": "10c3dfb0d6b9d4f91a36d397e3daf8543e5189f693d77a976412aa22f25dc061"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000050",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 50,
+      "timestampUs": 1317048242653714,
+      "speedMph": 18.265939391083116,
+      "latitude": 48.947699434788,
+      "longitude": 8.4126744153898,
+      "yawRate": 0.005345999999999851,
+      "eligible": false,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 55.08419165955361,
+        "lateralMeters": 0.6399177089612795,
+        "distanceMeters": 52.52288738337459,
+        "box": [
+          0.4740683765610219,
+          0.47985073856009075,
+          0.4950425984154259,
+          0.5493087850478002
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 72.28171811114842,
+          "lateralMeters": 4.382477136740875,
+          "distanceMeters": 69.8443000908508,
+          "box": [
+            0.44820229476387524,
+            0.4994456336645059,
+            0.46363572177643797,
+            0.5400984523037193
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 55.08419165955361,
+          "lateralMeters": 0.6399177089612795,
+          "distanceMeters": 52.52288738337459,
+          "box": [
+            0.4740683765610219,
+            0.47985073856009075,
+            0.4950425984154259,
+            0.5493087850478002
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000050.png",
+      "imageSha256": "1761d02696283a5f1f4e28ed5826f0bb34440542ae79bfdc31a4d688fbdd8b07"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000060",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 60,
+      "timestampUs": 1317048243687032,
+      "speedMph": 23.01686272956548,
+      "latitude": 48.947783593269,
+      "longitude": 8.4127067201293,
+      "yawRate": 0.0010580000000000034,
+      "eligible": false,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 60.204106074991316,
+        "lateralMeters": 0.26781742449934315,
+        "distanceMeters": 57.62505739159293,
+        "box": [
+          0.47979505602806527,
+          0.48416735728903115,
+          0.49891835042721694,
+          0.5476970257491505
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 45.3793941363476,
+          "lateralMeters": 3.5937928733680726,
+          "distanceMeters": 42.95775829809815,
+          "box": [
+            0.431696087911423,
+            0.4985898376171955,
+            0.45811557050535145,
+            0.564617974953078
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 60.204106074991316,
+          "lateralMeters": 0.26781742449934315,
+          "distanceMeters": 57.62505739159293,
+          "box": [
+            0.47979505602806527,
+            0.48416735728903115,
+            0.49891835042721694,
+            0.5476970257491505
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000060.png",
+      "imageSha256": "614819da6a87580f4eea8d1a449546319529630d5c4f57156efb4206bb74abb6"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000070",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 70,
+      "timestampUs": 1317048244721358,
+      "speedMph": 27.113702233033752,
+      "latitude": 48.947887307833,
+      "longitude": 8.4127457650474,
+      "yawRate": 0.011537999999999826,
+      "eligible": true,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 63.322085348104515,
+        "lateralMeters": 0.21883906268370065,
+        "distanceMeters": 60.747749949958376,
+        "box": [
+          0.480747129660117,
+          0.48016007757624457,
+          0.4988789136630111,
+          0.5402177868639072
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 16.398612990013966,
+          "lateralMeters": 3.3560368354205297,
+          "distanceMeters": 13.986635588414318,
+          "box": [
+            0.3182624493992503,
+            0.5153885736072529,
+            0.41404790918104495,
+            0.7233005983402984
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        },
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 63.322085348104515,
+          "lateralMeters": 0.21883906268370065,
+          "distanceMeters": 60.747749949958376,
+          "box": [
+            0.480747129660117,
+            0.48016007757624457,
+            0.4988789136630111,
+            0.5402177868639072
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000070.png",
+      "imageSha256": "f16c7883a4728ee704bee9624d53a57d3964bc14ac8d92818c141d05d3550cda"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000080",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 80,
+      "timestampUs": 1317048245755563,
+      "speedMph": 29.151074823176284,
+      "latitude": 48.948001494962,
+      "longitude": 8.4127859852061,
+      "yawRate": -0.0015140000000002374,
+      "eligible": true,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 65.3633297473645,
+        "lateralMeters": -0.3947696858018393,
+        "distanceMeters": 62.80160900289058,
+        "box": [
+          0.486496483107645,
+          0.47213215475727377,
+          0.5040409756704776,
+          0.5302226514355155
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 65.3633297473645,
+          "lateralMeters": -0.3947696858018393,
+          "distanceMeters": 62.80160900289058,
+          "box": [
+            0.486496483107645,
+            0.47213215475727377,
+            0.5040409756704776,
+            0.5302226514355155
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000080.png",
+      "imageSha256": "d257446230cc9c3e9a9173ca514c7cd223fed03c812cfe491c98d80ff082b634"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000090",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 90,
+      "timestampUs": 1317048246789864,
+      "speedMph": 30.547576239783258,
+      "latitude": 48.948122297509,
+      "longitude": 8.4128307449628,
+      "yawRate": -0.0015359999999997598,
+      "eligible": true,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 66.59354780697028,
+        "lateralMeters": -0.029740866873614366,
+        "distanceMeters": 64.03009266673719,
+        "box": [
+          0.4830256126266289,
+          0.4694215866103493,
+          0.5002321445631183,
+          0.5263882234594204
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 66.59354780697028,
+          "lateralMeters": -0.029740866873614366,
+          "distanceMeters": 64.03009266673719,
+          "box": [
+            0.4830256126266289,
+            0.4694215866103493,
+            0.5002321445631183,
+            0.5263882234594204
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000090.png",
+      "imageSha256": "89ba6afb000a8cbd4e6584b22462f284d60d245c12e0224ef0703996482a3f42"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000100",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 100,
+      "timestampUs": 1317048247823798,
+      "speedMph": 31.54684660464973,
+      "latitude": 48.948248399769,
+      "longitude": 8.412877896756,
+      "yawRate": 0.0023809999999997444,
+      "eligible": true,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 67.131895120828,
+        "lateralMeters": -0.4583863684596853,
+        "distanceMeters": 64.56932066960324,
+        "box": [
+          0.48688835850429674,
+          0.46216360939429063,
+          0.503952761066238,
+          0.518652087121953
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 67.131895120828,
+          "lateralMeters": -0.4583863684596853,
+          "distanceMeters": 64.56932066960324,
+          "box": [
+            0.48688835850429674,
+            0.46216360939429063,
+            0.503952761066238,
+            0.518652087121953
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000100.png",
+      "imageSha256": "e944f5c8b5241017e48d62efb46ca5232f2a42b1522262ee15f904a3e8b90b29"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000110",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 110,
+      "timestampUs": 1317048248857741,
+      "speedMph": 31.613907436312747,
+      "latitude": 48.948377139055,
+      "longitude": 8.4129250171042,
+      "yawRate": -0.006413000000000224,
+      "eligible": true,
+      "lead": {
+        "trackId": "7",
+        "type": "Van",
+        "forwardMeters": 67.55074028890678,
+        "lateralMeters": -0.9265058891267862,
+        "distanceMeters": 64.96400473118211,
+        "box": [
+          0.4904782068911796,
+          0.45563289509464205,
+          0.5078183781665596,
+          0.5117511385988227
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 67.55074028890678,
+          "lateralMeters": -0.9265058891267862,
+          "distanceMeters": 64.96400473118211,
+          "box": [
+            0.4904782068911796,
+            0.45563289509464205,
+            0.5078183781665596,
+            0.5117511385988227
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000110.png",
+      "imageSha256": "6e3176c08eefd05acf84277a510683a3cc65527061bb0df803c660753a6de0b9"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000120",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 120,
+      "timestampUs": 1317048249891809,
+      "speedMph": 31.42511763389432,
+      "latitude": 48.948503867459,
+      "longitude": 8.4129727196412,
+      "yawRate": 0.0017960000000001308,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 67.8977680692269,
+          "lateralMeters": -1.9021054484833653,
+          "distanceMeters": 65.29081174092994,
+          "box": [
+            0.4986256065945899,
+            0.4524448973889943,
+            0.5163246408649113,
+            0.5082642627550172
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000120.png",
+      "imageSha256": "ebc930aaffd1a289a6075e603d53fbf2407fc798778bb2a352be807904175353"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000130",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 130,
+      "timestampUs": 1317048250925623,
+      "speedMph": 31.175692912941926,
+      "latitude": 48.948629077872,
+      "longitude": 8.4130218102118,
+      "yawRate": -0.006712000000000273,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 68.57543147106155,
+          "lateralMeters": -3.7842208642041806,
+          "distanceMeters": 65.93061344067011,
+          "box": [
+            0.5141144714710792,
+            0.4545369666423256,
+            0.5325308325416773,
+            0.5097690487704476
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000130.png",
+      "imageSha256": "854c2490b3e24c7b79267a407342d195e999bbf131eb855b2f5cae91a77596f7"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000140",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 140,
+      "timestampUs": 1317048251959692,
+      "speedMph": 31.04901951847648,
+      "latitude": 48.948755220724,
+      "longitude": 8.4130743113512,
+      "yawRate": -0.021951000000000054,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 69.40284889711349,
+          "lateralMeters": -4.772000822948171,
+          "distanceMeters": 66.73883570146432,
+          "box": [
+            0.521738077553899,
+            0.4485664305772428,
+            0.5406886939126611,
+            0.5031262000625011
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000140.png",
+      "imageSha256": "5cb14d1491163a80152cf71400fdfccaebd7636b87c3b38d88845247ccfbcbab"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000150",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 150,
+      "timestampUs": 1317048252993509,
+      "speedMph": 31.168093027240953,
+      "latitude": 48.948879623183,
+      "longitude": 8.4131288665747,
+      "yawRate": -0.0179450000000001,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 70.42320610059363,
+          "lateralMeters": -6.385189629905209,
+          "distanceMeters": 67.73514943798307,
+          "box": [
+            0.5341491645798219,
+            0.4438314819503305,
+            0.5537886898461967,
+            0.4975840342556571
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000150.png",
+      "imageSha256": "588e385c439015f542435464121460d25f4f54b42a1258d22aa39b02309e94cd"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000160",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 160,
+      "timestampUs": 1317048254027449,
+      "speedMph": 30.864769986948584,
+      "latitude": 48.949002718255,
+      "longitude": 8.4131845223297,
+      "yawRate": -0.034856,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 71.46672716402888,
+          "lateralMeters": -7.920653535493106,
+          "distanceMeters": 68.77309085136869,
+          "box": [
+            0.5461898360448539,
+            0.4441723243160962,
+            0.5652722857954833,
+            0.4971101954269936
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000160.png",
+      "imageSha256": "52cead78dd48ee9b4344b3ecac0f07a9810140786a8fc38cdc91353529479bb6"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000170",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 170,
+      "timestampUs": 1317048255061650,
+      "speedMph": 30.724995091164853,
+      "latitude": 48.949125275356,
+      "longitude": 8.413247675518,
+      "yawRate": -0.05865600000000004,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 73.21545204414332,
+          "lateralMeters": -7.984981933924983,
+          "distanceMeters": 70.51930840076479,
+          "box": [
+            0.5451977983946236,
+            0.4418075924947441,
+            0.5641656477674832,
+            0.4934504296329591
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000170.png",
+      "imageSha256": "20fd1282d28a8fa9c610f31fa039532cd9bc414328b9d86504c41b4047e34c15"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000180",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 180,
+      "timestampUs": 1317048256095456,
+      "speedMph": 31.959921337855757,
+      "latitude": 48.949246377425,
+      "longitude": 8.413322560539,
+      "yawRate": -0.04543249999999999,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 75.32250632794401,
+          "lateralMeters": -7.602520629159505,
+          "distanceMeters": 72.6313084557689,
+          "box": [
+            0.5409141949113083,
+            0.4504436087570023,
+            0.5590163463348541,
+            0.5005583912817105
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000180.png",
+      "imageSha256": "3570ee9749240ba64ce9c62aac6748b2e51bdfe2322b46373532b2ef8afee6bf"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000190",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 190,
+      "timestampUs": 1317048257129274,
+      "speedMph": 33.79037863587129,
+      "latitude": 48.949370520567,
+      "longitude": 8.4134095626792,
+      "yawRate": -0.047668500000000336,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 77.85793574158076,
+          "lateralMeters": -7.641133846049717,
+          "distanceMeters": 75.17549882095174,
+          "box": [
+            0.5397840424476319,
+            0.4486001658348282,
+            0.5568686112980209,
+            0.49704337682281885
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000190.png",
+      "imageSha256": "b7a9e0c98fe01ccee6e582ae3fb9d1201f87505961b25ddc96d344954a43f9c8"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000200",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 200,
+      "timestampUs": 1317048258162715,
+      "speedMph": 36.3636019459318,
+      "latitude": 48.949502198484,
+      "longitude": 8.4135130634826,
+      "yawRate": -0.038924999999999876,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "7",
+          "type": "Van",
+          "forwardMeters": 80.24955317457729,
+          "lateralMeters": -7.750296668565567,
+          "distanceMeters": 77.56751772082532,
+          "box": [
+            0.5391767207879226,
+            0.45325691981481236,
+            0.5556679979960004,
+            0.500195855948706
+          ],
+          "occlusion": 1,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000200.png",
+      "imageSha256": "22a40d37013bb105153a264552d5ada08a233b0abf6188ca6096ee704a0eb794"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000210",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 210,
+      "timestampUs": 1317048259195906,
+      "speedMph": 37.60120041722186,
+      "latitude": 48.949636025173,
+      "longitude": 8.4136279796644,
+      "yawRate": -0.04253800000000041,
+      "eligible": false,
+      "lead": {
+        "trackId": "5",
+        "type": "Car",
+        "forwardMeters": 62.9032492537595,
+        "lateralMeters": 0.10517386344784913,
+        "distanceMeters": 60.8233739654866,
+        "box": [
+          0.4807642512089891,
+          0.46642560050496773,
+          0.49976051199303817,
+          0.511780888337878
+        ],
+        "occlusion": 0,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "5",
+          "type": "Car",
+          "forwardMeters": 62.9032492537595,
+          "lateralMeters": 0.10517386344784913,
+          "distanceMeters": 60.8233739654866,
+          "box": [
+            0.4807642512089891,
+            0.46642560050496773,
+            0.49976051199303817,
+            0.511780888337878
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000210.png",
+      "imageSha256": "c78bf56f8c80fe4187b09c144461ffaec89c353d8e887371c1f98ee771b75778"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000220",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 220,
+      "timestampUs": 1317048260229100,
+      "speedMph": 37.399645720494135,
+      "latitude": 48.949768809899,
+      "longitude": 8.4137538700214,
+      "yawRate": -0.04130900000000004,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "5",
+          "type": "Car",
+          "forwardMeters": 31.151622773905274,
+          "lateralMeters": 3.2808596610926433,
+          "distanceMeters": 29.104282763613472,
+          "box": [
+            0.4080730784498813,
+            0.47827822061306846,
+            0.4504343561246274,
+            0.5730082651913844
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000220.png",
+      "imageSha256": "95cee3d0439e48f640fa39f4c63309638d2787b43a19d7f3507d0d58ed9573be"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000230",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 230,
+      "timestampUs": 1317048261261793,
+      "speedMph": 37.3629753130068,
+      "latitude": 48.949895984915,
+      "longitude": 8.4138870052709,
+      "yawRate": -0.031896000000000146,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000230.png",
+      "imageSha256": "e3a334b3319cc55f1d1ddbf7f6d094cb6387915fb6a631a0f5dbfec654674380"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000240",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 240,
+      "timestampUs": 1317048262295400,
+      "speedMph": 37.75617297121049,
+      "latitude": 48.950019976627,
+      "longitude": 8.4140278280251,
+      "yawRate": -0.0587089999999999,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000240.png",
+      "imageSha256": "6c11a57d3afa90fb207024498e19040be0507cd02eae88fb5e1771955508780c"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000250",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 250,
+      "timestampUs": 1317048263329071,
+      "speedMph": 38.505214104308436,
+      "latitude": 48.950142337293,
+      "longitude": 8.4141825985425,
+      "yawRate": -0.056556999999999746,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000250.png",
+      "imageSha256": "db8d31ca59e81f6a5f859ca01c9720685f9d9729c79c8da5b925ad3e1dd4de6d"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000260",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 260,
+      "timestampUs": 1317048264362119,
+      "speedMph": 39.253758441571954,
+      "latitude": 48.950260528821,
+      "longitude": 8.4143488664563,
+      "yawRate": -0.049964999999999815,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000260.png",
+      "imageSha256": "74708e2de50454e08bd56b0ee58c7a6b0b6d4c81c1a6942e16e8c3bb97580d99"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000270",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 270,
+      "timestampUs": 1317048265395063,
+      "speedMph": 39.839061397013396,
+      "latitude": 48.950375540699,
+      "longitude": 8.4145257329835,
+      "yawRate": -0.04909400000000019,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000270.png",
+      "imageSha256": "134828a9431a260009b73d5f295be3a9efcee0c12c227127f6b06aaa9ea68e16"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000280",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 280,
+      "timestampUs": 1317048266428126,
+      "speedMph": 39.86394878345757,
+      "latitude": 48.950485943907,
+      "longitude": 8.4147126785471,
+      "yawRate": -0.052048000000000094,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000280.png",
+      "imageSha256": "c4521b67dac96c9e04870b6fa43d32c31a84feb8564b5d96aab7aae051e08c61"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000290",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 290,
+      "timestampUs": 1317048267461566,
+      "speedMph": 39.82701556703967,
+      "latitude": 48.950591031519,
+      "longitude": 8.4149085208982,
+      "yawRate": -0.05154399999999981,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000290.png",
+      "imageSha256": "ed96412295b58b7dd18a3c86a899683c7568b7efd276e3c41fd10d802aad9c39"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000300",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 300,
+      "timestampUs": 1317048268494632,
+      "speedMph": 40.513264770714834,
+      "latitude": 48.950688658639,
+      "longitude": 8.4151126827403,
+      "yawRate": -0.044347000000000136,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000300.png",
+      "imageSha256": "860e7fb876bc6aeb227bb50fd6a141f2170eca1ad68f94de7e1ad383081ffa1b"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000310",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 310,
+      "timestampUs": 1317048269527574,
+      "speedMph": 41.419057236760125,
+      "latitude": 48.950781972126,
+      "longitude": 8.4153278926869,
+      "yawRate": -0.038076999999999916,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000310.png",
+      "imageSha256": "a1f618585d4902abdc1a2c556d198f0a963fe479d2b3418a152392de1ae627c9"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000320",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 320,
+      "timestampUs": 1317048270559897,
+      "speedMph": 42.99389939298874,
+      "latitude": 48.950872989904,
+      "longitude": 8.415557574518,
+      "yawRate": -0.030717000000000105,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000320.png",
+      "imageSha256": "571fcab6b41f671b16ccf7c7a0571e9d3ad587678779787dcfc69751d074b46f"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000330",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 330,
+      "timestampUs": 1317048271592332,
+      "speedMph": 44.408096184224284,
+      "latitude": 48.950961523088,
+      "longitude": 8.4157978524595,
+      "yawRate": -0.021678000000000086,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000330.png",
+      "imageSha256": "f10ed9de7cec0baca9fa5c2f46df004c23b6885029a069ac2603414d3a2e5b63"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000340",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 340,
+      "timestampUs": 1317048272625055,
+      "speedMph": 44.09575827182697,
+      "latitude": 48.951047914826,
+      "longitude": 8.4160437754444,
+      "yawRate": -0.0070510000000001405,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000340.png",
+      "imageSha256": "dac06fcab9430a99e59dc00ebfe429420e666c091b01a91ac9b169d9f8d2eb6c"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000350",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 350,
+      "timestampUs": 1317048273656603,
+      "speedMph": 43.390750243367044,
+      "latitude": 48.951131496351,
+      "longitude": 8.4162873413353,
+      "yawRate": 0.009440000000000115,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000350.png",
+      "imageSha256": "8aa4e36174ec302e4c928857d47f0b8b15eaf4d76ddbd51f6f2d809d7ae58d62"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000360",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 360,
+      "timestampUs": 1317048274689079,
+      "speedMph": 43.064572464034285,
+      "latitude": 48.951216762857,
+      "longitude": 8.4165287486315,
+      "yawRate": -0.009850999999999832,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000360.png",
+      "imageSha256": "9c6b93b8bb02fd64ebc1e706b935be1349e8dd480547e0246051286d57e34ba0"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000370",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 370,
+      "timestampUs": 1317048275721350,
+      "speedMph": 43.34148692215342,
+      "latitude": 48.951300009346,
+      "longitude": 8.4167696072991,
+      "yawRate": -0.0022799999999998377,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000370.png",
+      "imageSha256": "8f427078c3271bcab441d13c04a1ee56cd276466f7230f8593040793cbefce98"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000380",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 380,
+      "timestampUs": 1317048276753798,
+      "speedMph": 43.53451183395964,
+      "latitude": 48.951383259419,
+      "longitude": 8.4170125118832,
+      "yawRate": -0.0001389999999998892,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0070/0000000380.png",
+      "imageSha256": "6a1ba9d7ea3733f3b5b31b6441c48c4246ac2f230e7152b8079e0b592ea1e6b5"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000390",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 390,
+      "timestampUs": 1317048277786612,
+      "speedMph": 43.08653498542926,
+      "latitude": 48.951465709072,
+      "longitude": 8.417254224203,
+      "yawRate": 0.00580399999999992,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "2",
+          "type": "Van",
+          "forwardMeters": 69.15352750921802,
+          "lateralMeters": 7.353575270669464,
+          "distanceMeters": 66.31164063742986,
+          "box": [
+            0.4191542828892247,
+            0.4652401635746026,
+            0.43896611954272335,
+            0.5233706712831483
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000390.png",
+      "imageSha256": "f61c2a5ab7edd20aa5f87ccc66bbad91ef5586e9f046e95101ceceb1a44bb2e2"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000400",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 400,
+      "timestampUs": 1317048278819686,
+      "speedMph": 43.033791265147215,
+      "latitude": 48.951549600442,
+      "longitude": 8.4174962476641,
+      "yawRate": -0.006013999999999964,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "2",
+          "type": "Van",
+          "forwardMeters": 49.12562818476354,
+          "lateralMeters": 7.40766271495465,
+          "distanceMeters": 46.278688365229954,
+          "box": [
+            0.3876477451024377,
+            0.4582405425906091,
+            0.4179126226421208,
+            0.5415147577528817
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000400.png",
+      "imageSha256": "db46bb784bd95d78338eca33239aa8336028552cb44fcd15824651c965c2a79f"
+    },
+    {
+      "id": "2011_09_26_drive_0070/0000000410",
+      "sequence": "2011_09_26_drive_0070",
+      "frame": 410,
+      "timestampUs": 1317048279852748,
+      "speedMph": 42.641348311197675,
+      "latitude": 48.951631379423,
+      "longitude": 8.4177351657226,
+      "yawRate": -0.0024239999999999817,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "2",
+          "type": "Van",
+          "forwardMeters": 29.260392254809656,
+          "lateralMeters": 7.435595519099764,
+          "distanceMeters": 26.380552276790553,
+          "box": [
+            0.31150043815474004,
+            0.44706616351961376,
+            0.36963698433432424,
+            0.5930049731892388
+          ],
+          "occlusion": 0,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0070/0000000410.png",
+      "imageSha256": "46dfa89a126443b612cad5c21193567ed773a1a5a6f0ebbb81006b4080a5a7ab"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000000",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 0,
+      "timestampUs": 1317049083238977,
+      "speedMph": 13.951454108954715,
+      "latitude": 48.988035520308,
+      "longitude": 8.4779456736254,
+      "yawRate": -0.008000000000000007,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 14.194543451933306,
+          "lateralMeters": 4.039390252906129,
+          "distanceMeters": 11.966759322456697,
+          "box": [
+            0.2565416055430415,
+            0.4803734881313033,
+            0.37727853456900146,
+            0.7379466308380667
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 40.98324740263179,
+          "lateralMeters": -3.5357771879767257,
+          "distanceMeters": 38.98934850381832,
+          "box": [
+            0.5297875393533434,
+            0.4538739794586926,
+            0.555386351496185,
+            0.5347538710852012
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000000.png",
+      "imageSha256": "43e7395c82d162779c0abf4f82e3b5e9d80f330ceef236c50d83af2ec0b1a724"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000010",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 10,
+      "timestampUs": 1317049084273838,
+      "speedMph": 12.554907494065398,
+      "latitude": 48.988053677042,
+      "longitude": 8.4780238303979,
+      "yawRate": -0.034856,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "0",
+          "type": "Car",
+          "forwardMeters": 8.130719877758416,
+          "lateralMeters": 4.137979566304794,
+          "distanceMeters": 5.92147140109206,
+          "box": [
+            0.013839566556078741,
+            0.49252537582353256,
+            0.2967254230826853,
+            1.0225728409937829
+          ],
+          "occlusion": -1,
+          "truncation": 0
+        },
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 35.09949944141209,
+          "lateralMeters": -3.165472923192967,
+          "distanceMeters": 33.119032578601896,
+          "box": [
+            0.5301756109500338,
+            0.4423563260945015,
+            0.5607742704633908,
+            0.5376015858631499
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000010.png",
+      "imageSha256": "5ded294a4ac1007a3a4e402c22545fc6d7114c671e066e31284071142a24ca6b"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000020",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 20,
+      "timestampUs": 1317049085309482,
+      "speedMph": 9.285611418307072,
+      "latitude": 48.988067009973,
+      "longitude": 8.4780876078201,
+      "yawRate": -0.1407280000000002,
+      "eligible": false,
+      "lead": {
+        "trackId": "1",
+        "type": "Car",
+        "forwardMeters": 30.02143245511073,
+        "lateralMeters": -0.4461019166338686,
+        "distanceMeters": 28.044895664297478,
+        "box": [
+          0.4828872290260329,
+          0.4513806981014263,
+          0.5208643615299867,
+          0.5639726827571839
+        ],
+        "occlusion": 2,
+        "truncation": 0
+      },
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 30.02143245511073,
+          "lateralMeters": -0.4461019166338686,
+          "distanceMeters": 28.044895664297478,
+          "box": [
+            0.4828872290260329,
+            0.4513806981014263,
+            0.5208643615299867,
+            0.5639726827571839
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000020.png",
+      "imageSha256": "b6072fa298f769ff9b5c05447e7727e5485c13e2e4e59a6c8d45f634274f825a"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000030",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 30,
+      "timestampUs": 1317049086345050,
+      "speedMph": 7.232603851736403,
+      "latitude": 48.988073137638,
+      "longitude": 8.4781363534105,
+      "yawRate": -0.1605150000000033,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 25.832568328032327,
+          "lateralMeters": 4.148431189927335,
+          "distanceMeters": 23.749564497856074,
+          "box": [
+            0.37703478102964005,
+            0.4598353218299339,
+            0.4215800963012052,
+            0.5925308580642406
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000030.png",
+      "imageSha256": "f5fdf2cc77eec2bd21208fa7b8b3008d34d1f07a8cef65c9251a16b8f3b56add"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000040",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 40,
+      "timestampUs": 1317049087378866,
+      "speedMph": 6.422832736971779,
+      "latitude": 48.988073635853,
+      "longitude": 8.4781797915301,
+      "yawRate": 0.03376500000000027,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 22.55324602924298,
+          "lateralMeters": 6.611051439406156,
+          "distanceMeters": 20.431581902418248,
+          "box": [
+            0.29639702920527056,
+            0.4697507231981832,
+            0.34694517297030636,
+            0.6240425028464405
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000040.png",
+      "imageSha256": "934876135c6bbfb859130e8581d77a7f70558dffd368d358cb1a1efce91717f5"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000050",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 50,
+      "timestampUs": 1317049088411556,
+      "speedMph": 5.510565400313795,
+      "latitude": 48.988074906228,
+      "longitude": 8.4782178932227,
+      "yawRate": 0.146092000000003,
+      "eligible": false,
+      "lead": null,
+      "objects": [
+        {
+          "trackId": "1",
+          "type": "Car",
+          "forwardMeters": 19.86692422532326,
+          "lateralMeters": 3.6355574506527577,
+          "distanceMeters": 17.829520133955807,
+          "box": [
+            0.3543847976524497,
+            0.4873951671351692,
+            0.4107820696102663,
+            0.6653895639692934
+          ],
+          "occlusion": 2,
+          "truncation": 0
+        }
+      ],
+      "image": "images/2011_09_26_drive_0079/0000000050.png",
+      "imageSha256": "a34e01c5353554916623ab2f1ad9aaf65452168fdc26ffc22de872e6655cfa14"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000060",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 60,
+      "timestampUs": 1317049089445870,
+      "speedMph": 4.509177753121921,
+      "latitude": 48.988078371454,
+      "longitude": 8.4782495707694,
+      "yawRate": 0.07931599999999994,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0079/0000000060.png",
+      "imageSha256": "8aa5a3d1aa3dd5f0e1512ed8c65f70aa2e75bbef1c4f38638aa9e78c36b0a97a"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000070",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 70,
+      "timestampUs": 1317049090481316,
+      "speedMph": 3.133144625432586,
+      "latitude": 48.988082181915,
+      "longitude": 8.4782723217876,
+      "yawRate": 0.013981999999999939,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0079/0000000070.png",
+      "imageSha256": "cb2e9e50eb9b4cb356ce656aa11c113e3b960303c6e1e919a62c86806c6222e4"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000080",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 80,
+      "timestampUs": 1317049091516632,
+      "speedMph": 1.862337517220105,
+      "latitude": 48.988085029996,
+      "longitude": 8.4782871621764,
+      "yawRate": 0.0020720000000000738,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0079/0000000080.png",
+      "imageSha256": "bdd9f20223dee3e251018118a44953ea990770d893f2b8b218f5912393770c92"
+    },
+    {
+      "id": "2011_09_26_drive_0079/0000000090",
+      "sequence": "2011_09_26_drive_0079",
+      "frame": 90,
+      "timestampUs": 1317049092551573,
+      "speedMph": 0.31042045276854063,
+      "latitude": 48.988086112526,
+      "longitude": 8.4782926743957,
+      "yawRate": -0.00018399999999996197,
+      "eligible": false,
+      "lead": null,
+      "objects": [],
+      "image": "images/2011_09_26_drive_0079/0000000090.png",
+      "imageSha256": "eda689e43dca3e148ab408700655a4c193dd2eeadb0eac95741d236da3105f3b"
+    }
+  ],
+  "gradingPolicy": {
+    "requiredHeadwaySeconds": 3,
+    "minimumSpeedMph": 25,
+    "graceSeconds": 5,
+    "maxSampleGapSeconds": 1.5,
+    "pointsPerSecond": 1,
+    "secondsPerPenaltyStep": 0.5
+  },
+  "referenceLabelsReusedFrom": "2026-11-08-improved-distance; unchanged reviewed lead IDs, images, annotated distances, speeds and timestamps",
+  "evaluationSplit": "validation"
+}

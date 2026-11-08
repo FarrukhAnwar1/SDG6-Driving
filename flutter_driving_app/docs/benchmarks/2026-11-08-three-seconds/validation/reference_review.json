@@ -1,0 +1,21 @@
+{
+  "createdBeforeInference": true,
+  "method": "Visual review of all 99 sampled left-camera frames; lead IDs come from KITTI 3D tracklets. Ambiguous transition frames excluded. Review by assistant, not independently human-adjudicated.",
+  "ranges": {
+    "2011_09_26_drive_0013": [
+      {
+        "firstFrame": 50,
+        "lastFrame": 140,
+        "trackId": "1"
+      }
+    ],
+    "2011_09_26_drive_0070": [
+      {
+        "firstFrame": 30,
+        "lastFrame": 200,
+        "trackId": "7"
+      }
+    ],
+    "2011_09_26_drive_0079": []
+  }
+}

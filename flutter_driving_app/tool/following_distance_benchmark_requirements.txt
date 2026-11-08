@@ -1,0 +1,4 @@
+# Python 3.13 environment used for this evaluation; no training packages needed.
+numpy==2.3.5
+requests==2.32.5
+Pillow==12.0.0
