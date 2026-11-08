@@ -1,0 +1,26 @@
+{
+  "coaching_generation_calls": 60,
+  "scoring_calls": 60,
+  "total_generation_and_scoring_calls": 120,
+  "max_calls_in_any_rolling_60_seconds": 8,
+  "minimum_seconds_between_call_starts": 8.002,
+  "max_reserved_tokens_in_any_rolling_60_seconds": 149838,
+  "max_observed_total_tokens_in_any_start_time_rolling_60_seconds": 46711,
+  "total_observed_tokens": 738794,
+  "provider_errors": 0,
+  "usage_by_phase": {
+    "generation": {
+      "prompt_token_count": 449925,
+      "candidates_token_count": 3794,
+      "thoughts_token_count": 0,
+      "total_token_count": 453719
+    },
+    "scoring": {
+      "prompt_token_count": 262159,
+      "candidates_token_count": 22916,
+      "thoughts_token_count": 0,
+      "total_token_count": 285075
+    }
+  },
+  "note": "Limits are verified for this process. Other clients using the key are not included. The model-list verification was one separate non-generation metadata request."
+}

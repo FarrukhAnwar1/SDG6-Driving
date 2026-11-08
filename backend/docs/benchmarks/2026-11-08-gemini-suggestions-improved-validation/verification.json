@@ -1,0 +1,26 @@
+{
+  "backend_tests": {
+    "command": "python -m pytest tests -q -p no:cacheprovider -o faulthandler_timeout=60",
+    "passed": 308,
+    "skipped": 6,
+    "elapsed_seconds": 14.5,
+    "skips": "Optional MySQL concurrency tests; no disposable MySQL test URL configured.",
+    "provider_calls": 0,
+    "database": "SQLite with mocked external dependencies"
+  },
+  "test_scope": [
+    "authenticated endpoint and public response shape",
+    "full user-scoped prompt data",
+    "independent numeric reference checks",
+    "within-mode temporal comparisons",
+    "null categories and actual zero grades",
+    "zero driving exposure and undated reports",
+    "all approved fact/action combinations across 25 histories",
+    "invalid ID/prose/list/extra-field rejection",
+    "one bounded validation repair",
+    "shared provider timeout",
+    "repair call throttling and first-pass accounting",
+    "failed evaluator controls visibly marked diagnostic"
+  ],
+  "dependency_warning": "AnyIO imports a pytest alias scheduled for removal in pytest 10."
+}

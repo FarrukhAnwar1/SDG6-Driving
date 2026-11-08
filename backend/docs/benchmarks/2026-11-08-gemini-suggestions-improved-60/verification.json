@@ -1,0 +1,8 @@
+{
+  "source_unchanged_since_tested_pilot": true,
+  "test_evidence_source": "docs/benchmarks/2026-11-08-gemini-suggestions-improved-validation/verification.json",
+  "backend_tests_passed": 308,
+  "optional_mysql_tests_skipped": 6,
+  "tests_rerun_for_this_collection": false,
+  "reason": "This rerun collects new data with exactly the already-tested production and evaluator sources; no implementation changes were required."
+}

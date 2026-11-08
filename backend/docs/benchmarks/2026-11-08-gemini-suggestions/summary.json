@@ -1,0 +1,45 @@
+{
+  "generated_at": "2026-11-08T20:42:00.953143+00:00",
+  "production_model": "gemini-3.5-flash-lite",
+  "judge_model": "gemini-3.5-flash-lite",
+  "histories": 20,
+  "planned_attempts": 60,
+  "generation_attempts": 60,
+  "usable_responses": 60,
+  "generation_failures": 0,
+  "scoring_calls": 60,
+  "scored_responses": 60,
+  "ai_audited_responses": 60,
+  "passes": {
+    "grounded": 55,
+    "motivation": 56,
+    "action": 38,
+    "coaching_compliance": 36,
+    "long_term": 59,
+    "format": 60,
+    "all_pass": 35
+  },
+  "percent_of_scored": {
+    "grounded": 91.67,
+    "motivation": 93.33,
+    "action": 63.33,
+    "coaching_compliance": 60.0,
+    "long_term": 98.33,
+    "format": 100.0,
+    "all_pass": 58.33
+  },
+  "overall_success_percent_of_attempts": 58.33,
+  "complete": true,
+  "generation_latency_seconds": {
+    "mean": 1.372,
+    "median": 1.293,
+    "p95_nearest_rank": 1.9672
+  },
+  "limitations": [
+    "Synthetic histories; no validation of sensor or grading accuracy.",
+    "Same-model AI judge; any Codex audit is also AI, not independent human validation.",
+    "Repeated generations of one history are correlated; observed percentages are descriptive.",
+    "Latency covers production generation including SDK setup, not database or Flutter/network end-to-end latency.",
+    "Sentence counts use a punctuation heuristic; semantic counts are judged by meaning."
+  ]
+}

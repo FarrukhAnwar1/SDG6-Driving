@@ -1,0 +1,2542 @@
+[
+  {
+    "attempt_id": "pilot-declining/r1",
+    "case_id": "pilot-declining",
+    "repeat": 1,
+    "started_at": "2026-11-08T21:25:36.792805+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 1.1652,
+    "quota_wait_seconds": 0.0001,
+    "elapsed_seconds": 1.1652,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TZH7Ne6FYeVVaAHn-VPHvjRl1LXkot-eCD3DkgheWHYjF0IaTaAX2Prl7bCMc167QJJ5RiL3syi7EMB91Tned2Neln9yOpYjPixVT_VKxMrDG9y3_-FCXSRM="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "candidates_token_count": 29,
+          "prompt_token_count": 8330,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8330
+            }
+          ],
+          "total_token_count": 8359
+        },
+        "response_id": "z-jwavy9I-yE1sgPnfKq-Q0"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173136.8953855,
+        "token_reservation": 27389,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TZH7Ne6FYeVVaAHn-VPHvjRl1LXkot-eCD3DkgheWHYjF0IaTaAX2Prl7bCMc167QJJ5RiL3syi7EMB91Tned2Neln9yOpYjPixVT_VKxMrDG9y3_-FCXSRM="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "candidates_token_count": 29,
+            "prompt_token_count": 8330,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8330
+              }
+            ],
+            "total_token_count": 8359
+          },
+          "response_id": "z-jwavy9I-yE1sgPnfKq-Q0"
+        },
+        "elapsed_seconds": 1.0621
+      }
+    ],
+    "started_unix": 1794173136.8953855,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-declining/r1",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.375056+00:00",
+      "generation_sha256": "d660ad6210017d7be7924d6f2ff204e69f590e10901079093f2dec2cf2c344f5",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 129,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-strong/r1",
+    "case_id": "pilot-strong",
+    "repeat": 1,
+    "started_at": "2026-11-08T21:25:37.963859+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 7.7744,
+    "quota_wait_seconds": 6.8658,
+    "elapsed_seconds": 0.9086,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TOqSELoSdV4rOzv5DDAzbLZ766yPlsA2d2qO5dTeUQzHLiSfN4FhIB832VxlAHaIIy_YswR3Jy4Bwl-ffjoszGYS5w9f3OBA6sIdCGCfYiCgKzXHHRbbDv-Q="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "candidates_token_count": 29,
+          "prompt_token_count": 7395,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 7395
+            }
+          ],
+          "total_token_count": 7424
+        },
+        "response_id": "1-jwav_yHbC_uMYP8r6j-Q0"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173144.902412,
+        "token_reservation": 26250,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TOqSELoSdV4rOzv5DDAzbLZ766yPlsA2d2qO5dTeUQzHLiSfN4FhIB832VxlAHaIIy_YswR3Jy4Bwl-ffjoszGYS5w9f3OBA6sIdCGCfYiCgKzXHHRbbDv-Q="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "candidates_token_count": 29,
+            "prompt_token_count": 7395,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 7395
+              }
+            ],
+            "total_token_count": 7424
+          },
+          "response_id": "1-jwav_yHbC_uMYP8r6j-Q0"
+        },
+        "elapsed_seconds": 0.8356
+      }
+    ],
+    "started_unix": 1794173144.902412,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-strong/r1",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.375544+00:00",
+      "generation_sha256": "2a809a299743bf2b4e823d2d4147c0eb71628fd733309ef8488ab16915e20cea",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 178,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-mixed/r1",
+    "case_id": "pilot-mixed",
+    "repeat": 1,
+    "started_at": "2026-11-08T21:25:45.744158+00:00",
+    "ok": true,
+    "message": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category. When approaching a stop, begin slowing early enough to brake gradually.",
+    "wall_seconds": 8.7083,
+    "quota_wait_seconds": 7.0924,
+    "elapsed_seconds": 1.6159,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TpnS574jbi055-2v33-H-fdxBmNSPvONqIMEjrwhBaGHN8rjW6Q0SH3ZKQ4LzxpbSxsigGn9J9DCI6HgM-gE1OVJ6dY3xl89ZpCLDq1970rbUY5tvuq9END4="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "candidates_token_count": 31,
+          "prompt_token_count": 11203,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 11203
+            }
+          ],
+          "total_token_count": 11234
+        },
+        "response_id": "3-jwaov2IJiFytMPl_SIiA8"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173152.9070034,
+        "token_reservation": 33281,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TpnS574jbi055-2v33-H-fdxBmNSPvONqIMEjrwhBaGHN8rjW6Q0SH3ZKQ4LzxpbSxsigGn9J9DCI6HgM-gE1OVJ6dY3xl89ZpCLDq1970rbUY5tvuq9END4="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "candidates_token_count": 31,
+            "prompt_token_count": 11203,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 11203
+              }
+            ],
+            "total_token_count": 11234
+          },
+          "response_id": "3-jwaov2IJiFytMPl_SIiA8"
+        },
+        "elapsed_seconds": 1.5451
+      }
+    ],
+    "started_unix": 1794173152.9070034,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+          "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-mixed/r1",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.375861+00:00",
+      "generation_sha256": "9db775d5199693c635fb65b91fb34e12f571aa91b61522ac408ff490035ff233",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode. One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+            "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 245,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-modes/r1",
+    "case_id": "pilot-modes",
+    "repeat": 1,
+    "started_at": "2026-11-08T21:25:54.457610+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on. Before your next drive, enable Do Not Disturb to reduce notifications.",
+    "wall_seconds": 7.3652,
+    "quota_wait_seconds": 6.3739,
+    "elapsed_seconds": 0.9913,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TgSzrdRRTuWWJG9dkRJTVbGxb1UZMBuKIs0pa-1oLmB0hNy9HzoD3tAYFKAOxIuVJIJ1-3cNIlmJX-dqO2sEsuukSRJqKZdk8VMdsASLxVMOc8FvsfQly5Kg="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "candidates_token_count": 29,
+          "prompt_token_count": 8266,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8266
+            }
+          ],
+          "total_token_count": 8295
+        },
+        "response_id": "5-jwaqWsH66xuMYPvpq-mA4"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173160.913479,
+        "token_reservation": 27621,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TgSzrdRRTuWWJG9dkRJTVbGxb1UZMBuKIs0pa-1oLmB0hNy9HzoD3tAYFKAOxIuVJIJ1-3cNIlmJX-dqO2sEsuukSRJqKZdk8VMdsASLxVMOc8FvsfQly5Kg="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "candidates_token_count": 29,
+            "prompt_token_count": 8266,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8266
+              }
+            ],
+            "total_token_count": 8295
+          },
+          "response_id": "5-jwaqWsH66xuMYPvpq-mA4"
+        },
+        "elapsed_seconds": 0.9089
+      }
+    ],
+    "started_unix": 1794173160.913479,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+          "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-modes/r1",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.376049+00:00",
+      "generation_sha256": "465ed77889e7992d272ac01523d47c9549573cd6a434640f9e9ce5bd8eb01794",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+            "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 188,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-zero/r1",
+    "case_id": "pilot-zero",
+    "repeat": 1,
+    "started_at": "2026-11-08T21:26:01.828319+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. Check that your next saved trip report includes driving time.",
+    "wall_seconds": 8.1461,
+    "quota_wait_seconds": 7.0095,
+    "elapsed_seconds": 1.1366,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TqhC6An4gLRQFxIiHZywLeEMJdFzClDJxKABn7i60Z9qv52DydMzZ8qj175MXaY9t4QTphvlHIhaPPQrqSE5pyzYFScvilvXTvkES2wwl0NaGjUI5Xi25Paw="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "candidates_token_count": 31,
+          "prompt_token_count": 5796,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5796
+            }
+          ],
+          "total_token_count": 5827
+        },
+        "response_id": "7-jwaumGIa2jytMPlvHQAQ"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173168.9207602,
+        "token_reservation": 22696,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TqhC6An4gLRQFxIiHZywLeEMJdFzClDJxKABn7i60Z9qv52DydMzZ8qj175MXaY9t4QTphvlHIhaPPQrqSE5pyzYFScvilvXTvkES2wwl0NaGjUI5Xi25Paw="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "candidates_token_count": 31,
+            "prompt_token_count": 5796,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5796
+              }
+            ],
+            "total_token_count": 5827
+          },
+          "response_id": "7-jwaumGIa2jytMPlvHQAQ"
+        },
+        "elapsed_seconds": 1.0533
+      }
+    ],
+    "started_unix": 1794173168.9207602,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Check that your next saved trip report includes driving time.",
+          "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-zero/r1",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.376102+00:00",
+      "generation_sha256": "42f72cf8107f53bdcba64d6bc3f8e98505aeecabd2736039d76dc431709c5688",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Check that your next saved trip report includes driving time.",
+            "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 130,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-declining/r2",
+    "case_id": "pilot-declining",
+    "repeat": 2,
+    "started_at": "2026-11-08T21:26:09.980765+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 27.8836,
+    "quota_wait_seconds": 26.9429,
+    "elapsed_seconds": 0.9407,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TLOxZSNGJ_NVxMjsGRdSBeQES0uxwcrcAUuPKtEFxzCSRsIQKA3SrIi9T3e34htpOANK9-3xJRGVnq0TA0b1Kup3y1CqugVqSDgSAwBv1b-lZbBCQx91_Hrk="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5906
+            }
+          ],
+          "cached_content_token_count": 5906,
+          "candidates_token_count": 29,
+          "prompt_token_count": 8330,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8330
+            }
+          ],
+          "total_token_count": 8359
+        },
+        "response_id": "C-nwau7YJI7c0_gP9-nyuAw"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173197.0024571,
+        "token_reservation": 27389,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TLOxZSNGJ_NVxMjsGRdSBeQES0uxwcrcAUuPKtEFxzCSRsIQKA3SrIi9T3e34htpOANK9-3xJRGVnq0TA0b1Kup3y1CqugVqSDgSAwBv1b-lZbBCQx91_Hrk="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5906
+              }
+            ],
+            "cached_content_token_count": 5906,
+            "candidates_token_count": 29,
+            "prompt_token_count": 8330,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8330
+              }
+            ],
+            "total_token_count": 8359
+          },
+          "response_id": "C-nwau7YJI7c0_gP9-nyuAw"
+        },
+        "elapsed_seconds": 0.8615
+      }
+    ],
+    "started_unix": 1794173197.0024571,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-declining/r2",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.376252+00:00",
+      "generation_sha256": "d660ad6210017d7be7924d6f2ff204e69f590e10901079093f2dec2cf2c344f5",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 129,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-strong/r2",
+    "case_id": "pilot-strong",
+    "repeat": 2,
+    "started_at": "2026-11-08T21:26:37.870498+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 8.1036,
+    "quota_wait_seconds": 7.06,
+    "elapsed_seconds": 1.0436,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0Tr0QzsLeFuz5rmL-BgS8ygn2WcwGrPiIFiiNhCuL5eYbCgpg0Iqd5tPVhpC9QfzWqE9n_Vbxj2Njazf34odG8r-_Zww34JZhYWlhCpamlY_n4zcQ8pkWjg5o="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3904
+            }
+          ],
+          "cached_content_token_count": 3904,
+          "candidates_token_count": 29,
+          "prompt_token_count": 7395,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 7395
+            }
+          ],
+          "total_token_count": 7424
+        },
+        "response_id": "E-nwatebKYaqytMPhMan6Qs"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173205.0100935,
+        "token_reservation": 26250,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0Tr0QzsLeFuz5rmL-BgS8ygn2WcwGrPiIFiiNhCuL5eYbCgpg0Iqd5tPVhpC9QfzWqE9n_Vbxj2Njazf34odG8r-_Zww34JZhYWlhCpamlY_n4zcQ8pkWjg5o="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 3904
+              }
+            ],
+            "cached_content_token_count": 3904,
+            "candidates_token_count": 29,
+            "prompt_token_count": 7395,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 7395
+              }
+            ],
+            "total_token_count": 7424
+          },
+          "response_id": "E-nwatebKYaqytMPhMan6Qs"
+        },
+        "elapsed_seconds": 0.9636
+      }
+    ],
+    "started_unix": 1794173205.0100935,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-strong/r2",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.376661+00:00",
+      "generation_sha256": "2a809a299743bf2b4e823d2d4147c0eb71628fd733309ef8488ab16915e20cea",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 178,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-mixed/r2",
+    "case_id": "pilot-mixed",
+    "repeat": 2,
+    "started_at": "2026-11-08T21:26:45.979418+00:00",
+    "ok": true,
+    "message": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category. When approaching a stop, begin slowing early enough to brake gradually.",
+    "wall_seconds": 8.043,
+    "quota_wait_seconds": 6.9662,
+    "elapsed_seconds": 1.0768,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TGSh0Ot_CWlBtCPScfAlPolnj28TlgEQILVqJbuDl057WCmw0pGxha-ySyNXPNy5FCBGoBVEqxZXrlQqaqL_m1hgs0-dzOxXher5YiAzGDlkTIO6yY9qagWg="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 7969
+            }
+          ],
+          "cached_content_token_count": 7969,
+          "candidates_token_count": 31,
+          "prompt_token_count": 11203,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 11203
+            }
+          ],
+          "total_token_count": 11234
+        },
+        "response_id": "G-nwaojSJ5yhuMYP9fuxgQ8"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173213.0175307,
+        "token_reservation": 33281,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TGSh0Ot_CWlBtCPScfAlPolnj28TlgEQILVqJbuDl057WCmw0pGxha-ySyNXPNy5FCBGoBVEqxZXrlQqaqL_m1hgs0-dzOxXher5YiAzGDlkTIO6yY9qagWg="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 7969
+              }
+            ],
+            "cached_content_token_count": 7969,
+            "candidates_token_count": 31,
+            "prompt_token_count": 11203,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 11203
+              }
+            ],
+            "total_token_count": 11234
+          },
+          "response_id": "G-nwaojSJ5yhuMYP9fuxgQ8"
+        },
+        "elapsed_seconds": 1.0044
+      }
+    ],
+    "started_unix": 1794173213.0175307,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+          "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-mixed/r2",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.376933+00:00",
+      "generation_sha256": "9db775d5199693c635fb65b91fb34e12f571aa91b61522ac408ff490035ff233",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode. One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+            "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 245,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-modes/r2",
+    "case_id": "pilot-modes",
+    "repeat": 2,
+    "started_at": "2026-11-08T21:26:54.027297+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on. Before your next drive, enable Do Not Disturb to reduce notifications.",
+    "wall_seconds": 8.1212,
+    "quota_wait_seconds": 6.925,
+    "elapsed_seconds": 1.1961,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TzPA4aLn8erehGVvBm1TvzJXwzA7DNGt--DthhsxeOYzacXO-HNeZ38NHXTCkFMdy9D3BVhd9Y4b16APn_GS9Jvobtk6Yfk2QAFJfi-yIpbyeLjsb67TwM4M="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5910
+            }
+          ],
+          "cached_content_token_count": 5910,
+          "candidates_token_count": 29,
+          "prompt_token_count": 8266,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8266
+            }
+          ],
+          "total_token_count": 8295
+        },
+        "response_id": "I-nwao7aLJ_TiLMPk8Gq0QU"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173221.0246034,
+        "token_reservation": 27621,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TzPA4aLn8erehGVvBm1TvzJXwzA7DNGt--DthhsxeOYzacXO-HNeZ38NHXTCkFMdy9D3BVhd9Y4b16APn_GS9Jvobtk6Yfk2QAFJfi-yIpbyeLjsb67TwM4M="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5910
+              }
+            ],
+            "cached_content_token_count": 5910,
+            "candidates_token_count": 29,
+            "prompt_token_count": 8266,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8266
+              }
+            ],
+            "total_token_count": 8295
+          },
+          "response_id": "I-nwao7aLJ_TiLMPk8Gq0QU"
+        },
+        "elapsed_seconds": 1.1235
+      }
+    ],
+    "started_unix": 1794173221.0246034,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+          "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-modes/r2",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377110+00:00",
+      "generation_sha256": "465ed77889e7992d272ac01523d47c9549573cd6a434640f9e9ce5bd8eb01794",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+            "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 188,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-zero/r2",
+    "case_id": "pilot-zero",
+    "repeat": 2,
+    "started_at": "2026-11-08T21:27:02.154275+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. Check that your next saved trip report includes driving time.",
+    "wall_seconds": 7.7473,
+    "quota_wait_seconds": 6.8085,
+    "elapsed_seconds": 0.9387,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                  "thought_signature": "EmAKXgFpFH0T0vc9dKQCD-1O1b5LXbXeJNNln580WuRtROQPIZGauofRoX822-myQr9NLhW-mbPjaMj8zqbbhH0sp8uS-JFfYz_tio3tqANeLMdJThGS9jKLXgyiHWzut14="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1944
+            }
+          ],
+          "cached_content_token_count": 1944,
+          "candidates_token_count": 31,
+          "prompt_token_count": 5796,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5796
+            }
+          ],
+          "total_token_count": 5827
+        },
+        "response_id": "K-nwapjzJtyEuMYP18STgQ8"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173229.0319104,
+        "token_reservation": 22696,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                    "thought_signature": "EmAKXgFpFH0T0vc9dKQCD-1O1b5LXbXeJNNln580WuRtROQPIZGauofRoX822-myQr9NLhW-mbPjaMj8zqbbhH0sp8uS-JFfYz_tio3tqANeLMdJThGS9jKLXgyiHWzut14="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 1944
+              }
+            ],
+            "cached_content_token_count": 1944,
+            "candidates_token_count": 31,
+            "prompt_token_count": 5796,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5796
+              }
+            ],
+            "total_token_count": 5827
+          },
+          "response_id": "K-nwapjzJtyEuMYP18STgQ8"
+        },
+        "elapsed_seconds": 0.8689
+      }
+    ],
+    "started_unix": 1794173229.0319104,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Check that your next saved trip report includes driving time.",
+          "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-zero/r2",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377165+00:00",
+      "generation_sha256": "42f72cf8107f53bdcba64d6bc3f8e98505aeecabd2736039d76dc431709c5688",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Check that your next saved trip report includes driving time.",
+            "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 130,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-declining/r3",
+    "case_id": "pilot-declining",
+    "repeat": 3,
+    "started_at": "2026-11-08T21:27:09.907872+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 28.5147,
+    "quota_wait_seconds": 27.128,
+    "elapsed_seconds": 1.3866,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TdfR2kp2WztY4WU_Sm7lAH31E26vHYP8A7eGiJDhUGTinmWqIHUwUbkm39CG4urta13Gfig-9a0Bix11U9xGBpfF2YRzu9gTkQPmCWc2TxqDTl3AVC84j3cw="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5906
+            }
+          ],
+          "cached_content_token_count": 5906,
+          "candidates_token_count": 29,
+          "prompt_token_count": 8330,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8330
+            }
+          ],
+          "total_token_count": 8359
+        },
+        "response_id": "R-nwat7FMNvx0_gPv5PvgAY"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173257.1073968,
+        "token_reservation": 27389,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TdfR2kp2WztY4WU_Sm7lAH31E26vHYP8A7eGiJDhUGTinmWqIHUwUbkm39CG4urta13Gfig-9a0Bix11U9xGBpfF2YRzu9gTkQPmCWc2TxqDTl3AVC84j3cw="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5906
+              }
+            ],
+            "cached_content_token_count": 5906,
+            "candidates_token_count": 29,
+            "prompt_token_count": 8330,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8330
+              }
+            ],
+            "total_token_count": 8359
+          },
+          "response_id": "R-nwat7FMNvx0_gPv5PvgAY"
+        },
+        "elapsed_seconds": 1.3149
+      }
+    ],
+    "started_unix": 1794173257.1073968,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-declining/r3",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377314+00:00",
+      "generation_sha256": "d660ad6210017d7be7924d6f2ff204e69f590e10901079093f2dec2cf2c344f5",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 82.0.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 129,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-strong/r3",
+    "case_id": "pilot-strong",
+    "repeat": 3,
+    "started_at": "2026-11-08T21:27:38.427515+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on. On your next drives, check your speed against posted limits.",
+    "wall_seconds": 7.6153,
+    "quota_wait_seconds": 6.5871,
+    "elapsed_seconds": 1.0282,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TtJPEBSm1WJx63SohYJXrBBCPo9Z5iRiVZv2mg5iSedQ-sYjoTFTadJ6QJt2WZpgrLF9t2yIeAeKu1nYO_XwcZ8XT2faSV5nd_2yRlydir-0T_zCS3dwgzk0="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 3904
+            }
+          ],
+          "cached_content_token_count": 3904,
+          "candidates_token_count": 29,
+          "prompt_token_count": 7395,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 7395
+            }
+          ],
+          "total_token_count": 7424
+        },
+        "response_id": "T-nwapKxLKeh5NoP7fbakQk"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173265.1168206,
+        "token_reservation": 26250,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"monitor_speed\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TtJPEBSm1WJx63SohYJXrBBCPo9Z5iRiVZv2mg5iSedQ-sYjoTFTadJ6QJt2WZpgrLF9t2yIeAeKu1nYO_XwcZ8XT2faSV5nd_2yRlydir-0T_zCS3dwgzk0="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 3904
+              }
+            ],
+            "cached_content_token_count": 3904,
+            "candidates_token_count": 29,
+            "prompt_token_count": 7395,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 7395
+              }
+            ],
+            "total_token_count": 7424
+          },
+          "response_id": "T-nwapKxLKeh5NoP7fbakQk"
+        },
+        "elapsed_seconds": 0.9254
+      }
+    ],
+    "started_unix": 1794173265.1168206,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "On your next drives, check your speed against posted limits.",
+          "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-strong/r3",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377544+00:00",
+      "generation_sha256": "2a809a299743bf2b4e823d2d4147c0eb71628fd733309ef8488ab16915e20cea",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 96 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 96.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "On your next drives, check your speed against posted limits.",
+            "evidence": "One concrete monitoring behavior: check speed against posted limits; no speed-limit value or past cause is invented. The independent average for this category is 96.0. This is one maintenance action for an evidenced strength; it does not invent a weakness.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 178,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-mixed/r3",
+    "case_id": "pilot-mixed",
+    "repeat": 3,
+    "started_at": "2026-11-08T21:27:46.051401+00:00",
+    "ok": true,
+    "message": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category. When approaching a stop, begin slowing early enough to brake gradually.",
+    "wall_seconds": 8.0073,
+    "quota_wait_seconds": 6.9799,
+    "elapsed_seconds": 1.0274,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TMDseS11oKqIsRS6q9qEmPV3zEsto0jRg7ET6Jl9ZfgV60YQewuv1tOPF4ycCFBe8hogBrUzef6LpzunTQAw6ng-2mStkNgEgY7Uzjty-Kw2PNxNrLW-MD7M="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 7969
+            }
+          ],
+          "cached_content_token_count": 7969,
+          "candidates_token_count": 31,
+          "prompt_token_count": 11203,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 11203
+            }
+          ],
+          "total_token_count": 11234
+        },
+        "response_id": "V-nwas3aLKbf0_gP_q2zsAw"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173273.1249948,
+        "token_reservation": 33281,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"improved_speed_regular\",\n  \"actionable_suggestion\": \"brake_early\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TMDseS11oKqIsRS6q9qEmPV3zEsto0jRg7ET6Jl9ZfgV60YQewuv1tOPF4ycCFBe8hogBrUzef6LpzunTQAw6ng-2mStkNgEgY7Uzjty-Kw2PNxNrLW-MD7M="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 7969
+              }
+            ],
+            "cached_content_token_count": 7969,
+            "candidates_token_count": 31,
+            "prompt_token_count": 11203,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 11203
+              }
+            ],
+            "total_token_count": 11234
+          },
+          "response_id": "V-nwas3aLKbf0_gP_q2zsAw"
+        },
+        "elapsed_seconds": 0.9335
+      }
+    ],
+    "started_unix": 1794173273.1249948,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+          "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+          "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-mixed/r3",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377767+00:00",
+      "generation_sha256": "9db775d5199693c635fb65b91fb34e12f571aa91b61522ac408ff490035ff233",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode. One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Across your recorded trips in regular mode, your average speed grade rose from 63 to 87 out of 100 between the earlier and recent periods, showing progress in that category.",
+            "evidence": "Independent reference means are 63 in the earlier four regular trips and 87 in the recent four regular trips. This supports one positive grade-progress observation within the same mode.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "When approaching a stop, begin slowing early enough to brake gradually.",
+            "evidence": "One coordinated braking maneuver with timing/gradualness details, supported by the measured braking category; no independent second action. The independent average for this category is 77.5.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 8-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 245,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-modes/r3",
+    "case_id": "pilot-modes",
+    "repeat": 3,
+    "started_at": "2026-11-08T21:27:54.064918+00:00",
+    "ok": true,
+    "message": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on. Before your next drive, enable Do Not Disturb to reduce notifications.",
+    "wall_seconds": 8.0065,
+    "quota_wait_seconds": 6.999,
+    "elapsed_seconds": 1.0075,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TIInzAz7aXM7Bo9mv2NRUHoEkz_wUswOdP6UqdhFMlL0K8yY2-N0a-AefOPemE8aHBW5RJ0i6-WUDGY1Bf50FVeBt8-yg0dT_ZhBZ4hnOT6vQJwTGdPSjIe4="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5910
+            }
+          ],
+          "cached_content_token_count": 5910,
+          "candidates_token_count": 29,
+          "prompt_token_count": 8266,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 8266
+            }
+          ],
+          "total_token_count": 8295
+        },
+        "response_id": "X-nwaquCLKft5NoP8L7E0Ak"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173281.1310604,
+        "token_reservation": 27621,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"strength_speed\",\n  \"actionable_suggestion\": \"reduce_notifications\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TIInzAz7aXM7Bo9mv2NRUHoEkz_wUswOdP6UqdhFMlL0K8yY2-N0a-AefOPemE8aHBW5RJ0i6-WUDGY1Bf50FVeBt8-yg0dT_ZhBZ4hnOT6vQJwTGdPSjIe4="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5910
+              }
+            ],
+            "cached_content_token_count": 5910,
+            "candidates_token_count": 29,
+            "prompt_token_count": 8266,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 8266
+              }
+            ],
+            "total_token_count": 8295
+          },
+          "response_id": "X-nwaquCLKft5NoP8L7E0Ak"
+        },
+        "elapsed_seconds": 0.94
+      }
+    ],
+    "started_unix": 1794173281.1310604,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+          "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+          "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-modes/r3",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377918+00:00",
+      "generation_sha256": "465ed77889e7992d272ac01523d47c9549573cd6a434640f9e9ce5bd8eb01794",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement. One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded speed grade averaged 94 out of 100 across 6 trips with driving time, giving you a strength to build on.",
+            "evidence": "The independent reference gives speed_grade average 94.0 across 6 measured positive-duration reports. The text reports this average as a strength, without calling it perfect or claiming improvement.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Before your next drive, enable Do Not Disturb to reduce notifications.",
+            "evidence": "One prospective action: enable Do Not Disturb before driving. This does not claim notifications caused past focus violations. The independent average for this category is 40.0. The relevant weakness is measured in three regular trips only; later pocket trips are not claimed to measure it.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 188,
+      "sentence_count": 2,
+      "pass": true
+    }
+  },
+  {
+    "attempt_id": "pilot-zero/r3",
+    "case_id": "pilot-zero",
+    "repeat": 3,
+    "started_at": "2026-11-08T21:28:02.076062+00:00",
+    "ok": true,
+    "message": "Saving these 6 trip reports gives you a useful record to reflect on. Check that your next saved trip report includes driving time.",
+    "wall_seconds": 8.1065,
+    "quota_wait_seconds": 6.993,
+    "elapsed_seconds": 1.1135,
+    "provider_responses": [
+      {
+        "candidates": [
+          {
+            "content": {
+              "parts": [
+                {
+                  "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                  "thought_signature": "EmAKXgFpFH0TD4F64U54NvLoIMq9krTPAeQgBKErdk3EEGyMRHocNEAehPCJk7Zlr-E5ZX3L7jxNre_j8Xt8ETjl2LyeYzY7qjyZlYDisBrfF1__pcHxKRYJOU7stMb8Dik="
+                }
+              ],
+              "role": "model"
+            },
+            "finish_reason": "STOP",
+            "index": 0
+          }
+        ],
+        "model_version": "gemini-3.5-flash-lite",
+        "usage_metadata": {
+          "cache_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 1944
+            }
+          ],
+          "cached_content_token_count": 1944,
+          "candidates_token_count": 31,
+          "prompt_token_count": 5796,
+          "prompt_tokens_details": [
+            {
+              "modality": "TEXT",
+              "token_count": 5796
+            }
+          ],
+          "total_token_count": 5827
+        },
+        "response_id": "Z-nwavqTMPWjytMP2aSO0AM"
+      }
+    ],
+    "provider_calls": [
+      {
+        "call_index": 1,
+        "started_unix": 1794173289.1391907,
+        "token_reservation": 22696,
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "parts": [
+                  {
+                    "text": "{\n  \"motivational_observation\": \"tracking_history\",\n  \"actionable_suggestion\": \"check_driving_duration\"\n}",
+                    "thought_signature": "EmAKXgFpFH0TD4F64U54NvLoIMq9krTPAeQgBKErdk3EEGyMRHocNEAehPCJk7Zlr-E5ZX3L7jxNre_j8Xt8ETjl2LyeYzY7qjyZlYDisBrfF1__pcHxKRYJOU7stMb8Dik="
+                  }
+                ],
+                "role": "model"
+              },
+              "finish_reason": "STOP",
+              "index": 0
+            }
+          ],
+          "model_version": "gemini-3.5-flash-lite",
+          "usage_metadata": {
+            "cache_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 1944
+              }
+            ],
+            "cached_content_token_count": 1944,
+            "candidates_token_count": 31,
+            "prompt_token_count": 5796,
+            "prompt_tokens_details": [
+              {
+                "modality": "TEXT",
+                "token_count": 5796
+              }
+            ],
+            "total_token_count": 5827
+          },
+          "response_id": "Z-nwavqTMPWjytMP2aSO0AM"
+        },
+        "elapsed_seconds": 1.043
+      }
+    ],
+    "started_unix": 1794173289.1391907,
+    "first_pass_ok": true,
+    "repair_attempted": false,
+    "assessment": {
+      "factualClaims": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "verdict": "supported"
+        }
+      ],
+      "motivationalObservations": [
+        {
+          "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+          "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+          "supported": true
+        }
+      ],
+      "actionableSuggestions": [
+        {
+          "quote": "Check that your next saved trip report includes driving time.",
+          "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+          "supported": true
+        }
+      ],
+      "longTermRelevant": true,
+      "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+      "plainText": true,
+      "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+    },
+    "scores": {
+      "grounded": true,
+      "motivation": true,
+      "action": true,
+      "coaching_compliance": true,
+      "long_term": true,
+      "format": true,
+      "all_pass": true
+    },
+    "audit": {
+      "attempt_id": "pilot-zero/r3",
+      "reviewer": "Codex (AI source review; not an independent human reviewer)",
+      "reviewed_at": "2026-11-08T21:31:27.377966+00:00",
+      "generation_sha256": "42f72cf8107f53bdcba64d6bc3f8e98505aeecabd2736039d76dc431709c5688",
+      "review_method": "Direct source-report review without reading the automatic pilot labels",
+      "reason": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving. One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Saving these 6 trip reports gives you a useful record to reflect on.",
+            "evidence": "The source contains 6 saved reports. The observation praises logging only and makes no claim of improved or reliable actual driving.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Check that your next saved trip report includes driving time.",
+            "evidence": "One report-quality action: check that the next saved report includes driving time; all source reports currently have zero exposure. No observed driving-habit claim is made.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The observation and selected behavior are grounded in the supplied 6-report history. The message neither generalizes a latest-trip outlier nor claims lifetime evidence. Zero exposure is handled as a recording/data-quality pattern.",
+        "plainText": true,
+        "notes": "Direct Codex AI source review, constructed without consulting automatic pilot ratings. No independent human validation."
+      }
+    },
+    "format_checks": {
+      "characters": 130,
+      "sentence_count": 2,
+      "pass": true
+    }
+  }
+]

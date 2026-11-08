@@ -1,0 +1,8 @@
+{
+  "source_directory": "docs/benchmarks/2026-11-08-gemini-suggestions-improved-pilot-v2",
+  "copied_existing_requests": true,
+  "new_api_calls": 0,
+  "judge_configuration_verified_identical": true,
+  "reason": "Report-only changes flag failed evaluator controls. Reuse the identical judge control requests without resampling until they pass.",
+  "calibration_sha256": "10806b3ecfe9775bdada4ade58f9ef82c4751c92f26f8bc3a49d9b46232f7fd0"
+}

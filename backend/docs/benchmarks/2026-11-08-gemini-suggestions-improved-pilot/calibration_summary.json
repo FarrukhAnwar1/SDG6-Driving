@@ -1,0 +1,7 @@
+{
+  "controlled_examples": 7,
+  "calls": 7,
+  "passed": 5,
+  "complete": true,
+  "labels": "AI-authored reference-controlled checks; no independent human labels"
+}

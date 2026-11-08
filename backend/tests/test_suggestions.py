@@ -1,6 +1,7 @@
 """Exercise real auth, SQL queries, trend math, and SDK parsing without live services."""
 
 from datetime import datetime, timedelta, timezone
+from copy import deepcopy
 import json
 
 from fastapi.testclient import TestClient
@@ -18,6 +19,8 @@ from app.dependencies import get_db
 from app.main import app
 from app.security import create_access_token
 from app.services import suggestions
+
+AUTO_SELECTION = "__choose_first_approved_ids__"
 
 
 def report(index=0, user_id=1, **overrides):
@@ -70,22 +73,35 @@ def gemini(monkeypatch):
     real_client = suggestions.genai.Client
     state = {
         "requests": [],
+        "timeouts": [],
         "status": 200,
         "body": {
             "candidates": [{
                 "finishReason": "STOP",
-                "content": {"role": "model", "parts": [{"text": json.dumps({
-                    "message": "Your grades are steadily improving. Keep working on consistent speed control."
-                })}]},
+                "content": {"role": "model", "parts": [{"text": AUTO_SELECTION}]},
             }],
         },
     }
 
     def handle(request):
         state["requests"].append(request)
+        state["timeouts"].append(request.extensions.get("timeout", {}).get("read"))
         if "error" in state:
             raise state["error"]
-        return httpx.Response(state["status"], json=state["body"])
+        body = deepcopy(state["body"])
+        candidates = body.get("candidates", [])
+        parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+        if parts:
+            text = state["texts"].pop(0) if state.get("texts") else parts[0]["text"]
+            if text == AUTO_SELECTION:
+                payload = json.loads(request.content)
+                choices = json.loads(payload["contents"][0]["parts"][0]["text"])["coachingChoices"]
+                text = json.dumps({
+                    "motivational_observation": choices["motivational_observations"][0]["id"],
+                    "actionable_suggestion": choices["actionable_suggestions"][0]["id"],
+                })
+            parts[0]["text"] = text
+        return httpx.Response(state["status"], json=body)
 
     def client_factory(**kwargs):
         state["options"] = kwargs["http_options"]
@@ -309,7 +325,11 @@ def test_endpoint_and_prompt_use_only_token_users_complete_report_data(api, gemi
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {
         "status": "ready",
-        "message": "Your grades are steadily improving. Keep working on consistent speed control.",
+        "message": (
+            "Across your recorded trips in regular mode, your average speed grade rose from 65 to 77 "
+            "out of 100 between the earlier and recent periods, showing progress in that category. "
+            "On your next drives, check your speed against posted limits."
+        ),
         "reportsAnalyzed": 6,
         "analysisStartDate": "2026-07-06T12:00:00",
         "analysisEndDate": "2026-08-10T12:00:00",
@@ -325,6 +345,9 @@ def test_endpoint_and_prompt_use_only_token_users_complete_report_data(api, gemi
     assert "Bearer" not in json.dumps(history)
     assert "gemini-3.5-flash-lite:generateContent" in str(request.url)
     assert payload["generationConfig"]["responseMimeType"] == "application/json"
+    schema = payload["generationConfig"]["responseJsonSchema"]
+    assert "monitor_speed" in schema["properties"]["actionable_suggestion"]["enum"]
+    assert "improved_speed_regular" in schema["properties"]["motivational_observation"]["enum"]
     assert gemini["options"].timeout == 30000
     assert gemini["options"].retry_options.attempts == 1
     instruction = payload["systemInstruction"]["parts"][0]["text"]
@@ -444,6 +467,47 @@ def test_invalid_feedback_is_not_returned_to_frontend(api, gemini, text):
     gemini["body"]["candidates"][0]["content"]["parts"][0]["text"] = text
     response = client.get("/advanced-suggestion", headers=auth())
     assert response.status_code == 502
+    assert len(gemini["requests"]) == 2
+
+
+@pytest.mark.parametrize("invalid", [
+    "not json",
+    json.dumps({"motivational_observation": "invented_perfect_score", "actionable_suggestion": "monitor_speed"}),
+    json.dumps({"motivational_observation": ["improved_speed_regular"], "actionable_suggestion": ["monitor_speed", "brake_early"]}),
+    json.dumps({"motivational_observation": "improved_speed_regular", "actionable_suggestion": "monitor_speed", "message": "invented text"}),
+])
+def test_one_validation_repair_can_recover_without_exposing_invalid_text(api, gemini, invalid):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    gemini["texts"] = [invalid, AUTO_SELECTION]
+    response = client.get("/advanced-suggestion", headers=auth())
+    assert response.status_code == 200
+    assert "posted limits" in response.json()["message"]
+    assert "invented" not in response.json()["message"]
+    assert len(gemini["requests"]) == 2
+    repair = json.loads(json.loads(gemini["requests"][1].content)["contents"][0]["parts"][0]["text"])
+    assert "selectionRepair" in repair
+    assert invalid not in repair["selectionRepair"]
+
+
+def test_repair_shares_the_original_timeout_budget(api, gemini, monkeypatch):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    ticks = iter([100, 100, 107, 108])
+    monkeypatch.setattr(suggestions, "monotonic", lambda: next(ticks))
+    gemini["texts"] = ["not json", AUTO_SELECTION]
+    assert client.get("/advanced-suggestion", headers=auth()).status_code == 200
+    assert gemini["timeouts"] == [30, 23]
+
+
+def test_expired_budget_prevents_a_second_provider_call(api, gemini, monkeypatch):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    ticks = iter([100, 100, 131])
+    monkeypatch.setattr(suggestions, "monotonic", lambda: next(ticks))
+    gemini["texts"] = ["not json", AUTO_SELECTION]
+    assert client.get("/advanced-suggestion", headers=auth()).status_code == 504
+    assert len(gemini["requests"]) == 1
 
 
 @pytest.mark.parametrize("kind", ["blocked", "truncated", "empty"])
@@ -457,6 +521,7 @@ def test_blocked_truncated_and_empty_responses_are_rejected(api, gemini, kind):
     else:
         gemini["body"]["candidates"][0]["content"]["parts"] = []
     assert client.get("/advanced-suggestion", headers=auth()).status_code == 502
+    assert len(gemini["requests"]) == 1
 
 
 def test_openapi_documents_authentication_and_single_message():

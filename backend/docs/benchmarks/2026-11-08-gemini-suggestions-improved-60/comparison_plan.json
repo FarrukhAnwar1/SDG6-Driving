@@ -1,0 +1,12 @@
+{
+  "baseline_directory": "docs/benchmarks/2026-11-08-gemini-suggestions",
+  "identical_histories": true,
+  "corpus_sha256": "6ef416cef16350f0d94a1eeff7d7b3a82aad5cfe9cfc166c33b784fdd3545508",
+  "histories": 20,
+  "repetitions": 3,
+  "generation_attempts": 60,
+  "new_scoring_calls_planned": 60,
+  "new_calibration_calls_planned": 0,
+  "worst_case_new_calls_including_repairs": 180,
+  "note": "Generation code and prompt match the successful 15-run pilot. The original baseline and pilot are preserved. Source AI review is primary; no independent human validation."
+}
