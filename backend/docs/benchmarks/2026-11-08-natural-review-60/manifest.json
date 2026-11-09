@@ -1,0 +1,40 @@
+{
+  "schema_version": 3,
+  "created_at": "2026-11-09T01:50:24.279757+00:00",
+  "suite": "regression",
+  "generation_protocol": "natural_draft_and_ai_review_v1",
+  "judge_protocol": "strict_coaching_v3",
+  "planned_calibration_calls": 7,
+  "histories": 20,
+  "repeats": 3,
+  "planned_generation_attempts": 60,
+  "planned_production_calls": 120,
+  "production_model": "gemini-3.5-flash-lite",
+  "production_timeout_seconds": 30.0,
+  "judge_model": "gemini-3.5-flash-lite",
+  "judge_temperature": 1.0,
+  "review_method": "Same-model AI judge; no independent human validation",
+  "corpus_sha256": "c704716b78ab2b6724bcb38dca8eb9469e0575a6a60657e230b50556d0730634",
+  "generation_prompt_sha256": "3682608343f2079ba0a2e6205710ffef1012c0509d1a5697a9a5ca5ec6ac704f",
+  "review_prompt_sha256": "e284d95c0768a1b6f97a1cdb9d8cb43d4b2bd1a11ab5f7a40d1d1f0e2561ce36",
+  "judge_prompt_sha256": "a4ca2f8e62128f4e36a28e22b9c718417282c21adab6f8faef6e4e821a38040f",
+  "source_sha256": {
+    "app/services/suggestions.py": "be4cdd4b7fbff4ebee944542b80af322a4f8b58b8e987dca8c54c4cfbf06247f",
+    "app/schemas.py": "3dfef67184054a0f3a88d3a3cc37fe90e7812f9e22eef8fc5f323decb332ad14",
+    "tools/suggestion_benchmark_cases.py": "ede9af3cfea12aa49997a27d91fa33e463bd1ed098d8db6ab14eed9af0197a3e",
+    "tools/benchmark_suggestions.py": "898a77464b4c3c052c98e11d85dbafe5b577f6ca5389a04d8e0faf138dec14d0"
+  },
+  "python": "3.10.12",
+  "packages": {
+    "google-genai": "1.75.0",
+    "pydantic": "2.14.3",
+    "pydantic-settings": "2.15.0",
+    "httpx": "0.28.1"
+  },
+  "limits": {
+    "calls_per_minute": 8,
+    "reserved_tokens_per_minute": 150000,
+    "total_generation_and_scoring_call_cap": 180
+  },
+  "synthetic_data_only": true
+}

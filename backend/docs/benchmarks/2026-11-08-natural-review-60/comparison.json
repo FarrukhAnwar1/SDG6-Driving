@@ -1,0 +1,73 @@
+{
+  "same_raw_histories": true,
+  "runs": [
+    {
+      "label": "Original free-form",
+      "folder": "2026-11-08-gemini-suggestions",
+      "attempts": 60,
+      "completed": 60,
+      "scored": 60,
+      "passes": {
+        "grounded": 55,
+        "motivation": 56,
+        "action": 38,
+        "coaching_compliance": 36,
+        "long_term": 59,
+        "format": 60,
+        "all_pass": 35
+      },
+      "completed_latency_seconds": {
+        "completed_suggestions": 60,
+        "mean": 1.372,
+        "median": 1.293,
+        "p95_nearest_rank": 1.9672
+      }
+    },
+    {
+      "label": "Fixed-choice pipeline",
+      "folder": "2026-11-08-gemini-suggestions-improved-60",
+      "attempts": 60,
+      "completed": 60,
+      "scored": 60,
+      "passes": {
+        "grounded": 60,
+        "motivation": 60,
+        "action": 60,
+        "coaching_compliance": 60,
+        "long_term": 60,
+        "format": 60,
+        "all_pass": 60
+      },
+      "completed_latency_seconds": {
+        "completed_suggestions": 60,
+        "mean": 1.221,
+        "median": 1.143,
+        "p95_nearest_rank": 1.8011
+      }
+    },
+    {
+      "label": "Natural draft + AI review",
+      "folder": "2026-11-08-natural-review-60",
+      "attempts": 60,
+      "completed": 54,
+      "scored": 54,
+      "passes": {
+        "grounded": 51,
+        "motivation": 50,
+        "action": 52,
+        "coaching_compliance": 48,
+        "long_term": 54,
+        "format": 54,
+        "all_pass": 48
+      },
+      "completed_latency_seconds": {
+        "completed_suggestions": 54,
+        "mean": 2.651,
+        "median": 2.433,
+        "p95_nearest_rank": 4.1445
+      }
+    }
+  ],
+  "human_reviewers": 0,
+  "note": "Pipeline and review methods differ; all figures are descriptive AI-reviewed regression results, not a causal model-only comparison."
+}
