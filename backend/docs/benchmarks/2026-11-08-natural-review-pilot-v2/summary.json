@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-11-09T01:42:38.027161+00:00",
+  "production_model": "gemini-3.5-flash-lite",
+  "judge_model": "gemini-3.5-flash-lite",
+  "histories": 5,
+  "planned_attempts": 5,
+  "generation_attempts": 5,
+  "usable_responses": 5,
+  "generation_failures": 0,
+  "scoring_calls": 0,
+  "scored_responses": 5,
+  "generation_provider_calls": 10,
+  "draft_provider_calls": 5,
+  "review_provider_calls": 5,
+  "review_approved_drafts": 4,
+  "review_corrected_drafts": 1,
+  "judge_temperature": 1.0,
+  "generation_protocol": "natural_draft_and_ai_review_v1",
+  "calibration_calls": 0,
+  "judge_control_checks_passed": false,
+  "judge_control_passes": 0,
+  "judge_control_count": 7,
+  "automated_ratings_status": "diagnostic_only_failed_or_missing_controls",
+  "ai_audited_responses": 5,
+  "passes": {
+    "grounded": 5,
+    "motivation": 5,
+    "action": 5,
+    "coaching_compliance": 5,
+    "long_term": 5,
+    "format": 5,
+    "all_pass": 5
+  },
+  "percent_of_scored": {
+    "grounded": 100.0,
+    "motivation": 100.0,
+    "action": 100.0,
+    "coaching_compliance": 100.0,
+    "long_term": 100.0,
+    "format": 100.0,
+    "all_pass": 100.0
+  },
+  "overall_success_percent_of_attempts": 100.0,
+  "complete": true,
+  "generation_latency_seconds": {
+    "mean": 2.458,
+    "median": 2.42,
+    "p95_nearest_rank": 2.8018
+  },
+  "limitations": [
+    "Synthetic histories; no validation of sensor or grading accuracy.",
+    "Two calls to the same model draft and review free-form feedback. Review can miss errors; its approval/correction is not an independent quality score.",
+    "Same-model AI judge; any Codex audit is also AI, not independent human validation.",
+    "Repeated generations of one history are correlated; observed percentages are descriptive.",
+    "Latency covers both production calls including SDK setup, not database or Flutter/network end-to-end latency.",
+    "Sentence counts use a punctuation heuristic; semantic counts are judged by meaning."
+  ]
+}

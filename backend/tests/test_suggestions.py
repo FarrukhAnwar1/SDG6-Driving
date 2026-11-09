@@ -20,7 +20,12 @@ from app.main import app
 from app.security import create_access_token
 from app.services import suggestions
 
-AUTO_SELECTION = "__choose_first_approved_ids__"
+AUTO_RESPONSE = "__draft_or_approve__"
+DRAFT_MESSAGE = (
+    "Your average speed grade rose from 65 to 77 between the earlier and recent "
+    "periods, showing progress across your recorded trips. "
+    "On your next drives, check your speed against posted limits."
+)
 
 
 def report(index=0, user_id=1, **overrides):
@@ -78,7 +83,7 @@ def gemini(monkeypatch):
         "body": {
             "candidates": [{
                 "finishReason": "STOP",
-                "content": {"role": "model", "parts": [{"text": AUTO_SELECTION}]},
+                "content": {"role": "model", "parts": [{"text": AUTO_RESPONSE}]},
             }],
         },
     }
@@ -86,22 +91,22 @@ def gemini(monkeypatch):
     def handle(request):
         state["requests"].append(request)
         state["timeouts"].append(request.extensions.get("timeout", {}).get("read"))
-        if "error" in state:
-            raise state["error"]
-        body = deepcopy(state["body"])
+        stage = "draft" if len(state["requests"]) == 1 else "review"
+        error = state.get(f"{stage}_error", state.get("error"))
+        if error is not None:
+            raise error
+        body = deepcopy(state.get(f"{stage}_body", state["body"]))
         candidates = body.get("candidates", [])
         parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
         if parts:
             text = state["texts"].pop(0) if state.get("texts") else parts[0]["text"]
-            if text == AUTO_SELECTION:
+            if text == AUTO_RESPONSE:
                 payload = json.loads(request.content)
-                choices = json.loads(payload["contents"][0]["parts"][0]["text"])["coachingChoices"]
-                text = json.dumps({
-                    "motivational_observation": choices["motivational_observations"][0]["id"],
-                    "actionable_suggestion": choices["actionable_suggestions"][0]["id"],
-                })
+                contents = json.loads(payload["contents"][0]["parts"][0]["text"])
+                text = json.dumps({"decision": "approve", "message": contents["draft"]}
+                                  if stage == "review" else {"message": DRAFT_MESSAGE})
             parts[0]["text"] = text
-        return httpx.Response(state["status"], json=body)
+        return httpx.Response(state.get(f"{stage}_status", state["status"]), json=body)
 
     def client_factory(**kwargs):
         state["options"] = kwargs["http_options"]
@@ -274,14 +279,24 @@ def test_a_zero_following_distance_grade_counts_in_the_average():
     assert history["overall"]["averageGrades"]["following_distance_grade"] == 0
 
 
-def test_prompt_explains_which_categories_each_mode_tracks():
-    text = suggestions.SYSTEM_INSTRUCTION
-    assert "Regular trips grade speed, braking, acceleration, turning, focus, and following" in text
-    assert "Pocket trips grade speed, braking" in text
-    assert "Adequate Following Distance" in text
-    assert "navigation driving time only" in text
-    assert "switching driving modes" in text
-    assert "not a score of zero" in text
+def test_measured_mode_summaries_exclude_zero_exposure_and_undated_trends():
+    rows = history_rows()
+    rows[0].trip_duration_minutes = 0
+    rows[0].speed_grade = 100
+    rows[1].speed_grade = 0
+    rows[-1].report_date = None
+    rows[-1].speed_grade = 100
+    rows[3].driving_mode = "pocket"
+    rows[3].focus_grade = rows[3].following_distance_grade = None
+    measured = suggestions.analyze_history(rows)["measuredByMode"]
+    regular = measured["regular"]
+    assert regular["overall"]["reportCount"] == 4
+    assert regular["overall"]["averageGrades"]["speed_grade"] == 61.5
+    assert regular["earlier"]["reportCount"] == 2
+    assert regular["earlier"]["averageGrades"]["speed_grade"] == 34.5
+    assert regular["recent"]["reportCount"] == 1
+    assert measured["pocket"]["overall"]["averageGrades"]["focus_grade"] is None
+    assert measured["navigation"]["overall"]["reportCount"] == 0
 
 
 def test_endpoint_reads_navigation_reports_with_null_focus(api, gemini):
@@ -325,11 +340,7 @@ def test_endpoint_and_prompt_use_only_token_users_complete_report_data(api, gemi
     assert response.headers["cache-control"] == "no-store"
     assert response.json() == {
         "status": "ready",
-        "message": (
-            "Across your recorded trips in regular mode, your average speed grade rose from 65 to 77 "
-            "out of 100 between the earlier and recent periods, showing progress in that category. "
-            "On your next drives, check your speed against posted limits."
-        ),
+        "message": DRAFT_MESSAGE,
         "reportsAnalyzed": 6,
         "analysisStartDate": "2026-07-06T12:00:00",
         "analysisEndDate": "2026-08-10T12:00:00",
@@ -346,12 +357,17 @@ def test_endpoint_and_prompt_use_only_token_users_complete_report_data(api, gemi
     assert "gemini-3.5-flash-lite:generateContent" in str(request.url)
     assert payload["generationConfig"]["responseMimeType"] == "application/json"
     schema = payload["generationConfig"]["responseJsonSchema"]
-    assert "monitor_speed" in schema["properties"]["actionable_suggestion"]["enum"]
-    assert "improved_speed_regular" in schema["properties"]["motivational_observation"]["enum"]
+    assert set(schema["properties"]) == {"message"}
+    assert len(gemini["requests"]) == 2
+    review_request = json.loads(gemini["requests"][1].content)
+    review_input = json.loads(review_request["contents"][0]["parts"][0]["text"])
+    assert review_input == {"history": history, "draft": DRAFT_MESSAGE}
+    assert review_request["systemInstruction"]["parts"][0]["text"] == suggestions.REVIEW_INSTRUCTION
+    assert set(review_request["generationConfig"]["responseJsonSchema"]["properties"]) == {"decision", "message"}
     assert gemini["options"].timeout == 30000
     assert gemini["options"].retry_options.attempts == 1
     instruction = payload["systemInstruction"]["parts"][0]["text"]
-    assert "Road names are optional context" in instruction
+    assert "Road names are optional" in instruction
     assert "Treat every supplied grade and violation as accurate" in instruction
 
 
@@ -439,25 +455,27 @@ def test_missing_configuration_is_a_service_error_only_for_ready_history(api, ge
 
 
 @pytest.mark.parametrize("provider_status,expected", [(400, 502), (401, 503), (403, 503), (404, 503), (429, 429), (500, 503), (503, 503), (504, 504)])
-def test_provider_errors_are_mapped_without_leaking_details(api, gemini, provider_status, expected):
+@pytest.mark.parametrize("stage", ["draft", "review"])
+def test_provider_errors_are_mapped_without_leaking_details(api, gemini, provider_status, expected, stage):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
-    gemini["status"] = provider_status
-    gemini["body"] = {"error": {"code": provider_status, "message": "private provider diagnostic"}}
+    gemini[f"{stage}_status"] = provider_status
+    gemini[f"{stage}_body"] = {"error": {"code": provider_status, "message": "private provider diagnostic"}}
     response = client.get("/advanced-suggestion", headers=auth())
     assert response.status_code == expected
     assert "private provider diagnostic" not in response.text
     assert response.headers["cache-control"] == "no-store"
-    assert len(gemini["requests"]) == 1
+    assert len(gemini["requests"]) == (1 if stage == "draft" else 2)
 
 
 @pytest.mark.parametrize("error,expected", [(httpx.ReadTimeout("timeout"), 504), (httpx.ConnectError("connection"), 503)])
-def test_transport_failures(api, gemini, error, expected):
+@pytest.mark.parametrize("stage", ["draft", "review"])
+def test_transport_failures(api, gemini, error, expected, stage):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
-    gemini["error"] = error
+    gemini[f"{stage}_error"] = error
     assert client.get("/advanced-suggestion", headers=auth()).status_code == expected
-    assert len(gemini["requests"]) == 1
+    assert len(gemini["requests"]) == (1 if stage == "draft" else 2)
 
 
 @pytest.mark.parametrize("text", ["not json", "{}", '{"message": "   "}', '{"message": 3}', json.dumps({"message": "x" * 1201}), '{"message": "hello", "extra": "unexpected"}'])
@@ -467,61 +485,78 @@ def test_invalid_feedback_is_not_returned_to_frontend(api, gemini, text):
     gemini["body"]["candidates"][0]["content"]["parts"][0]["text"] = text
     response = client.get("/advanced-suggestion", headers=auth())
     assert response.status_code == 502
-    assert len(gemini["requests"]) == 2
+    assert len(gemini["requests"]) == 1
 
 
-@pytest.mark.parametrize("invalid", [
-    "not json",
-    json.dumps({"motivational_observation": "invented_perfect_score", "actionable_suggestion": "monitor_speed"}),
-    json.dumps({"motivational_observation": ["improved_speed_regular"], "actionable_suggestion": ["monitor_speed", "brake_early"]}),
-    json.dumps({"motivational_observation": "improved_speed_regular", "actionable_suggestion": "monitor_speed", "message": "invented text"}),
+@pytest.mark.parametrize("draft", [
+    "Your speed grade is a perfect 100. Drive better next time.",
+    "Your speed grades are improving. Check your speed and leave a larger gap.",
 ])
-def test_one_validation_repair_can_recover_without_exposing_invalid_text(api, gemini, invalid):
+def test_reviewer_can_replace_an_inaccurate_or_noncompliant_draft(api, gemini, draft):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
-    gemini["texts"] = [invalid, AUTO_SELECTION]
+    gemini["texts"] = [json.dumps({"message": draft}),
+                       json.dumps({"decision": "correct", "message": DRAFT_MESSAGE})]
     response = client.get("/advanced-suggestion", headers=auth())
     assert response.status_code == 200
-    assert "posted limits" in response.json()["message"]
-    assert "invented" not in response.json()["message"]
+    assert response.json()["message"] == DRAFT_MESSAGE
     assert len(gemini["requests"]) == 2
-    repair = json.loads(json.loads(gemini["requests"][1].content)["contents"][0]["parts"][0]["text"])
-    assert "selectionRepair" in repair
-    assert invalid not in repair["selectionRepair"]
+    review = json.loads(json.loads(gemini["requests"][1].content)["contents"][0]["parts"][0]["text"])
+    assert review["draft"] == draft
+    assert review["history"]["reportsAnalyzed"] == 6
 
 
-def test_repair_shares_the_original_timeout_budget(api, gemini, monkeypatch):
+@pytest.mark.parametrize("review", ["not json", "{}", '{"decision":"approve"}',
+    json.dumps({"decision": "approve", "message": "A changed draft."}),
+    json.dumps({"decision": "reject", "message": DRAFT_MESSAGE}),
+    json.dumps({"decision": "correct", "message": " "}),
+    json.dumps({"decision": "correct", "message": "x" * 1201}),
+    json.dumps({"decision": "correct", "message": DRAFT_MESSAGE, "extra": "notes"}),
+])
+def test_invalid_review_never_falls_back_to_unreviewed_draft(api, gemini, review):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    gemini["texts"] = [AUTO_RESPONSE, review]
+    response = client.get("/advanced-suggestion", headers=auth())
+    assert response.status_code == 502
+    assert DRAFT_MESSAGE not in response.text
+    assert len(gemini["requests"]) == 2
+
+
+def test_review_shares_the_original_timeout_budget(api, gemini, monkeypatch):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
     ticks = iter([100, 100, 107, 108])
     monkeypatch.setattr(suggestions, "monotonic", lambda: next(ticks))
-    gemini["texts"] = ["not json", AUTO_SELECTION]
     assert client.get("/advanced-suggestion", headers=auth()).status_code == 200
     assert gemini["timeouts"] == [30, 23]
 
 
-def test_expired_budget_prevents_a_second_provider_call(api, gemini, monkeypatch):
+@pytest.mark.parametrize("ticks,expected_calls", [([100, 100, 131], 1), ([100, 100, 101, 131], 2)])
+def test_expired_budget_never_returns_feedback(api, gemini, monkeypatch, ticks, expected_calls):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
-    ticks = iter([100, 100, 131])
+    ticks = iter(ticks)
     monkeypatch.setattr(suggestions, "monotonic", lambda: next(ticks))
-    gemini["texts"] = ["not json", AUTO_SELECTION]
     assert client.get("/advanced-suggestion", headers=auth()).status_code == 504
-    assert len(gemini["requests"]) == 1
+    assert len(gemini["requests"]) == expected_calls
 
 
 @pytest.mark.parametrize("kind", ["blocked", "truncated", "empty"])
-def test_blocked_truncated_and_empty_responses_are_rejected(api, gemini, kind):
+@pytest.mark.parametrize("stage", ["draft", "review"])
+def test_blocked_truncated_and_empty_responses_are_rejected(api, gemini, kind, stage):
     client, engine = api
     seed(engine, [report(index) for index in range(6)])
+    body = deepcopy(gemini["body"])
     if kind == "blocked":
-        gemini["body"] = {"promptFeedback": {"blockReason": "SAFETY"}}
+        body = {"promptFeedback": {"blockReason": "SAFETY"}}
     elif kind == "truncated":
-        gemini["body"]["candidates"][0]["finishReason"] = "MAX_TOKENS"
+        body["candidates"][0]["finishReason"] = "MAX_TOKENS"
     else:
-        gemini["body"]["candidates"][0]["content"]["parts"] = []
+        body["candidates"][0]["content"]["parts"] = []
+    gemini[f"{stage}_body"] = body
     assert client.get("/advanced-suggestion", headers=auth()).status_code == 502
-    assert len(gemini["requests"]) == 1
+    assert len(gemini["requests"]) == (1 if stage == "draft" else 2)
 
 
 def test_openapi_documents_authentication_and_single_message():

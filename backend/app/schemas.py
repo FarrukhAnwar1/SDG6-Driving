@@ -342,19 +342,17 @@ class DrivingReportsOut(BaseModel):
     reports: List[DrivingReportWithViolationsOut]
 
 
-class FeedbackSelection(BaseModel):
-    """Internal Gemini choices; their allowed IDs are constrained per request."""
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-    motivational_observation: str = Field(min_length=1, max_length=100)
-    actionable_suggestion: str = Field(min_length=1, max_length=100)
-
-
 class FeedbackMessage(BaseModel):
-    """Validated display text assembled from the model's approved selections."""
+    """Model-written feedback with the same public message contract."""
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     message: str = Field(min_length=1, max_length=1200)
+
+
+class FeedbackReview(FeedbackMessage):
+    """Internal reviewer verdict and the approved or corrected paragraph."""
+
+    decision: Literal["approve", "correct"]
 
 
 class AdvancedSuggestionOut(FeedbackMessage):

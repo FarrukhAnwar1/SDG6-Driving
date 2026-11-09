@@ -1,0 +1,6 @@
+attempt_id,message,grounded,motivation,action,coaching_compliance,long_term,format,all_pass,human_grounded,human_motivation,human_action,human_notes
+pilot-declining/r1,Keeping these trip records gives you a useful starting point to work from as you review your driving patterns. Check your speed periodically to stay aligned with limits.,True,True,True,True,True,True,True,,,,
+pilot-strong/r1,Your recorded trips consistently maintain high scores across all evaluated categories. Keep applying steady pressure to the accelerator pedal as you begin moving from a stop.,True,True,True,True,True,True,True,,,,
+pilot-mixed/r1,Your speed grades have steadily improved across your recorded trips. Begin slowing earlier when approaching a stop.,True,True,True,True,True,True,True,,,,
+pilot-modes/r1,Your speed grades have remained consistently high across your recorded trips. Begin leaving more space between your vehicle and the cars ahead of you on future drives.,True,True,True,True,True,True,True,,,,
+pilot-zero/r1,"Keeping these trip records gives you a useful starting point to work from, even though your recorded trips currently show zero driving time. Please check that your next saved trip includes active driving time so your future records can accurately capture your habits.",True,True,True,True,True,True,True,,,,

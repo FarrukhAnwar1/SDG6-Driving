@@ -165,7 +165,7 @@ def corpus(suite="regression"):
 
 def source_hashes():
     return {name: hashlib.sha256((BACKEND / name).read_bytes()).hexdigest() for name in (
-        "app/services/suggestions.py", "app/services/coaching.py", "app/schemas.py",
+        "app/services/suggestions.py", "app/schemas.py",
         "tools/suggestion_benchmark_cases.py", "tools/benchmark_suggestions.py",
     )}
 
@@ -174,11 +174,12 @@ def prepare(output, repeats, suite="regression"):
     output.mkdir(parents=True, exist_ok=True)
     cases = corpus(suite)
     manifest = {
-        "schema_version": 2, "created_at": now(), "suite": suite,
-        "generation_protocol": "verified_choice_ids_v1", "judge_protocol": "strict_coaching_v3",
+        "schema_version": 3, "created_at": now(), "suite": suite,
+        "generation_protocol": "natural_draft_and_ai_review_v1", "judge_protocol": "strict_coaching_v3",
         "planned_calibration_calls": 7,
         "histories": len(cases), "repeats": repeats,
         "planned_generation_attempts": len(cases) * repeats,
+        "planned_production_calls": len(cases) * repeats * 2,
         "production_model": settings.gemini_model.strip(),
         "production_timeout_seconds": settings.gemini_timeout_seconds,
         "judge_model": settings.gemini_model.strip(),
@@ -186,6 +187,7 @@ def prepare(output, repeats, suite="regression"):
         "review_method": "Same-model AI judge; no independent human validation",
         "corpus_sha256": digest(cases),
         "generation_prompt_sha256": digest(suggestions.SYSTEM_INSTRUCTION),
+        "review_prompt_sha256": digest(suggestions.REVIEW_INSTRUCTION),
         "judge_prompt_sha256": digest(JUDGE_INSTRUCTION),
         "source_sha256": source_hashes(),
         "python": platform.python_version(),
@@ -197,20 +199,21 @@ def prepare(output, repeats, suite="regression"):
     path = output / "manifest.json"
     if path.exists():
         old = json.loads(path.read_text(encoding="utf-8"))
-        for key in ("corpus_sha256", "generation_prompt_sha256", "judge_prompt_sha256",
+        for key in ("corpus_sha256", "generation_prompt_sha256", "review_prompt_sha256", "judge_prompt_sha256",
                     "production_model", "production_timeout_seconds", "repeats", "suite",
                     "judge_temperature", "source_sha256", "generation_protocol", "judge_protocol"):
             if old.get(key) != manifest[key]:
                 raise ValueError(f"Run configuration changed ({key}); choose a new output directory")
         return old, cases
     write_json(output / "cases.json", cases)
-    # Keep the exact implementation used by this run, including renderer/catalog.
+    # Keep both production stages and the evaluator as they were used in this run.
     for name in manifest["source_sha256"]:
         destination = output / "source_snapshot" / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes((BACKEND / name).read_bytes())
     write_json(path, manifest)
     (output / "generation_system_instruction.txt").write_text(suggestions.SYSTEM_INSTRUCTION, encoding="utf-8")
+    (output / "review_system_instruction.txt").write_text(suggestions.REVIEW_INSTRUCTION, encoding="utf-8")
     (output / "judge_system_instruction.txt").write_text(JUDGE_INSTRUCTION, encoding="utf-8")
     print(f"Prepared {len(cases)} synthetic histories, {len(cases) * repeats} generation attempts.", flush=True)
     return manifest, cases
@@ -263,11 +266,13 @@ class GenerationCapture:
     responses: list = field(default_factory=list)
     calls: list = field(default_factory=list)
     quota_wait_seconds: float = 0
+    draft_message: str | None = None
+    review_decision: str | None = None
 
 
 @contextmanager
 def capture_production_response(limiter=None):
-    """Record and throttle EACH actual call, including a validation repair.
+    """Record and throttle EACH actual draft and review call.
 
     Only the service's deadline clock excludes injected benchmark throttle
     sleeps. The SDK's clocks/options and real provider time remain unchanged.
@@ -289,7 +294,8 @@ def capture_production_response(limiter=None):
                 observed.quota_wait_seconds += time.perf_counter() - waiting
             else:
                 stamp, reserve = time.time(), len(serialized.encode("utf-8")) + config.max_output_tokens
-            call = {"call_index": len(observed.calls) + 1, "started_unix": stamp,
+            stage = "review" if config.system_instruction == suggestions.REVIEW_INSTRUCTION else "draft"
+            call = {"call_index": len(observed.calls) + 1, "stage": stage, "started_unix": stamp,
                     "token_reservation": reserve}
             observed.calls.append(call)
             started = time.perf_counter()
@@ -298,6 +304,15 @@ def capture_production_response(limiter=None):
                 metadata = response_record(response)
                 observed.responses.append(metadata)
                 call["response"] = metadata
+                try:
+                    parsed = json.loads(response.text or "null")
+                    if isinstance(parsed, dict):
+                        if stage == "draft":
+                            observed.draft_message = parsed.get("message")
+                        else:
+                            observed.review_decision = parsed.get("decision")
+                except (ValueError, TypeError):
+                    pass  # Production performs validation; preserve invalid raw output too.
                 return response
             except errors.APIError as exc:
                 call["error"] = {"provider_status": exc.code}
@@ -345,8 +360,8 @@ def generate(output, manifest, cases):
             row["provider_responses"] = observed.responses
             row["provider_calls"] = observed.calls
             row["started_unix"] = observed.calls[0]["started_unix"] if observed.calls else time.time()
-            row["first_pass_ok"] = row["ok"] and len(observed.calls) == 1
-            row["repair_attempted"] = len(observed.calls) > 1
+            row["draft_message"] = observed.draft_message
+            row["review_decision"] = observed.review_decision
             append_row(path, row)
             seen.add(attempt_id)
             print(f"Generation {len(seen)}/{manifest['planned_generation_attempts']}: {attempt_id} {'OK' if row['ok'] else 'ERROR'} ({row['elapsed_seconds']:.2f}s)", flush=True)
@@ -499,6 +514,8 @@ def quota_observations(generations, judgments, calibration=()):
 
     return {
         "generation_calls": sum(row["phase"] == "generation" for row in calls),
+        "draft_calls": sum(row["phase"] == "generation" and row.get("stage") == "draft" for row in calls),
+        "review_calls": sum(row["phase"] == "generation" and row.get("stage") == "review" for row in calls),
         "scoring_calls": len(judgments), "calibration_calls": len(calibration), "total_calls": len(calls),
         "max_calls_in_rolling_minute": max((len(window) for window in windows), default=0),
         "max_reserved_tokens_in_rolling_minute": max((sum(row.get("token_reservation", 0) for row in window) for window in windows), default=0),
@@ -533,9 +550,8 @@ def report(output, manifest, cases):
     counts = {key: sum(row["scores"][key] for row in reviewed) for key in (
         "grounded", "motivation", "action", "coaching_compliance", "long_term", "format", "all_pass")}
     durations = sorted(row["elapsed_seconds"] for row in generations)
-    first_pass_successes = sum(row["ok"] and row.get("first_pass_ok", True) for row in generations)
-    first_pass_all = sum(row["scores"]["all_pass"] and row.get("first_pass_ok", True) for row in reviewed)
-    repairs = sum(row.get("repair_attempted", False) for row in generations)
+    approved = sum(row["ok"] and row.get("review_decision") == "approve" for row in generations)
+    corrected = sum(row["ok"] and row.get("review_decision") == "correct" for row in generations)
     quota = quota_observations(generations, list(judgments.values()), read_rows(output / "calibration.jsonl"))
     write_json(output / "quota_observations.json", quota)
     calibration_path = output / "calibration_summary.json"
@@ -547,10 +563,9 @@ def report(output, manifest, cases):
         "planned_attempts": manifest["planned_generation_attempts"], "generation_attempts": len(generations),
         "usable_responses": len(usable), "generation_failures": len(generations) - len(usable),
         "scoring_calls": len(judgments), "scored_responses": len(reviewed),
-        "generation_provider_calls": quota["generation_calls"], "repair_attempts": repairs,
-        "first_pass_generation_successes": first_pass_successes,
-        "first_pass_all_requirements_passes": first_pass_all,
-        "first_pass_all_requirements_percent": round(100 * first_pass_all / len(generations), 2) if generations else None,
+        "generation_provider_calls": quota["generation_calls"],
+        "draft_provider_calls": quota["draft_calls"], "review_provider_calls": quota["review_calls"],
+        "review_approved_drafts": approved, "review_corrected_drafts": corrected,
         "judge_temperature": manifest["judge_temperature"],
         "generation_protocol": manifest["generation_protocol"],
         "calibration_calls": quota["calibration_calls"],
@@ -568,10 +583,10 @@ def report(output, manifest, cases):
             "p95_nearest_rank": durations[math.ceil(len(durations) * .95) - 1] if durations else None,
         },
         "limitations": ["Synthetic histories; no validation of sensor or grading accuracy.",
-            "Gemini selects approved observation/action IDs; Python renders vetted text. This is a hybrid system, with less wording variety than free-text generation.",
+            "Two calls to the same model draft and review free-form feedback. Review can miss errors; its approval/correction is not an independent quality score.",
             "Same-model AI judge; any Codex audit is also AI, not independent human validation.",
             "Repeated generations of one history are correlated; observed percentages are descriptive.",
-            "Latency covers production generation including SDK setup, not database or Flutter/network end-to-end latency.",
+            "Latency covers both production calls including SDK setup, not database or Flutter/network end-to-end latency.",
             "Sentence counts use a punctuation heuristic; semantic counts are judged by meaning."],
     }
     write_json(output / "summary.json", summary)
@@ -598,8 +613,8 @@ def report(output, manifest, cases):
         lines.append(f"| {label} | {counts[key]} | {len(reviewed)} scored responses | {rate if rate is not None else 'N/A'}% |")
     lines += [f"| All requirements, including successful generation | {counts['all_pass']} | {len(generations)} attempts | {summary['overall_success_percent_of_attempts']}% |", "",
         f"Generation failures: {summary['generation_failures']}. Scored: {len(reviewed)}/{len(usable)} usable responses.",
-        f"First-pass valid generations: {first_pass_successes}/{len(generations)}. Validation repair attempts: {repairs}. Actual coaching calls: {quota['generation_calls']}.",
-        f"All requirements before any repair: {first_pass_all}/{len(generations)} ({summary['first_pass_all_requirements_percent']}%).", "",
+        f"Reviewer approved drafts: {approved}. Reviewer corrected drafts: {corrected}. Actual coaching calls: {quota['generation_calls']} ({quota['draft_calls']} draft + {quota['review_calls']} review).",
+        "These are the production reviewer's decisions, not independent measurements of draft accuracy. The quality scores above evaluate final messages separately.", "",
         f"Scoring calls: {len(judgments)} (separate from the coaching generation attempts). Codex AI audits: {len(audits)}.", "",
         f"Controlled AI-authored judge calibration calls: {quota['calibration_calls']}; see calibration_summary.json. These are not coaching generations or human labels.", "",
         f"Generation latency (seconds): {summary['generation_latency_seconds']}. Rate-limit sleeps are excluded.", "",
@@ -610,15 +625,15 @@ def report(output, manifest, cases):
         "UTF-8 input byte length plus the output-token cap against a 150,000-token rolling minute budget. "
         "This leaves headroom under the supplied 15 RPM / 250K TPM / 500 RPD limits. "
         "Only run one benchmark process at a time. Other clients using the key are outside this limiter.", "",
-        "Each logical generation invokes production once. Production may make one corrective request for a complete but invalid ID selection; "
-        "provider errors, blocked, truncated, and empty replies are not retried. Every actual provider call, including a repair, is recorded "
+        "Each logical generation invokes production once: one free-form draft call, followed by one reviewer/corrector call using the full history. "
+        "Only a successfully reviewed message is returned. Provider errors, malformed, blocked, truncated, and empty replies are not retried. Every actual provider call is recorded "
         "and throttled. Benchmark throttle sleeps are excluded from the service deadline clock and measured latency; the SDK's real clocks/options "
-        "are unchanged. First-pass and final success are reported separately. Errors are retained. Resuming skips recorded logical attempts. "
+        "are unchanged. Drafts, review decisions, final messages, and errors are retained. Resuming skips recorded logical attempts. "
         "A crash during an unrecorded provider call cannot be distinguished from a call that never reached the provider.", "",
-        "The response schema permits exactly one approved observation ID and one approved action ID. The backend verifies membership "
-        "and renders the two vetted sentences; the model cannot supply display prose or numeric claims. Improvement choices compare grades "
-        "within the same mode with at least two measured trips per period. Null/untracked categories and zero-exposure habit claims are excluded. "
-        "The full original history remains available to the selector. Source snapshots, hashes, prompts, and package versions are saved.", "",
+        "The writer produces natural prose; the reviewer independently checks factual support, exactly one motivational observation, "
+        "and exactly one concrete action, then approves the draft verbatim or supplies a corrected paragraph. The same model performs both stages, "
+        "so review does not guarantee correctness. Structured JSON validates shape, not factual truth. Source snapshots, hashes of both production "
+        "prompts and the evaluator prompt, and package versions are saved.", "",
         "Quota observations are in `quota_observations.json`. `review.csv` contains empty human-review columns; no human validation is claimed.", "",
         "No-unsupported-claims scores require every extracted factual claim to be supported. Motivational and actionable "
         "elements are counted by meaning and must each be supported and relevant. General prospective driving advice "
@@ -652,7 +667,7 @@ def main():
                         help="20 original histories, or 5 fresh histories for a 15-generation pilot")
     args = parser.parse_args()
     if not 1 <= args.repeats <= 3:
-        parser.error("repeats must be between 1 and 3 (at most 60 coaching calls)")
+        parser.error("repeats must be between 1 and 3 (at most 60 suggestions / 120 production calls)")
     if args.command in {"calibrate", "generate", "judge", "run"} and not settings.gemini_api_key.strip():
         parser.error("GEMINI_API_KEY is not configured")
     manifest, cases = prepare(args.output, args.repeats, args.suite)

@@ -76,20 +76,23 @@ def test_scoring_requires_grounding_exactly_one_of_each_and_format():
     assert not format_checks("# Heading\nYour grades improved. Leave more space.")["pass"]
 
 
-def test_production_capture_uses_real_sdk_and_preserves_its_call(monkeypatch):
+@pytest.mark.parametrize("decision", ["approve", "correct"])
+def test_production_capture_and_report_distinguish_approval_from_correction(monkeypatch, tmp_path, decision):
     real_client = suggestions.genai.Client
     requests = []
 
     def handle(request):
         requests.append(json.loads(request.content))
         prompt = json.loads(requests[-1]["contents"][0]["parts"][0]["text"])
-        choices = prompt["coachingChoices"]
+        text = json.dumps({"decision": decision, "message": prompt["draft"] if decision == "approve"
+                          else prompt["draft"].replace("Check your", "On your next drive, check your")}
+                          if "draft" in prompt else {"message":
+                          "Your speed grades improved across your recorded trips. Check your speed against posted limits."})
         return httpx.Response(200, json={
             "modelVersion": "test-model-version",
             "usageMetadata": {"promptTokenCount": 100, "candidatesTokenCount": 20, "totalTokenCount": 120},
             "candidates": [{"finishReason": "STOP", "content": {"role": "model", "parts": [{"text":
-                json.dumps({"motivational_observation": choices["motivational_observations"][0]["id"],
-                            "actionable_suggestion": choices["actionable_suggestions"][0]["id"]})}]}}],
+                text}]}}],
         })
 
     def factory(**kwargs):
@@ -100,14 +103,30 @@ def test_production_capture_uses_real_sdk_and_preserves_its_call(monkeypatch):
     monkeypatch.setattr(suggestions.genai, "Client", factory)
     with capture_production_response() as observed:
         message = suggestions.generate_feedback(corpus()[0]["history"])
-    assert "grade rose from 66 to 84" in message
-    assert "check your speed against posted limits" in message
-    assert len(requests) == 1
+    assert "speed grades improved" in message
+    assert "speed against posted limits" in message
+    assert len(requests) == 2
     assert requests[0]["generationConfig"]["maxOutputTokens"] == 4096
     assert observed.responses[0]["model_version"] == "test-model-version"
     assert observed.responses[0]["usage_metadata"]["total_token_count"] == 120
-    assert len(observed.calls) == 1
+    assert [call["stage"] for call in observed.calls] == ["draft", "review"]
+    assert observed.review_decision == decision
+    assert (observed.draft_message == message) == (decision == "approve")
     assert "benchmark-test-key" not in json.dumps(observed.responses)
+    manifest, cases = prepare(tmp_path, 1, "pilot")
+    monkeypatch.setattr(RateLimiter, "acquire", lambda *args: (1000, 100))
+    benchmark.generate(tmp_path, manifest, cases[:1])
+    row, = read_rows(tmp_path / "generations.jsonl")
+    assert row["review_decision"] == decision
+    assert row["ok"] is True
+    assert len(row["provider_calls"]) == 2
+    assert (row["draft_message"] == row["message"]) == (decision == "approve")
+    benchmark.report(tmp_path, manifest, cases)
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["review_approved_drafts"] == int(decision == "approve")
+    assert summary["review_corrected_drafts"] == int(decision == "correct")
+    assert summary["draft_provider_calls"] == summary["review_provider_calls"] == 1
+    assert summary["scored_responses"] == 0  # Approval alone is not a quality score.
 
 
 def test_fresh_pilot_has_five_new_checked_histories():
@@ -120,7 +139,7 @@ def test_fresh_pilot_has_five_new_checked_histories():
     assert len(corpus("pilot")) == 5
 
 
-def test_repair_calls_are_throttled_and_throttle_does_not_consume_provider_budget(monkeypatch):
+def test_review_calls_are_throttled_and_throttle_does_not_consume_provider_budget(monkeypatch):
     class FakeTime:
         value = 0
 
@@ -143,11 +162,9 @@ def test_repair_calls_are_throttled_and_throttle_does_not_consume_provider_budge
         requests.append(request)
         clock.value += 1  # Simulated real provider processing, not throttle time.
         prompt = json.loads(json.loads(request.content)["contents"][0]["parts"][0]["text"])
-        choices = prompt["coachingChoices"]
-        text = "not json" if len(requests) == 1 else json.dumps({
-            "motivational_observation": choices["motivational_observations"][0]["id"],
-            "actionable_suggestion": choices["actionable_suggestions"][0]["id"],
-        })
+        text = json.dumps({"decision": "correct", "message":
+                          "Your speed grades improved across your recorded trips. Check your speed against posted limits."}
+                          if "draft" in prompt else {"message": "Your speed grade is 100. Drive better."})
         return httpx.Response(200, json={"candidates": [{"finishReason": "STOP",
             "content": {"role": "model", "parts": [{"text": text}]}}]})
 
@@ -166,17 +183,20 @@ def test_repair_calls_are_throttled_and_throttle_does_not_consume_provider_budge
     assert observed.quota_wait_seconds == 7
     assert [request.extensions["timeout"]["read"] for request in requests] == [30, 29]
     assert clock.value - observed.quota_wait_seconds == 2
+    assert observed.review_decision == "correct"
+    assert "100" in observed.draft_message
 
 
-def test_quota_accounting_includes_repairs_errors_and_calibration():
+def test_quota_accounting_includes_review_errors_and_calibration():
     generations = [{"provider_calls": [
-        {"started_unix": 1000, "token_reservation": 100, "response": {"usage_metadata": {"total_token_count": 30}}},
-        {"started_unix": 1008, "token_reservation": 100, "error": {"provider_status": 429}},
+        {"started_unix": 1000, "stage": "draft", "token_reservation": 100, "response": {"usage_metadata": {"total_token_count": 30}}},
+        {"started_unix": 1008, "stage": "review", "token_reservation": 100, "error": {"provider_status": 429}},
     ]}]
     judgments = [{"started_unix": 1016, "token_reservation": 50, "provider_response": {"usage_metadata": {"total_token_count": 20}}}]
     calibration = [{"started_unix": 1024, "token_reservation": 50, "provider_response": {"usage_metadata": {"total_token_count": 10}}}]
     quota = quota_observations(generations, judgments, calibration)
     assert quota["generation_calls"] == 2
+    assert quota["draft_calls"] == quota["review_calls"] == 1
     assert quota["scoring_calls"] == quota["calibration_calls"] == 1
     assert quota["total_calls"] == quota["max_calls_in_rolling_minute"] == 4
     assert quota["max_reserved_tokens_in_rolling_minute"] == 300
@@ -196,15 +216,20 @@ def test_resume_rejects_changed_prompt_or_duplicate_attempts(tmp_path, monkeypat
         read_rows(path)
 
 
-def test_manifest_freezes_suite_temperature_and_renderer_source(tmp_path):
+def test_manifest_freezes_suite_temperature_and_both_production_prompts(tmp_path, monkeypatch):
     manifest, cases = prepare(tmp_path, 3, "pilot")
     assert len(cases) == 5
     assert manifest["planned_generation_attempts"] == 15
     assert manifest["judge_temperature"] == 1
-    assert "app/services/coaching.py" in manifest["source_sha256"]
-    assert (tmp_path / "source_snapshot/app/services/coaching.py").exists()
+    assert manifest["planned_production_calls"] == 30
+    assert manifest["generation_protocol"] == "natural_draft_and_ai_review_v1"
+    assert (tmp_path / "source_snapshot/app/services/suggestions.py").exists()
+    assert (tmp_path / "review_system_instruction.txt").read_text() == suggestions.REVIEW_INSTRUCTION
     with pytest.raises(ValueError, match="configuration changed"):
         prepare(tmp_path, 3, "regression")
+    monkeypatch.setattr(suggestions, "REVIEW_INSTRUCTION", "Different reviewer")
+    with pytest.raises(ValueError, match="review_prompt_sha256"):
+        prepare(tmp_path, 3, "pilot")
 
 
 def test_report_marks_failed_evaluator_controls_as_diagnostic(tmp_path):

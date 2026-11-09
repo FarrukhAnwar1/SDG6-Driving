@@ -212,7 +212,7 @@ details. The model can be changed through `GEMINI_MODEL` without editing code.
 
 The key stays on the server. The prompt contains the selected reports and all
 their violation details, including road names and timestamps, plus calculated
-trends and a catalog of verified observations and concrete actions. It excludes
+trends and summaries by driving mode. It excludes
 account IDs, usernames, email addresses, and bearer tokens.
 Google lists free tier inputs/outputs as used to improve its products; see the
 [Gemini pricing and data-use table](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.5-flash-lite).
@@ -220,14 +220,15 @@ Google lists free tier inputs/outputs as used to improve its products; see the
 The application starts without a Gemini key. An eligible feedback request then
 returns `503`; insufficient history returns its normal `200` response without
 contacting Gemini. The timeout defaults to 30 seconds and accepts values greater
-than zero and up to 120 seconds. This is a shared budget for the initial selection
-and at most one corrective request if a complete answer contains invalid IDs or
-malformed JSON. Each SDK request has automatic retries disabled. Provider errors,
-blocked, truncated, and empty replies fail immediately; there is no model fallback.
+than zero and up to 120 seconds. This is a shared budget for two sequential calls:
+one drafts natural feedback and one reviews it against the same history, either
+approving it verbatim or providing a corrected paragraph. Each SDK request has
+automatic retries disabled. Provider errors, malformed, blocked, truncated, and
+empty replies fail immediately; there is no unreviewed-draft or model fallback.
 Feedback is generated on
 demand, not saved or cached, and responses include `Cache-Control: no-store`.
 Have the frontend fetch when needed rather than polling, since each successful
-generation consumes quota.
+suggestion normally consumes two API calls.
 
 ## The driving_reports table
 
@@ -828,25 +829,26 @@ Example `200` response (the message varies with the driver's history):
 }
 ```
 
-Display `message` as plain text. It contains one motivational observation and one
-concrete action in a two-sentence paragraph, at most 1200 characters. The public
-response shape is unchanged. Internally Gemini returns two scalar choice IDs:
-`motivational_observation` and `actionable_suggestion`. Their allowed values are
-restricted to this history's approved catalog. Python validates membership and
-assembles the catalog texts, including all numeric values. Model-written prose,
-unknown choices, lists of actions, and extra fields cannot reach the UI.
+Display `message` as plain text. The writing prompt asks for exactly one
+motivational observation and one concrete action in a natural paragraph, normally
+2-4 sentences and at most 1200 characters. The public response shape is unchanged.
+Gemini writes the draft freely, then a separate call to the same configured model
+checks its facts, coaching elements, relevance, and format against the full
+history. The reviewer returns an approval with the identical draft or a complete
+corrected message. Only that reviewed message reaches the UI.
 
-This is a hybrid system: Gemini selects the coaching focus using the complete
-history; Python supplies verified wording. This gives up some wording variety
-to enforce factual support and one practical action. It does not establish
-sensor/grade accuracy or guarantee improved road safety.
+Python validates the JSON shape, length, verdict, and verbatim approvals. The AI
+review handles meaning; it can miss factual or instruction-following errors.
+There is no approved sentence catalog or restriction to prewritten advice.
+Neither AI review nor structured JSON establishes factual accuracy, sensor/grade
+accuracy, or improved road safety.
 
 The endpoint shares the database query behind `GET /driving-reports`, loading
 the user's latest **`limit` reports** and their violations. It sends the same report
 fields to Gemini in chronological order, including **every grade**, trip date,
 distance and duration, and each violation's type, road name, and start/end time.
-All read values are treated as accurate. Road names remain optional context for
-selecting a focus; they are not interpolated into the approved display text.
+All read values are treated as accurate records. Road names remain optional
+context. Both prompts treat input strings as data, never instructions.
 
 To support analysis over time, the backend also calculates:
 
@@ -869,22 +871,14 @@ To support analysis over time, the backend also calculates:
   categories each mode tracks, and that a change caused only by switching modes
   is not improvement or decline.
 
-The approved observation catalog adds stricter checks. Improvement observations
-compare a category within the same driving mode and require at least two dated
-reports with positive driving time in each calendar half. A rise of at least one
-grade point qualifies. Undated reports cannot establish chronological improvement.
-Measured strengths require at least two positive-duration reports and an average
-grade of at least 85. Genuine zero grades count; null or mode-excluded grades do
-not. If there is no verified improvement or strength, encouragement focuses on
-recording reports. Zero events never imply a perfect grade.
-
-Action choices target measured categories with averages below 85 or recorded
-violations; otherwise they offer one concrete maintenance behavior. Categories
-need at least two positive-duration measured reports. Histories with no suitable
-measurements instead offer a data-quality action, such as checking that the next
-saved report includes driving time. The six-trip/28-day eligibility threshold
-and public status values stay the same; zero exposure never supports praise of
-demonstrated actual driving habits.
+The `measuredByMode` summaries provide overall and earlier/recent statistics for
+each mode, using only positive-duration trips. They use the same calendar split
+as the full-history comparison. Undated measured trips contribute to overall
+statistics but not to temporal comparisons. These summaries help both models
+avoid mode-switch artifacts and claims based on zero exposure. The prompts ask
+for a genuine strength or improvement, or encouragement about recording trips
+when neither is supported, followed by one practical behavior. Zero-exposure
+histories receive data-quality advice instead of praise of driving habits.
 
 Long-term feedback requires **at least six dated reports spanning 28 days**
 within the selected reports. The returned date range describes that sample,
@@ -957,12 +951,12 @@ against.
 The suggestion tests use an in-memory SQLite database and a mocked HTTP transport
 for the real Gemini SDK. They cover authentication, user isolation, the report
 limit and ordering, full prompt data, trend calculations, insufficient history,
-and provider errors without a live MySQL/PostGIS server or Gemini key. Additional
-coaching tests check every observation against its source reports, mode/measurement
-exclusions, ID validation, a single bounded repair, and the shared timeout budget.
+and provider errors without a live MySQL/PostGIS server or Gemini key. They also
+exercise approval, correction, measured summaries by mode, invalid reviewer
+output, failure of either call, and the shared timeout budget.
 The [benchmark tool](tools/README.md) supports the original 20-history regression
-set and a fresh five-history, 15-generation pilot, with first-pass/repair accounting
-and independently saved AI evaluator judgments.
+set and a fresh five-history pilot, with separate draft/review call accounting,
+saved drafts and reviewer decisions, and separately saved AI evaluator judgments.
 
 ## Notes
 
