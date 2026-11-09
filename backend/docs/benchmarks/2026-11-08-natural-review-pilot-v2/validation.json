@@ -1,0 +1,57 @@
+{
+  "backend_tests": {
+    "passed": 318,
+    "skipped": 6,
+    "note": "Full backend suite, optional database tests skipped; one dependency deprecation warning."
+  },
+  "after_prompt_clarification_tests": {
+    "passed": 97,
+    "command": "python -m pytest tests/test_suggestions.py tests/test_suggestion_benchmark.py -q -p no:cacheprovider"
+  },
+  "first_development_pilot": {
+    "histories": 5,
+    "suggestions": 5,
+    "production_calls": 10,
+    "codex_ai_rubric_passes": 4,
+    "mean_seconds": 2.385,
+    "known_failure": "Reviewer approved two maintenance actions for the strong-history case; preserved unchanged."
+  },
+  "revised_development_pilot": {
+    "histories": 5,
+    "suggestions": 5,
+    "production_calls": 10,
+    "codex_ai_rubric_passes": 5,
+    "mean_seconds": 2.458,
+    "reviewer_approvals": 4,
+    "reviewer_corrections": 1
+  },
+  "reviewer_development_probes": {
+    "calls": 2,
+    "targeted_issues_corrected": 2,
+    "cases": [
+      "two-actions",
+      "invented-progress"
+    ],
+    "note": "AI-authored development checks, not independent human validation or evaluator calibration."
+  },
+  "this_change_live_quota": {
+    "total_calls": 22,
+    "coaching_calls": 20,
+    "reviewer_control_calls": 2,
+    "separate_grading_calls": 0,
+    "max_calls_in_rolling_minute": 4,
+    "max_reserved_tokens_in_rolling_minute": 149858,
+    "observed_total_tokens": 227985,
+    "note": "These requests only; other key usage is outside this measurement."
+  },
+  "reviewer_probe_script_sha256": "34a68cc5586cd71313db40cb6719e5628efee825082ea47c24feac4e868b9a22",
+  "source_review_script_sha256": "d69a7c0ea0361a10c9080e0741847a20bb6745266ee964951b57df0c61a95f05",
+  "human_reviewers": 0,
+  "original_60_attempt_benchmark_rerun": false,
+  "limitations": [
+    "Five reused development histories, one generation each; not a held-out accuracy estimate.",
+    "Production reviewer and writer use the same model and can share mistakes.",
+    "Codex source review is AI review, not human validation.",
+    "Latency covers both production calls and SDK setup; excludes injected quota waits, database and Flutter HTTP time."
+  ]
+}

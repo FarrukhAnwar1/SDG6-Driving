@@ -1,0 +1,198 @@
+{
+  "status": "diagnostic_only_evaluator_failed_control",
+  "judge_control_passes": 6,
+  "judge_control_count": 7,
+  "samples": 15,
+  "passes": {
+    "grounded": 14,
+    "motivation": 15,
+    "action": 15,
+    "coaching_compliance": 15,
+    "long_term": 15,
+    "format": 15,
+    "all_pass": 14
+  },
+  "per_response": [
+    {
+      "attempt_id": "pilot-declining/r1",
+      "scores": {
+        "grounded": false,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "pilot-strong/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-mixed/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-modes/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-zero/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-declining/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-strong/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-mixed/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-modes/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-zero/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-declining/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-strong/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-mixed/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-modes/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "pilot-zero/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    }
+  ],
+  "note": "Final preliminary ratings use the separate direct Codex AI source review. No human validation is claimed."
+}

@@ -1,0 +1,58 @@
+{
+  "generated_at": "2026-11-08T22:12:46.047585+00:00",
+  "production_model": "gemini-3.5-flash-lite",
+  "judge_model": "gemini-3.5-flash-lite",
+  "histories": 20,
+  "planned_attempts": 60,
+  "generation_attempts": 60,
+  "usable_responses": 60,
+  "generation_failures": 0,
+  "scoring_calls": 60,
+  "scored_responses": 60,
+  "generation_provider_calls": 60,
+  "repair_attempts": 0,
+  "first_pass_generation_successes": 60,
+  "first_pass_all_requirements_passes": 60,
+  "first_pass_all_requirements_percent": 100.0,
+  "judge_temperature": 1.0,
+  "generation_protocol": "verified_choice_ids_v1",
+  "calibration_calls": 7,
+  "judge_control_checks_passed": false,
+  "judge_control_passes": 6,
+  "judge_control_count": 7,
+  "automated_ratings_status": "diagnostic_only_failed_or_missing_controls",
+  "ai_audited_responses": 60,
+  "passes": {
+    "grounded": 60,
+    "motivation": 60,
+    "action": 60,
+    "coaching_compliance": 60,
+    "long_term": 60,
+    "format": 60,
+    "all_pass": 60
+  },
+  "percent_of_scored": {
+    "grounded": 100.0,
+    "motivation": 100.0,
+    "action": 100.0,
+    "coaching_compliance": 100.0,
+    "long_term": 100.0,
+    "format": 100.0,
+    "all_pass": 100.0
+  },
+  "overall_success_percent_of_attempts": 100.0,
+  "complete": true,
+  "generation_latency_seconds": {
+    "mean": 1.221,
+    "median": 1.143,
+    "p95_nearest_rank": 1.8011
+  },
+  "limitations": [
+    "Synthetic histories; no validation of sensor or grading accuracy.",
+    "Gemini selects approved observation/action IDs; Python renders vetted text. This is a hybrid system, with less wording variety than free-text generation.",
+    "Same-model AI judge; any Codex audit is also AI, not independent human validation.",
+    "Repeated generations of one history are correlated; observed percentages are descriptive.",
+    "Latency covers production generation including SDK setup, not database or Flutter/network end-to-end latency.",
+    "Sentence counts use a punctuation heuristic; semantic counts are judged by meaning."
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "logical_generation_attempts": 60,
+  "first_pass_valid_outputs": 60,
+  "repairs": 0,
+  "coaching_generation_errors": 0,
+  "source_reviewed_outputs": 60,
+  "all_requirements_passes": 60,
+  "new_api_calls": 120,
+  "reused_calibration_records": 7,
+  "new_calibration_api_calls": 0,
+  "diagnostic_rating_request_errors": [
+    {
+      "attempt_id": "08-navigation/r1",
+      "error": {
+        "provider_status": 503
+      }
+    },
+    {
+      "attempt_id": "02-declining/r2",
+      "error": {
+        "provider_status": 503
+      }
+    },
+    {
+      "attempt_id": "11-less-exposure/r2",
+      "error": {
+        "provider_status": 503
+      }
+    }
+  ],
+  "quota_errors": 0,
+  "max_calls_in_rolling_minute": 8,
+  "max_reserved_tokens_in_rolling_minute": 149636,
+  "max_observed_total_tokens_in_start_time_rolling_minute": 45044,
+  "same_cases_as_baseline": true,
+  "all_source_snapshot_hashes_match": true,
+  "human_review_columns_empty": true,
+  "source_review_frozen_before_automatic_rating": true
+}

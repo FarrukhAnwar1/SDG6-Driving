@@ -1,0 +1,732 @@
+{
+  "status": "diagnostic_only_evaluator_failed_reference_controls",
+  "rating_calls": 60,
+  "successful_rating_responses": 57,
+  "rating_request_errors": [
+    {
+      "attempt_id": "08-navigation/r1",
+      "error": {
+        "provider_status": 503
+      }
+    },
+    {
+      "attempt_id": "02-declining/r2",
+      "error": {
+        "provider_status": 503
+      }
+    },
+    {
+      "attempt_id": "11-less-exposure/r2",
+      "error": {
+        "provider_status": 503
+      }
+    }
+  ],
+  "judge_control_passes": 6,
+  "judge_control_count": 7,
+  "passes_among_successful_rating_responses": {
+    "grounded": 54,
+    "motivation": 54,
+    "action": 55,
+    "coaching_compliance": 52,
+    "long_term": 55,
+    "format": 57,
+    "all_pass": 47
+  },
+  "percent_of_successfully_rated": {
+    "grounded": 94.74,
+    "motivation": 94.74,
+    "action": 96.49,
+    "coaching_compliance": 91.23,
+    "long_term": 96.49,
+    "format": 100.0,
+    "all_pass": 82.46
+  },
+  "per_response": [
+    {
+      "attempt_id": "01-improving/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "02-declining/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "03-strong/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "04-weak/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "05-mixed/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "06-following-zero/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "07-focus/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": false,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "09-pocket/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "10-mode-switch/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "11-less-exposure/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "12-more-exposure/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "13-zero-exposure/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "14-missing-weeks/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "15-latest-outlier/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "16-undated/r1",
+      "scores": {
+        "grounded": false,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "17-legacy-null/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "18-overlap/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "19-untrusted-road/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "20-minimum-history/r1",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": false,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "01-improving/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "03-strong/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "04-weak/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "05-mixed/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "06-following-zero/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "07-focus/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": false,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "08-navigation/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "09-pocket/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "10-mode-switch/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "12-more-exposure/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "13-zero-exposure/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "14-missing-weeks/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "15-latest-outlier/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "16-undated/r2",
+      "scores": {
+        "grounded": false,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "17-legacy-null/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "18-overlap/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "19-untrusted-road/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "20-minimum-history/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": false,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "01-improving/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "02-declining/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "03-strong/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "04-weak/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "05-mixed/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "06-following-zero/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "07-focus/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "08-navigation/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "09-pocket/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "10-mode-switch/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "11-less-exposure/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "12-more-exposure/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "13-zero-exposure/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "14-missing-weeks/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "15-latest-outlier/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "16-undated/r3",
+      "scores": {
+        "grounded": false,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      }
+    },
+    {
+      "attempt_id": "17-legacy-null/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "18-overlap/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "19-untrusted-road/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    },
+    {
+      "attempt_id": "20-minimum-history/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": true,
+        "coaching_compliance": true,
+        "long_term": true,
+        "format": true,
+        "all_pass": true
+      }
+    }
+  ],
+  "note": "Automatic labels are diagnostic. Primary scores use source reviews completed before automatic rating requests. Rating request errors are not coaching generation failures."
+}

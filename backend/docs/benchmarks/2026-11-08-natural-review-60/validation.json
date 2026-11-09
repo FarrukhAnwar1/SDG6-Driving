@@ -1,0 +1,354 @@
+{
+  "logical_attempts": 60,
+  "histories": 20,
+  "repetitions": 3,
+  "completed_suggestions": 54,
+  "source_reviewed_final_messages": 54,
+  "all_requirements_passes": 48,
+  "api_calls": 115,
+  "production_call_cap": 120,
+  "separate_gemini_grading_calls": 0,
+  "judge_calibration_calls": 0,
+  "max_calls_in_rolling_minute": 4,
+  "max_reserved_tokens_in_rolling_minute": 148980,
+  "quota_errors": 0,
+  "completed_suggestion_latency_seconds": {
+    "completed_suggestions": 54,
+    "mean": 2.651,
+    "median": 2.433,
+    "p95_nearest_rank": 4.1445
+  },
+  "generation_failures": [
+    {
+      "attempt_id": "03-strong/r1",
+      "category": "approval_changed_draft",
+      "error": {
+        "status": 502,
+        "detail": "Driving feedback returned an unusable response. Please try again."
+      },
+      "provider_errors": [],
+      "calls": 2
+    },
+    {
+      "attempt_id": "06-following-zero/r1",
+      "category": "provider_or_transport_failure",
+      "error": {
+        "status": 503,
+        "detail": "Driving feedback is temporarily unavailable."
+      },
+      "provider_errors": [
+        {
+          "provider_status": 503
+        }
+      ],
+      "calls": 1
+    },
+    {
+      "attempt_id": "07-focus/r1",
+      "category": "provider_or_transport_failure",
+      "error": {
+        "status": 503,
+        "detail": "Driving feedback is temporarily unavailable."
+      },
+      "provider_errors": [
+        {
+          "provider_status": 503
+        }
+      ],
+      "calls": 1
+    },
+    {
+      "attempt_id": "11-less-exposure/r1",
+      "category": "provider_or_transport_failure",
+      "error": {
+        "status": 503,
+        "detail": "Driving feedback is temporarily unavailable."
+      },
+      "provider_errors": [
+        {
+          "provider_status": 503
+        }
+      ],
+      "calls": 1
+    },
+    {
+      "attempt_id": "16-undated/r2",
+      "category": "provider_or_transport_failure",
+      "error": {
+        "status": 503,
+        "detail": "Driving feedback is temporarily unavailable."
+      },
+      "provider_errors": [
+        {
+          "provider_status": 503
+        }
+      ],
+      "calls": 1
+    },
+    {
+      "attempt_id": "19-untrusted-road/r2",
+      "category": "provider_or_transport_failure",
+      "error": {
+        "status": 503,
+        "detail": "Driving feedback is temporarily unavailable."
+      },
+      "provider_errors": [
+        {
+          "provider_status": 503
+        }
+      ],
+      "calls": 1
+    }
+  ],
+  "failure_categories": {
+    "approval_changed_draft": 1,
+    "provider_or_transport_failure": 5
+  },
+  "semantic_failures": [
+    {
+      "attempt_id": "04-weak/r1",
+      "scores": {
+        "grounded": false,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded trips consistently demonstrate a reliable level of attention to your surroundings and smooth turning habits.",
+            "evidence": "All eight measured regular trips have focus and turning grades of 65, with speed 50 and braking 45. These moderate grades do not establish the claimed reliable attention to surroundings or smooth turning as demonstrated strengths; no direct attention evidence is supplied. This goes beyond describing the consistent recorded scores.",
+            "verdict": "unverifiable"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded trips consistently demonstrate a reliable level of attention to your surroundings and smooth turning habits.",
+            "evidence": "All eight measured regular trips have focus and turning grades of 65, with speed 50 and braking 45. These moderate grades do not establish the claimed reliable attention to surroundings or smooth turning as demonstrated strengths; no direct attention evidence is supplied. This goes beyond describing the consistent recorded scores.",
+            "supported": false
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Begin slowing earlier when approaching a stop to help make your upcoming journeys even smoother.",
+            "evidence": "One concrete braking-timing behavior with a purpose clause; braking is persistently weak at 45 and four braking events occur in every trip.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The advice concerns the repeated weakness across eight trips, not only the last trip.",
+        "plainText": true,
+        "notes": "Conservative Codex AI grounding judgment: qualitative strength praise is not supported by the repeated grades of 65. Human validation is outstanding; this is not a claim that a numeric strength threshold was used."
+      }
+    },
+    {
+      "attempt_id": "04-weak/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded trips show steady consistency in your driving habits across the shared period.",
+            "evidence": "Every category grade is unchanged across all eight measured trips, so the literal consistency claim is supported.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded trips show steady consistency in your driving habits across the shared period.",
+            "evidence": "All eight measured reports repeat speed 50, braking 45 and the other category grades 65. Consistency is factually supported, but the sentence does not identify supported positive progress/strength or acknowledge recording effort. Merely stable weak scores do not supply the required motivational observation.",
+            "supported": false
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Begin slowing earlier when approaching a stop to help smooth out your braking on future drives.",
+            "evidence": "One concrete braking-timing action targets braking grades of 45 and four braking events per trip; its purpose is not a second behavior.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The text concerns stable scores and a repeated braking weakness across eight trips.",
+        "plainText": true,
+        "notes": "Conservative Codex AI semantic judgment: the neutral observation of consistency at weak grades is grounded but does not provide supported motivational encouragement. Human review of this qualitative distinction is outstanding."
+      }
+    },
+    {
+      "attempt_id": "07-focus/r2",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": false,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your focus grades have been steadily improving across your recorded trips.",
+            "evidence": "The six measured regular focus grades are 45,47,49,51,53,55. Earlier/recent means rise from 47 to 53, but focus remains the weakest category and each trip has four focus events.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your focus grades have been steadily improving across your recorded trips.",
+            "evidence": "The six measured regular focus grades are 45,47,49,51,53,55. Earlier/recent means rise from 47 to 53, but focus remains the weakest category and each trip has four focus events.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Keep your attention fully on the road ahead without distractions during every upcoming journey.",
+            "evidence": "This restates the goal of sustained focus without a specific implementable change or observable technique. It is relevant to the weak focus grades but fails the benchmark specificity criterion, like simply asking the driver to focus more.",
+            "supported": false
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The six measured regular focus grades are 45,47,49,51,53,55. Earlier/recent means rise from 47 to 53, but focus remains the weakest category and each trip has four focus events.",
+        "plainText": true,
+        "notes": "Codex AI judges the attention sentence a broad goal rather than a sufficiently concrete action. This semantic specificity judgment is explicit and needs independent human validation."
+      }
+    },
+    {
+      "attempt_id": "14-missing-weeks/r2",
+      "scores": {
+        "grounded": false,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your trip records show consistent management across your journeys with steady attention to your driving habits.",
+            "evidence": "Six measured reports over 70 days have unchanged grades of 75 and a speed event in every saved trip. These establish score consistency, but do not measure steady attention to habits or demonstrate the positive management/attention claim. The phrase is not a clear acknowledgment of recording effort.",
+            "verdict": "unverifiable"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your trip records show consistent management across your journeys with steady attention to your driving habits.",
+            "evidence": "Six measured reports over 70 days have unchanged grades of 75 and a speed event in every saved trip. These establish score consistency, but do not measure steady attention to habits or demonstrate the positive management/attention claim. The phrase is not a clear acknowledgment of recording effort.",
+            "supported": false
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Begin checking speed limit signs earlier when transitioning into lower speed zones.",
+            "evidence": "One concrete prospective sign-checking behavior is relevant to repeated speed events. Lower zones are conditional future advice, not asserted recorded conditions.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The action addresses repeated speed events across six saved trips; no zero-event claim about missing weeks appears.",
+        "plainText": true,
+        "notes": "Conservative Codex AI judgment: this could be read as loose logging encouragement, but its actual management/attention wording goes beyond the stable grades. The ambiguity is recorded explicitly for human review; it is not labeled numerically contradicted."
+      }
+    },
+    {
+      "attempt_id": "04-weak/r3",
+      "scores": {
+        "grounded": false,
+        "motivation": false,
+        "action": true,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your recorded trips consistently reflect strong focus across your drives.",
+            "evidence": "All eight measured regular focus grades are only 65, alongside speed 50 and braking 45. The stable moderate focus scores do not establish the claimed strong focus. No actual score is invented, but the qualitative praise is unsupported.",
+            "verdict": "unverifiable"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your recorded trips consistently reflect strong focus across your drives.",
+            "evidence": "All eight measured regular focus grades are only 65, alongside speed 50 and braking 45. The stable moderate focus scores do not establish the claimed strong focus. No actual score is invented, but the qualitative praise is unsupported.",
+            "supported": false
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Begin slowing earlier when approaching a stop.",
+            "evidence": "One concrete braking-timing behavior targets persistently weak braking grades of 45 and four braking events per trip.",
+            "supported": true
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The action concerns a repeated braking weakness across all eight trips.",
+        "plainText": true,
+        "notes": "Conservative Codex AI judgment: calling the consistently moderate focus grades strong overstates the evidence. This is unsupported qualitative praise, not a fabricated numerical score; independent human review is outstanding."
+      }
+    },
+    {
+      "attempt_id": "07-focus/r3",
+      "scores": {
+        "grounded": true,
+        "motivation": true,
+        "action": false,
+        "coaching_compliance": false,
+        "long_term": true,
+        "format": true,
+        "all_pass": false
+      },
+      "assessment": {
+        "factualClaims": [
+          {
+            "quote": "Your focus grades have been steadily improving across your recorded trips.",
+            "evidence": "The six regular measured focus grades are 45,47,49,51,53,55, with earlier/recent means of 47 and 53. This is a supported improvement while focus remains the weakest category.",
+            "verdict": "supported"
+          }
+        ],
+        "motivationalObservations": [
+          {
+            "quote": "Your focus grades have been steadily improving across your recorded trips.",
+            "evidence": "The six regular measured focus grades are 45,47,49,51,53,55, with earlier/recent means of 47 and 53. This is a supported improvement while focus remains the weakest category.",
+            "supported": true
+          }
+        ],
+        "actionableSuggestions": [
+          {
+            "quote": "Try keeping your attention fully on the road ahead without distractions during every drive.",
+            "evidence": "This restates the focus goal without a specific implementable change or observable technique. As in the second repetition, telling the driver to stay attentive is relevant but does not meet the concrete-action specificity criterion.",
+            "supported": false
+          }
+        ],
+        "longTermRelevant": true,
+        "longTermEvidence": "The six regular measured focus grades are 45,47,49,51,53,55, with earlier/recent means of 47 and 53. This is a supported improvement while focus remains the weakest category.",
+        "plainText": true,
+        "notes": "Codex AI applies the same specificity judgment as 07-focus/r2. The requirement is a practical behavior, not merely a goal of full attention. Human validation remains outstanding."
+      }
+    }
+  ],
+  "source_snapshot_hashes_match": true,
+  "human_reviewers": 0,
+  "exact_text_review_reuses": 0,
+  "review_method": "Explicit Codex AI source and semantic review; no separate Gemini scorer and no human validation",
+  "limitations": [
+    "Same 20 development histories; repetitions are correlated, not an unseen-data accuracy estimate.",
+    "AI review and qualitative strength judgments need independent human validation.",
+    "Completion latency excludes injected quota waits, database work and Flutter/network end-to-end time."
+  ],
+  "human_review_columns_empty": true,
+  "finalizer_sha256": "329e366ff0c1e96af6660a1797f9d5537ccde527e2f23fff89e2985dfa123a01"
+}

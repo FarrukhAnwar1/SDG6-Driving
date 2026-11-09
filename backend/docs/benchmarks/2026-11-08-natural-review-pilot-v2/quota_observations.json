@@ -1,0 +1,14 @@
+{
+  "generation_calls": 10,
+  "draft_calls": 5,
+  "review_calls": 5,
+  "scoring_calls": 0,
+  "calibration_calls": 0,
+  "total_calls": 10,
+  "max_calls_in_rolling_minute": 4,
+  "max_reserved_tokens_in_rolling_minute": 149858,
+  "max_observed_total_tokens_in_start_time_rolling_minute": 48735,
+  "total_observed_tokens": 104365,
+  "provider_errors": 0,
+  "note": "Local request observations only; other users of the key are outside this limiter."
+}

@@ -1,0 +1,11 @@
+{
+  "logical_attempts": 60,
+  "histories": 20,
+  "repetitions": 3,
+  "production_call_cap": 120,
+  "separate_gemini_scoring_calls": 0,
+  "new_judge_calibration_calls": 0,
+  "actual_review_method": "Codex AI claim-by-claim review against saved synthetic reports and independently calculated reference facts; no human validation",
+  "manifest_optional_judge_note": "The manifest preserves harness defaults for the optional Gemini judge. Its judge/calibration stages are not executed in this run; this file records the selected review method.",
+  "same_raw_reports_as_baseline_and_catalog_runs": true
+}

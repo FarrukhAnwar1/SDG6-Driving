@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-08T20:20:39.829128+00:00",
+  "histories": 20,
+  "repeats": 3,
+  "planned_generation_attempts": 60,
+  "production_model": "gemini-3.5-flash-lite",
+  "production_timeout_seconds": 30.0,
+  "judge_model": "gemini-3.5-flash-lite",
+  "review_method": "Same-model AI judge; no independent human validation",
+  "corpus_sha256": "6ef416cef16350f0d94a1eeff7d7b3a82aad5cfe9cfc166c33b784fdd3545508",
+  "generation_prompt_sha256": "3fec83c6974f3a71d613c542a0a4ae4423d908f1759013e5a781193805ccf9ff",
+  "judge_prompt_sha256": "03214a02e87ef28336baaf892cffb934b8e2bfa96f501ec210e3871ffd085804",
+  "source_sha256": {
+    "app/services/suggestions.py": "35bfc994d04203797a8ce573ae442916e9157b15eea11c19d2dc521a5bdcd0cb",
+    "app/schemas.py": "e5ba000caaafec4696a6f112b54f47f73b8ca682976640227700c377013ef2aa",
+    "tools/suggestion_benchmark_cases.py": "e32a5bcab68d1e1c8af243392c927bff9abea89d71f5fcd4a715a551afcba3fd",
+    "tools/benchmark_suggestions.py": "e118de93156532ff549712b7d983c8191d371f5d5067bffe2a2aed085d9c6d56"
+  },
+  "python": "3.10.12",
+  "packages": {
+    "google-genai": "1.75.0",
+    "pydantic": "2.14.3",
+    "pydantic-settings": "2.15.0",
+    "httpx": "0.28.1"
+  },
+  "limits": {
+    "calls_per_minute": 8,
+    "reserved_tokens_per_minute": 150000,
+    "total_generation_and_scoring_call_cap": 120
+  },
+  "synthetic_data_only": true
+}

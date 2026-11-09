@@ -1,0 +1,7 @@
+{
+  "source_review_completed_before_first_automatic_rating_request": true,
+  "latest_review_unix": 1794175405.130361,
+  "first_rating_request_unix": 1794175436.8122916,
+  "audit_sha256": "5f9448a732628f4159b666434d5fea0b3c295404981d754e174864dbf2ef6884",
+  "reviewer": "Codex AI source review; no independent human validation"
+}

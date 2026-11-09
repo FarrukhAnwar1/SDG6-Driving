@@ -1,0 +1,5055 @@
+[
+  {
+    "id": "pilot-declining",
+    "title": "Fresh broad decline",
+    "history": {
+      "reportsAnalyzed": 6,
+      "datedReportCount": 6,
+      "analysisStartDate": "2026-07-06T12:00:00",
+      "analysisEndDate": "2026-08-10T12:00:00",
+      "hasSufficientHistory": true,
+      "overall": {
+        "reportCount": 6,
+        "startDate": "2026-07-06T12:00:00",
+        "endDate": "2026-08-10T12:00:00",
+        "tripDurationMinutes": 240.0,
+        "tripDistanceMiles": 79.98,
+        "averageGrades": {
+          "overall_grade": 82.0,
+          "speed_grade": 82.0,
+          "braking_grade": 82.0,
+          "acceleration_grade": 82.0,
+          "turning_grade": 82.0,
+          "focus_grade": 82.0,
+          "following_distance_grade": 82.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 21,
+            "durationSeconds": 420.0,
+            "countPerDrivingHour": 5.25,
+            "violationMinutesPerDrivingHour": 1.75
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "weekly": [
+        {
+          "weekStarting": "2026-07-06",
+          "reportCount": 1,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 97.0,
+            "speed_grade": 97.0,
+            "braking_grade": 97.0,
+            "acceleration_grade": 97.0,
+            "turning_grade": 97.0,
+            "focus_grade": 97.0,
+            "following_distance_grade": 97.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 1,
+              "durationSeconds": 20.0,
+              "countPerDrivingHour": 1.5,
+              "violationMinutesPerDrivingHour": 0.5
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-13",
+          "reportCount": 1,
+          "startDate": "2026-07-13T12:00:00",
+          "endDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 91.0,
+            "speed_grade": 91.0,
+            "braking_grade": 91.0,
+            "acceleration_grade": 91.0,
+            "turning_grade": 91.0,
+            "focus_grade": 91.0,
+            "following_distance_grade": 91.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 2,
+              "durationSeconds": 40.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-20",
+          "reportCount": 1,
+          "startDate": "2026-07-20T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 85.0,
+            "speed_grade": 85.0,
+            "braking_grade": 85.0,
+            "acceleration_grade": 85.0,
+            "turning_grade": 85.0,
+            "focus_grade": 85.0,
+            "following_distance_grade": 85.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 4.5,
+              "violationMinutesPerDrivingHour": 1.5
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-27",
+          "reportCount": 1,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 79.0,
+            "speed_grade": 79.0,
+            "braking_grade": 79.0,
+            "acceleration_grade": 79.0,
+            "turning_grade": 79.0,
+            "focus_grade": 79.0,
+            "following_distance_grade": 79.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.0,
+              "violationMinutesPerDrivingHour": 2.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-03",
+          "reportCount": 1,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 73.0,
+            "speed_grade": 73.0,
+            "braking_grade": 73.0,
+            "acceleration_grade": 73.0,
+            "turning_grade": 73.0,
+            "focus_grade": 73.0,
+            "following_distance_grade": 73.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 5,
+              "durationSeconds": 100.0,
+              "countPerDrivingHour": 7.5,
+              "violationMinutesPerDrivingHour": 2.5
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-10",
+          "reportCount": 1,
+          "startDate": "2026-08-10T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 67.0,
+            "speed_grade": 67.0,
+            "braking_grade": 67.0,
+            "acceleration_grade": 67.0,
+            "turning_grade": 67.0,
+            "focus_grade": 67.0,
+            "following_distance_grade": 67.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 9.0,
+              "violationMinutesPerDrivingHour": 3.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      ],
+      "comparison": {
+        "splitDate": "2026-07-24T00:00:00",
+        "earlier": {
+          "reportCount": 3,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 120.0,
+          "tripDistanceMiles": 39.99,
+          "averageGrades": {
+            "overall_grade": 91.0,
+            "speed_grade": 91.0,
+            "braking_grade": 91.0,
+            "acceleration_grade": 91.0,
+            "turning_grade": 91.0,
+            "focus_grade": 91.0,
+            "following_distance_grade": 91.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "recent": {
+          "reportCount": 3,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 120.0,
+          "tripDistanceMiles": 39.99,
+          "averageGrades": {
+            "overall_grade": 73.0,
+            "speed_grade": 73.0,
+            "braking_grade": 73.0,
+            "acceleration_grade": 73.0,
+            "turning_grade": 73.0,
+            "focus_grade": 73.0,
+            "following_distance_grade": 73.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 15,
+              "durationSeconds": 300.0,
+              "countPerDrivingHour": 7.5,
+              "violationMinutesPerDrivingHour": 2.5
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "gradeChanges": {
+          "overall_grade": -18.0,
+          "speed_grade": -18.0,
+          "braking_grade": -18.0,
+          "acceleration_grade": -18.0,
+          "turning_grade": -18.0,
+          "focus_grade": -18.0,
+          "following_distance_grade": -18.0
+        },
+        "violationRateChanges": {
+          "Proper Speed": {
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Braking": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "reports": [
+        {
+          "id": 1,
+          "drivingMode": "regular",
+          "overallGrade": 97.0,
+          "speedGrade": 97.0,
+          "brakingGrade": 97.0,
+          "accelerationGrade": 97.0,
+          "turningGrade": 97.0,
+          "focusGrade": 97.0,
+          "followingDistanceGrade": 97.0,
+          "reportDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 1,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:40",
+              "endTime": "2026-07-06T12:00:00"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "drivingMode": "regular",
+          "overallGrade": 91.0,
+          "speedGrade": 91.0,
+          "brakingGrade": 91.0,
+          "accelerationGrade": 91.0,
+          "turningGrade": 91.0,
+          "focusGrade": 91.0,
+          "followingDistanceGrade": 91.0,
+          "reportDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 101,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:40",
+              "endTime": "2026-07-13T12:00:00"
+            },
+            {
+              "id": 102,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:10",
+              "endTime": "2026-07-13T11:59:30"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "drivingMode": "regular",
+          "overallGrade": 85.0,
+          "speedGrade": 85.0,
+          "brakingGrade": 85.0,
+          "accelerationGrade": 85.0,
+          "turningGrade": 85.0,
+          "focusGrade": 85.0,
+          "followingDistanceGrade": 85.0,
+          "reportDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 201,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:40",
+              "endTime": "2026-07-20T12:00:00"
+            },
+            {
+              "id": 202,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:10",
+              "endTime": "2026-07-20T11:59:30"
+            },
+            {
+              "id": 203,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:40",
+              "endTime": "2026-07-20T11:59:00"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "drivingMode": "regular",
+          "overallGrade": 79.0,
+          "speedGrade": 79.0,
+          "brakingGrade": 79.0,
+          "accelerationGrade": 79.0,
+          "turningGrade": 79.0,
+          "focusGrade": 79.0,
+          "followingDistanceGrade": 79.0,
+          "reportDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 301,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:40",
+              "endTime": "2026-07-27T12:00:00"
+            },
+            {
+              "id": 302,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:10",
+              "endTime": "2026-07-27T11:59:30"
+            },
+            {
+              "id": 303,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:58:40",
+              "endTime": "2026-07-27T11:59:00"
+            },
+            {
+              "id": 304,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:58:10",
+              "endTime": "2026-07-27T11:58:30"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "drivingMode": "regular",
+          "overallGrade": 73.0,
+          "speedGrade": 73.0,
+          "brakingGrade": 73.0,
+          "accelerationGrade": 73.0,
+          "turningGrade": 73.0,
+          "focusGrade": 73.0,
+          "followingDistanceGrade": 73.0,
+          "reportDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 401,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:40",
+              "endTime": "2026-08-03T12:00:00"
+            },
+            {
+              "id": 402,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:10",
+              "endTime": "2026-08-03T11:59:30"
+            },
+            {
+              "id": 403,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:58:40",
+              "endTime": "2026-08-03T11:59:00"
+            },
+            {
+              "id": 404,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:58:10",
+              "endTime": "2026-08-03T11:58:30"
+            },
+            {
+              "id": 405,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:57:40",
+              "endTime": "2026-08-03T11:58:00"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "drivingMode": "regular",
+          "overallGrade": 67.0,
+          "speedGrade": 67.0,
+          "brakingGrade": 67.0,
+          "accelerationGrade": 67.0,
+          "turningGrade": 67.0,
+          "focusGrade": 67.0,
+          "followingDistanceGrade": 67.0,
+          "reportDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 501,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:40",
+              "endTime": "2026-08-10T12:00:00"
+            },
+            {
+              "id": 502,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:10",
+              "endTime": "2026-08-10T11:59:30"
+            },
+            {
+              "id": 503,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:58:40",
+              "endTime": "2026-08-10T11:59:00"
+            },
+            {
+              "id": 504,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:58:10",
+              "endTime": "2026-08-10T11:58:30"
+            },
+            {
+              "id": 505,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:57:40",
+              "endTime": "2026-08-10T11:58:00"
+            },
+            {
+              "id": 506,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:57:10",
+              "endTime": "2026-08-10T11:57:30"
+            }
+          ]
+        }
+      ]
+    },
+    "reference": {
+      "expectations": [
+        "All six category grades decline from 97 to 67. No grade improvement is supported.",
+        "Zero recorded smoothness violations do not imply perfect grades. Consistent logging is valid encouragement."
+      ],
+      "overall": {
+        "reportCount": 6,
+        "averageGrades": {
+          "overall_grade": 82.0,
+          "speed_grade": 82.0,
+          "braking_grade": 82.0,
+          "acceleration_grade": 82.0,
+          "turning_grade": 82.0,
+          "focus_grade": 82.0,
+          "following_distance_grade": 82.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 21,
+            "durationSeconds": 420.0,
+            "countPerDrivingHour": 5.25,
+            "violationMinutesPerDrivingHour": 1.75
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "earlier": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 91.0,
+          "speed_grade": 91.0,
+          "braking_grade": 91.0,
+          "acceleration_grade": 91.0,
+          "turning_grade": 91.0,
+          "focus_grade": 91.0,
+          "following_distance_grade": 91.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 6,
+            "durationSeconds": 120.0,
+            "countPerDrivingHour": 3.0,
+            "violationMinutesPerDrivingHour": 1.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "recent": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 73.0,
+          "speed_grade": 73.0,
+          "braking_grade": 73.0,
+          "acceleration_grade": 73.0,
+          "turning_grade": 73.0,
+          "focus_grade": 73.0,
+          "following_distance_grade": 73.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 15,
+            "durationSeconds": 300.0,
+            "countPerDrivingHour": 7.5,
+            "violationMinutesPerDrivingHour": 2.5
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "byMode": {
+        "regular": {
+          "reportCount": 6,
+          "averageGrades": {
+            "overall_grade": 82.0,
+            "speed_grade": 82.0,
+            "braking_grade": 82.0,
+            "acceleration_grade": 82.0,
+            "turning_grade": 82.0,
+            "focus_grade": 82.0,
+            "following_distance_grade": 82.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 21,
+              "durationSeconds": 420.0,
+              "countPerDrivingHour": 5.25,
+              "violationMinutesPerDrivingHour": 1.75
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pilot-strong",
+    "title": "Fresh strong maintenance",
+    "history": {
+      "reportsAnalyzed": 6,
+      "datedReportCount": 6,
+      "analysisStartDate": "2026-07-06T12:00:00",
+      "analysisEndDate": "2026-08-10T12:00:00",
+      "hasSufficientHistory": true,
+      "overall": {
+        "reportCount": 6,
+        "startDate": "2026-07-06T12:00:00",
+        "endDate": "2026-08-10T12:00:00",
+        "tripDurationMinutes": 270.0,
+        "tripDistanceMiles": 90.0,
+        "averageGrades": {
+          "overall_grade": 96.0,
+          "speed_grade": 96.0,
+          "braking_grade": 96.0,
+          "acceleration_grade": 96.0,
+          "turning_grade": 96.0,
+          "focus_grade": 96.0,
+          "following_distance_grade": 96.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "weekly": [
+        {
+          "weekStarting": "2026-07-06",
+          "reportCount": 1,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-13",
+          "reportCount": 1,
+          "startDate": "2026-07-13T12:00:00",
+          "endDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-20",
+          "reportCount": 1,
+          "startDate": "2026-07-20T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-27",
+          "reportCount": 1,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-03",
+          "reportCount": 1,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-10",
+          "reportCount": 1,
+          "startDate": "2026-08-10T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      ],
+      "comparison": {
+        "splitDate": "2026-07-24T00:00:00",
+        "earlier": {
+          "reportCount": 3,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 135.0,
+          "tripDistanceMiles": 45.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "recent": {
+          "reportCount": 3,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 135.0,
+          "tripDistanceMiles": 45.0,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "gradeChanges": {
+          "overall_grade": 0.0,
+          "speed_grade": 0.0,
+          "braking_grade": 0.0,
+          "acceleration_grade": 0.0,
+          "turning_grade": 0.0,
+          "focus_grade": 0.0,
+          "following_distance_grade": 0.0
+        },
+        "violationRateChanges": {
+          "Proper Speed": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "reports": [
+        {
+          "id": 1,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        },
+        {
+          "id": 2,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        },
+        {
+          "id": 3,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        },
+        {
+          "id": 4,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        },
+        {
+          "id": 5,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        },
+        {
+          "id": 6,
+          "drivingMode": "regular",
+          "overallGrade": 96.0,
+          "speedGrade": 96.0,
+          "brakingGrade": 96.0,
+          "accelerationGrade": 96.0,
+          "turningGrade": 96.0,
+          "focusGrade": 96.0,
+          "followingDistanceGrade": 96.0,
+          "reportDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 45.0,
+          "tripDistanceMiles": 15.0,
+          "violations": []
+        }
+      ]
+    },
+    "reference": {
+      "expectations": [
+        "All measured grades are consistently 96 across six trips, with no violations.",
+        "Give one specific maintenance action; do not invent a weakness or improvement."
+      ],
+      "overall": {
+        "reportCount": 6,
+        "averageGrades": {
+          "overall_grade": 96.0,
+          "speed_grade": 96.0,
+          "braking_grade": 96.0,
+          "acceleration_grade": 96.0,
+          "turning_grade": 96.0,
+          "focus_grade": 96.0,
+          "following_distance_grade": 96.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "earlier": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 96.0,
+          "speed_grade": 96.0,
+          "braking_grade": 96.0,
+          "acceleration_grade": 96.0,
+          "turning_grade": 96.0,
+          "focus_grade": 96.0,
+          "following_distance_grade": 96.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "recent": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 96.0,
+          "speed_grade": 96.0,
+          "braking_grade": 96.0,
+          "acceleration_grade": 96.0,
+          "turning_grade": 96.0,
+          "focus_grade": 96.0,
+          "following_distance_grade": 96.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "byMode": {
+        "regular": {
+          "reportCount": 6,
+          "averageGrades": {
+            "overall_grade": 96.0,
+            "speed_grade": 96.0,
+            "braking_grade": 96.0,
+            "acceleration_grade": 96.0,
+            "turning_grade": 96.0,
+            "focus_grade": 96.0,
+            "following_distance_grade": 96.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pilot-mixed",
+    "title": "Fresh opposing speed and braking trends",
+    "history": {
+      "reportsAnalyzed": 8,
+      "datedReportCount": 8,
+      "analysisStartDate": "2026-07-06T12:00:00",
+      "analysisEndDate": "2026-08-24T12:00:00",
+      "hasSufficientHistory": true,
+      "overall": {
+        "reportCount": 8,
+        "startDate": "2026-07-06T12:00:00",
+        "endDate": "2026-08-24T12:00:00",
+        "tripDurationMinutes": 320.0,
+        "tripDistanceMiles": 106.64,
+        "averageGrades": {
+          "overall_grade": 84.08,
+          "speed_grade": 75.0,
+          "braking_grade": 77.5,
+          "acceleration_grade": 88.0,
+          "turning_grade": 88.0,
+          "focus_grade": 88.0,
+          "following_distance_grade": 88.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 24,
+            "durationSeconds": 480.0,
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Braking": {
+            "count": 24,
+            "durationSeconds": 480.0,
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "weekly": [
+        {
+          "weekStarting": "2026-07-06",
+          "reportCount": 1,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 83.5,
+            "speed_grade": 54.0,
+            "braking_grade": 95.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 9.0,
+              "violationMinutesPerDrivingHour": 3.0
+            },
+            "Smooth Braking": {
+              "count": 1,
+              "durationSeconds": 20.0,
+              "countPerDrivingHour": 1.5,
+              "violationMinutesPerDrivingHour": 0.5
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-13",
+          "reportCount": 1,
+          "startDate": "2026-07-13T12:00:00",
+          "endDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 83.67,
+            "speed_grade": 60.0,
+            "braking_grade": 90.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 5,
+              "durationSeconds": 100.0,
+              "countPerDrivingHour": 7.5,
+              "violationMinutesPerDrivingHour": 2.5
+            },
+            "Smooth Braking": {
+              "count": 1,
+              "durationSeconds": 20.0,
+              "countPerDrivingHour": 1.5,
+              "violationMinutesPerDrivingHour": 0.5
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-20",
+          "reportCount": 1,
+          "startDate": "2026-07-20T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 83.83,
+            "speed_grade": 66.0,
+            "braking_grade": 85.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.0,
+              "violationMinutesPerDrivingHour": 2.0
+            },
+            "Smooth Braking": {
+              "count": 2,
+              "durationSeconds": 40.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-27",
+          "reportCount": 1,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 84.0,
+            "speed_grade": 72.0,
+            "braking_grade": 80.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 4.5,
+              "violationMinutesPerDrivingHour": 1.5
+            },
+            "Smooth Braking": {
+              "count": 2,
+              "durationSeconds": 40.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-03",
+          "reportCount": 1,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 84.17,
+            "speed_grade": 78.0,
+            "braking_grade": 75.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 2,
+              "durationSeconds": 40.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Braking": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 4.5,
+              "violationMinutesPerDrivingHour": 1.5
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-10",
+          "reportCount": 1,
+          "startDate": "2026-08-10T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 84.33,
+            "speed_grade": 84.0,
+            "braking_grade": 70.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 2,
+              "durationSeconds": 40.0,
+              "countPerDrivingHour": 3.0,
+              "violationMinutesPerDrivingHour": 1.0
+            },
+            "Smooth Braking": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.0,
+              "violationMinutesPerDrivingHour": 2.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-17",
+          "reportCount": 1,
+          "startDate": "2026-08-17T12:00:00",
+          "endDate": "2026-08-17T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 84.5,
+            "speed_grade": 90.0,
+            "braking_grade": 65.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 1,
+              "durationSeconds": 20.0,
+              "countPerDrivingHour": 1.5,
+              "violationMinutesPerDrivingHour": 0.5
+            },
+            "Smooth Braking": {
+              "count": 5,
+              "durationSeconds": 100.0,
+              "countPerDrivingHour": 7.5,
+              "violationMinutesPerDrivingHour": 2.5
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-24",
+          "reportCount": 1,
+          "startDate": "2026-08-24T12:00:00",
+          "endDate": "2026-08-24T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "averageGrades": {
+            "overall_grade": 84.67,
+            "speed_grade": 96.0,
+            "braking_grade": 60.0,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 1,
+              "durationSeconds": 20.0,
+              "countPerDrivingHour": 1.5,
+              "violationMinutesPerDrivingHour": 0.5
+            },
+            "Smooth Braking": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 9.0,
+              "violationMinutesPerDrivingHour": 3.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      ],
+      "comparison": {
+        "splitDate": "2026-07-31T00:00:00",
+        "earlier": {
+          "reportCount": 4,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 160.0,
+          "tripDistanceMiles": 53.32,
+          "averageGrades": {
+            "overall_grade": 83.75,
+            "speed_grade": 63.0,
+            "braking_grade": 87.5,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 18,
+              "durationSeconds": 360.0,
+              "countPerDrivingHour": 6.75,
+              "violationMinutesPerDrivingHour": 2.25
+            },
+            "Smooth Braking": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 2.25,
+              "violationMinutesPerDrivingHour": 0.75
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "recent": {
+          "reportCount": 4,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-24T12:00:00",
+          "tripDurationMinutes": 160.0,
+          "tripDistanceMiles": 53.32,
+          "averageGrades": {
+            "overall_grade": 84.42,
+            "speed_grade": 87.0,
+            "braking_grade": 67.5,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 6,
+              "durationSeconds": 120.0,
+              "countPerDrivingHour": 2.25,
+              "violationMinutesPerDrivingHour": 0.75
+            },
+            "Smooth Braking": {
+              "count": 18,
+              "durationSeconds": 360.0,
+              "countPerDrivingHour": 6.75,
+              "violationMinutesPerDrivingHour": 2.25
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        },
+        "gradeChanges": {
+          "overall_grade": 0.67,
+          "speed_grade": 24.0,
+          "braking_grade": -20.0,
+          "acceleration_grade": 0.0,
+          "turning_grade": 0.0,
+          "focus_grade": 0.0,
+          "following_distance_grade": 0.0
+        },
+        "violationRateChanges": {
+          "Proper Speed": {
+            "countPerDrivingHour": -4.5,
+            "violationMinutesPerDrivingHour": -1.5
+          },
+          "Smooth Braking": {
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Accelerating": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "reports": [
+        {
+          "id": 1,
+          "drivingMode": "regular",
+          "overallGrade": 83.5,
+          "speedGrade": 54.0,
+          "brakingGrade": 95.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 1,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:40",
+              "endTime": "2026-07-06T12:00:00"
+            },
+            {
+              "id": 2,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:10",
+              "endTime": "2026-07-06T11:59:30"
+            },
+            {
+              "id": 3,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:58:40",
+              "endTime": "2026-07-06T11:59:00"
+            },
+            {
+              "id": 4,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:58:10",
+              "endTime": "2026-07-06T11:58:30"
+            },
+            {
+              "id": 5,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:57:40",
+              "endTime": "2026-07-06T11:58:00"
+            },
+            {
+              "id": 6,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:57:10",
+              "endTime": "2026-07-06T11:57:30"
+            },
+            {
+              "id": 7,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:40",
+              "endTime": "2026-07-06T12:00:00"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "drivingMode": "regular",
+          "overallGrade": 83.67,
+          "speedGrade": 60.0,
+          "brakingGrade": 90.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 101,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:40",
+              "endTime": "2026-07-13T12:00:00"
+            },
+            {
+              "id": 102,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:10",
+              "endTime": "2026-07-13T11:59:30"
+            },
+            {
+              "id": 103,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:58:40",
+              "endTime": "2026-07-13T11:59:00"
+            },
+            {
+              "id": 104,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:58:10",
+              "endTime": "2026-07-13T11:58:30"
+            },
+            {
+              "id": 105,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:57:40",
+              "endTime": "2026-07-13T11:58:00"
+            },
+            {
+              "id": 106,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:40",
+              "endTime": "2026-07-13T12:00:00"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "drivingMode": "regular",
+          "overallGrade": 83.83,
+          "speedGrade": 66.0,
+          "brakingGrade": 85.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 201,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:40",
+              "endTime": "2026-07-20T12:00:00"
+            },
+            {
+              "id": 202,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:10",
+              "endTime": "2026-07-20T11:59:30"
+            },
+            {
+              "id": 203,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:40",
+              "endTime": "2026-07-20T11:59:00"
+            },
+            {
+              "id": 204,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:10",
+              "endTime": "2026-07-20T11:58:30"
+            },
+            {
+              "id": 205,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:40",
+              "endTime": "2026-07-20T12:00:00"
+            },
+            {
+              "id": 206,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:10",
+              "endTime": "2026-07-20T11:59:30"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "drivingMode": "regular",
+          "overallGrade": 84.0,
+          "speedGrade": 72.0,
+          "brakingGrade": 80.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 301,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:40",
+              "endTime": "2026-07-27T12:00:00"
+            },
+            {
+              "id": 302,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:10",
+              "endTime": "2026-07-27T11:59:30"
+            },
+            {
+              "id": 303,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:58:40",
+              "endTime": "2026-07-27T11:59:00"
+            },
+            {
+              "id": 304,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:40",
+              "endTime": "2026-07-27T12:00:00"
+            },
+            {
+              "id": 305,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-27T11:59:10",
+              "endTime": "2026-07-27T11:59:30"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "drivingMode": "regular",
+          "overallGrade": 84.17,
+          "speedGrade": 78.0,
+          "brakingGrade": 75.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 401,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:40",
+              "endTime": "2026-08-03T12:00:00"
+            },
+            {
+              "id": 402,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:10",
+              "endTime": "2026-08-03T11:59:30"
+            },
+            {
+              "id": 403,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:40",
+              "endTime": "2026-08-03T12:00:00"
+            },
+            {
+              "id": 404,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:59:10",
+              "endTime": "2026-08-03T11:59:30"
+            },
+            {
+              "id": 405,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-03T11:58:40",
+              "endTime": "2026-08-03T11:59:00"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "drivingMode": "regular",
+          "overallGrade": 84.33,
+          "speedGrade": 84.0,
+          "brakingGrade": 70.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 501,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:40",
+              "endTime": "2026-08-10T12:00:00"
+            },
+            {
+              "id": 502,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:10",
+              "endTime": "2026-08-10T11:59:30"
+            },
+            {
+              "id": 503,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:40",
+              "endTime": "2026-08-10T12:00:00"
+            },
+            {
+              "id": 504,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:59:10",
+              "endTime": "2026-08-10T11:59:30"
+            },
+            {
+              "id": 505,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:58:40",
+              "endTime": "2026-08-10T11:59:00"
+            },
+            {
+              "id": 506,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-10T11:58:10",
+              "endTime": "2026-08-10T11:58:30"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "drivingMode": "regular",
+          "overallGrade": 84.5,
+          "speedGrade": 90.0,
+          "brakingGrade": 65.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-08-17T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 601,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:59:40",
+              "endTime": "2026-08-17T12:00:00"
+            },
+            {
+              "id": 602,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:59:40",
+              "endTime": "2026-08-17T12:00:00"
+            },
+            {
+              "id": 603,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:59:10",
+              "endTime": "2026-08-17T11:59:30"
+            },
+            {
+              "id": 604,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:58:40",
+              "endTime": "2026-08-17T11:59:00"
+            },
+            {
+              "id": 605,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:58:10",
+              "endTime": "2026-08-17T11:58:30"
+            },
+            {
+              "id": 606,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-17T11:57:40",
+              "endTime": "2026-08-17T11:58:00"
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "drivingMode": "regular",
+          "overallGrade": 84.67,
+          "speedGrade": 96.0,
+          "brakingGrade": 60.0,
+          "accelerationGrade": 88.0,
+          "turningGrade": 88.0,
+          "focusGrade": 88.0,
+          "followingDistanceGrade": 88.0,
+          "reportDate": "2026-08-24T12:00:00",
+          "tripDurationMinutes": 40.0,
+          "tripDistanceMiles": 13.33,
+          "violations": [
+            {
+              "id": 701,
+              "violationType": "Proper Speed",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:59:40",
+              "endTime": "2026-08-24T12:00:00"
+            },
+            {
+              "id": 702,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:59:40",
+              "endTime": "2026-08-24T12:00:00"
+            },
+            {
+              "id": 703,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:59:10",
+              "endTime": "2026-08-24T11:59:30"
+            },
+            {
+              "id": 704,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:58:40",
+              "endTime": "2026-08-24T11:59:00"
+            },
+            {
+              "id": 705,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:58:10",
+              "endTime": "2026-08-24T11:58:30"
+            },
+            {
+              "id": 706,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:57:40",
+              "endTime": "2026-08-24T11:58:00"
+            },
+            {
+              "id": 707,
+              "violationType": "Smooth Braking",
+              "roadName": "Example Avenue",
+              "startTime": "2026-08-24T11:57:10",
+              "endTime": "2026-08-24T11:57:30"
+            }
+          ]
+        }
+      ]
+    },
+    "reference": {
+      "expectations": [
+        "Speed grades rise from 54 to 96, while braking falls from 95 to 60; other grades remain 88.",
+        "Braking is a supported constructive target. Do not claim all categories improved."
+      ],
+      "overall": {
+        "reportCount": 8,
+        "averageGrades": {
+          "overall_grade": 84.08,
+          "speed_grade": 75.0,
+          "braking_grade": 77.5,
+          "acceleration_grade": 88.0,
+          "turning_grade": 88.0,
+          "focus_grade": 88.0,
+          "following_distance_grade": 88.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 24,
+            "durationSeconds": 480.0,
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Braking": {
+            "count": 24,
+            "durationSeconds": 480.0,
+            "countPerDrivingHour": 4.5,
+            "violationMinutesPerDrivingHour": 1.5
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "earlier": {
+        "reportCount": 4,
+        "averageGrades": {
+          "overall_grade": 83.75,
+          "speed_grade": 63.0,
+          "braking_grade": 87.5,
+          "acceleration_grade": 88.0,
+          "turning_grade": 88.0,
+          "focus_grade": 88.0,
+          "following_distance_grade": 88.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 18,
+            "durationSeconds": 360.0,
+            "countPerDrivingHour": 6.75,
+            "violationMinutesPerDrivingHour": 2.25
+          },
+          "Smooth Braking": {
+            "count": 6,
+            "durationSeconds": 120.0,
+            "countPerDrivingHour": 2.25,
+            "violationMinutesPerDrivingHour": 0.75
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "recent": {
+        "reportCount": 4,
+        "averageGrades": {
+          "overall_grade": 84.42,
+          "speed_grade": 87.0,
+          "braking_grade": 67.5,
+          "acceleration_grade": 88.0,
+          "turning_grade": 88.0,
+          "focus_grade": 88.0,
+          "following_distance_grade": 88.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 6,
+            "durationSeconds": 120.0,
+            "countPerDrivingHour": 2.25,
+            "violationMinutesPerDrivingHour": 0.75
+          },
+          "Smooth Braking": {
+            "count": 18,
+            "durationSeconds": 360.0,
+            "countPerDrivingHour": 6.75,
+            "violationMinutesPerDrivingHour": 2.25
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          }
+        }
+      },
+      "byMode": {
+        "regular": {
+          "reportCount": 8,
+          "averageGrades": {
+            "overall_grade": 84.08,
+            "speed_grade": 75.0,
+            "braking_grade": 77.5,
+            "acceleration_grade": 88.0,
+            "turning_grade": 88.0,
+            "focus_grade": 88.0,
+            "following_distance_grade": 88.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 24,
+              "durationSeconds": 480.0,
+              "countPerDrivingHour": 4.5,
+              "violationMinutesPerDrivingHour": 1.5
+            },
+            "Smooth Braking": {
+              "count": 24,
+              "durationSeconds": 480.0,
+              "countPerDrivingHour": 4.5,
+              "violationMinutesPerDrivingHour": 1.5
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pilot-modes",
+    "title": "Fresh mode-switch artifact",
+    "history": {
+      "reportsAnalyzed": 6,
+      "datedReportCount": 6,
+      "analysisStartDate": "2026-07-06T12:00:00",
+      "analysisEndDate": "2026-08-10T12:00:00",
+      "hasSufficientHistory": true,
+      "overall": {
+        "reportCount": 6,
+        "startDate": "2026-07-06T12:00:00",
+        "endDate": "2026-08-10T12:00:00",
+        "tripDurationMinutes": 210.0,
+        "tripDistanceMiles": 70.02,
+        "averageGrades": {
+          "overall_grade": 86.25,
+          "speed_grade": 94.0,
+          "braking_grade": 94.0,
+          "acceleration_grade": 94.0,
+          "turning_grade": 94.0,
+          "focus_grade": 40.0,
+          "following_distance_grade": 55.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 12,
+            "durationSeconds": 240.0,
+            "countPerDrivingHour": 6.8571,
+            "violationMinutesPerDrivingHour": 2.2857
+          },
+          "Adequate Following Distance": {
+            "count": 9,
+            "durationSeconds": 180.0,
+            "countPerDrivingHour": 5.1429,
+            "violationMinutesPerDrivingHour": 1.7143
+          }
+        }
+      },
+      "weekly": [
+        {
+          "weekStarting": "2026-07-06",
+          "reportCount": 1,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 78.5,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": 40.0,
+            "following_distance_grade": 55.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.8571,
+              "violationMinutesPerDrivingHour": 2.2857
+            },
+            "Adequate Following Distance": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 5.1429,
+              "violationMinutesPerDrivingHour": 1.7143
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-13",
+          "reportCount": 1,
+          "startDate": "2026-07-13T12:00:00",
+          "endDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 78.5,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": 40.0,
+            "following_distance_grade": 55.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.8571,
+              "violationMinutesPerDrivingHour": 2.2857
+            },
+            "Adequate Following Distance": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 5.1429,
+              "violationMinutesPerDrivingHour": 1.7143
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-20",
+          "reportCount": 1,
+          "startDate": "2026-07-20T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 78.5,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": 40.0,
+            "following_distance_grade": 55.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 4,
+              "durationSeconds": 80.0,
+              "countPerDrivingHour": 6.8571,
+              "violationMinutesPerDrivingHour": 2.2857
+            },
+            "Adequate Following Distance": {
+              "count": 3,
+              "durationSeconds": 60.0,
+              "countPerDrivingHour": 5.1429,
+              "violationMinutesPerDrivingHour": 1.7143
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-27",
+          "reportCount": 1,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 94.0,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": null,
+            "following_distance_grade": null
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-03",
+          "reportCount": 1,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 94.0,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": null,
+            "following_distance_grade": null
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-10",
+          "reportCount": 1,
+          "startDate": "2026-08-10T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "averageGrades": {
+            "overall_grade": 94.0,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": null,
+            "following_distance_grade": null
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        }
+      ],
+      "comparison": {
+        "splitDate": "2026-07-24T00:00:00",
+        "earlier": {
+          "reportCount": 3,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 105.0,
+          "tripDistanceMiles": 35.01,
+          "averageGrades": {
+            "overall_grade": 78.5,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": 40.0,
+            "following_distance_grade": 55.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 12,
+              "durationSeconds": 240.0,
+              "countPerDrivingHour": 6.8571,
+              "violationMinutesPerDrivingHour": 2.2857
+            },
+            "Adequate Following Distance": {
+              "count": 9,
+              "durationSeconds": 180.0,
+              "countPerDrivingHour": 5.1429,
+              "violationMinutesPerDrivingHour": 1.7143
+            }
+          }
+        },
+        "recent": {
+          "reportCount": 3,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 105.0,
+          "tripDistanceMiles": 35.01,
+          "averageGrades": {
+            "overall_grade": 94.0,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": null,
+            "following_distance_grade": null
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        "gradeChanges": {
+          "overall_grade": 15.5,
+          "speed_grade": 0.0,
+          "braking_grade": 0.0,
+          "acceleration_grade": 0.0,
+          "turning_grade": 0.0,
+          "focus_grade": null,
+          "following_distance_grade": null
+        },
+        "violationRateChanges": {
+          "Proper Speed": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "reports": [
+        {
+          "id": 1,
+          "drivingMode": "regular",
+          "overallGrade": 78.5,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": 40.0,
+          "followingDistanceGrade": 55.0,
+          "reportDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": [
+            {
+              "id": 1,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:40",
+              "endTime": "2026-07-06T12:00:00"
+            },
+            {
+              "id": 2,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:10",
+              "endTime": "2026-07-06T11:59:30"
+            },
+            {
+              "id": 3,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:58:40",
+              "endTime": "2026-07-06T11:59:00"
+            },
+            {
+              "id": 4,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:58:10",
+              "endTime": "2026-07-06T11:58:30"
+            },
+            {
+              "id": 5,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:40",
+              "endTime": "2026-07-06T12:00:00"
+            },
+            {
+              "id": 6,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:59:10",
+              "endTime": "2026-07-06T11:59:30"
+            },
+            {
+              "id": 7,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-06T11:58:40",
+              "endTime": "2026-07-06T11:59:00"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "drivingMode": "regular",
+          "overallGrade": 78.5,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": 40.0,
+          "followingDistanceGrade": 55.0,
+          "reportDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": [
+            {
+              "id": 101,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:40",
+              "endTime": "2026-07-13T12:00:00"
+            },
+            {
+              "id": 102,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:10",
+              "endTime": "2026-07-13T11:59:30"
+            },
+            {
+              "id": 103,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:58:40",
+              "endTime": "2026-07-13T11:59:00"
+            },
+            {
+              "id": 104,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:58:10",
+              "endTime": "2026-07-13T11:58:30"
+            },
+            {
+              "id": 105,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:40",
+              "endTime": "2026-07-13T12:00:00"
+            },
+            {
+              "id": 106,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:59:10",
+              "endTime": "2026-07-13T11:59:30"
+            },
+            {
+              "id": 107,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-13T11:58:40",
+              "endTime": "2026-07-13T11:59:00"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "drivingMode": "regular",
+          "overallGrade": 78.5,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": 40.0,
+          "followingDistanceGrade": 55.0,
+          "reportDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": [
+            {
+              "id": 201,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:40",
+              "endTime": "2026-07-20T12:00:00"
+            },
+            {
+              "id": 202,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:10",
+              "endTime": "2026-07-20T11:59:30"
+            },
+            {
+              "id": 203,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:40",
+              "endTime": "2026-07-20T11:59:00"
+            },
+            {
+              "id": 204,
+              "violationType": "Focused Driving",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:10",
+              "endTime": "2026-07-20T11:58:30"
+            },
+            {
+              "id": 205,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:40",
+              "endTime": "2026-07-20T12:00:00"
+            },
+            {
+              "id": 206,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:59:10",
+              "endTime": "2026-07-20T11:59:30"
+            },
+            {
+              "id": 207,
+              "violationType": "Adequate Following Distance",
+              "roadName": "Example Avenue",
+              "startTime": "2026-07-20T11:58:40",
+              "endTime": "2026-07-20T11:59:00"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "drivingMode": "pocket",
+          "overallGrade": 94.0,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": null,
+          "followingDistanceGrade": null,
+          "reportDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": []
+        },
+        {
+          "id": 5,
+          "drivingMode": "pocket",
+          "overallGrade": 94.0,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": null,
+          "followingDistanceGrade": null,
+          "reportDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": []
+        },
+        {
+          "id": 6,
+          "drivingMode": "pocket",
+          "overallGrade": 94.0,
+          "speedGrade": 94.0,
+          "brakingGrade": 94.0,
+          "accelerationGrade": 94.0,
+          "turningGrade": 94.0,
+          "focusGrade": null,
+          "followingDistanceGrade": null,
+          "reportDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 35.0,
+          "tripDistanceMiles": 11.67,
+          "violations": []
+        }
+      ]
+    },
+    "reference": {
+      "expectations": [
+        "Core speed, braking, acceleration, and turning grades stay at 94 throughout.",
+        "The overall rise is due to regular trips changing to pocket, dropping focus 40 and following distance 55.",
+        "Do not praise improvement caused by the mode switch or claim later focus/following were measured."
+      ],
+      "overall": {
+        "reportCount": 6,
+        "averageGrades": {
+          "overall_grade": 86.25,
+          "speed_grade": 94.0,
+          "braking_grade": 94.0,
+          "acceleration_grade": 94.0,
+          "turning_grade": 94.0,
+          "focus_grade": 40.0,
+          "following_distance_grade": 55.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 12,
+            "durationSeconds": 240.0,
+            "countPerDrivingHour": 6.8571,
+            "violationMinutesPerDrivingHour": 2.2857
+          },
+          "Adequate Following Distance": {
+            "count": 9,
+            "durationSeconds": 180.0,
+            "countPerDrivingHour": 5.1429,
+            "violationMinutesPerDrivingHour": 1.7143
+          }
+        }
+      },
+      "earlier": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 78.5,
+          "speed_grade": 94.0,
+          "braking_grade": 94.0,
+          "acceleration_grade": 94.0,
+          "turning_grade": 94.0,
+          "focus_grade": 40.0,
+          "following_distance_grade": 55.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 12,
+            "durationSeconds": 240.0,
+            "countPerDrivingHour": 6.8571,
+            "violationMinutesPerDrivingHour": 2.2857
+          },
+          "Adequate Following Distance": {
+            "count": 9,
+            "durationSeconds": 180.0,
+            "countPerDrivingHour": 5.1429,
+            "violationMinutesPerDrivingHour": 1.7143
+          }
+        }
+      },
+      "recent": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 94.0,
+          "speed_grade": 94.0,
+          "braking_grade": 94.0,
+          "acceleration_grade": 94.0,
+          "turning_grade": 94.0,
+          "focus_grade": null,
+          "following_distance_grade": null
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": 0.0,
+            "violationMinutesPerDrivingHour": 0.0
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "byMode": {
+        "pocket": {
+          "reportCount": 3,
+          "averageGrades": {
+            "overall_grade": 94.0,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": null,
+            "following_distance_grade": null
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        "regular": {
+          "reportCount": 3,
+          "averageGrades": {
+            "overall_grade": 78.5,
+            "speed_grade": 94.0,
+            "braking_grade": 94.0,
+            "acceleration_grade": 94.0,
+            "turning_grade": 94.0,
+            "focus_grade": 40.0,
+            "following_distance_grade": 55.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": 0.0,
+              "violationMinutesPerDrivingHour": 0.0
+            },
+            "Focused Driving": {
+              "count": 12,
+              "durationSeconds": 240.0,
+              "countPerDrivingHour": 6.8571,
+              "violationMinutesPerDrivingHour": 2.2857
+            },
+            "Adequate Following Distance": {
+              "count": 9,
+              "durationSeconds": 180.0,
+              "countPerDrivingHour": 5.1429,
+              "violationMinutesPerDrivingHour": 1.7143
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pilot-zero",
+    "title": "Fresh reports without driving exposure",
+    "history": {
+      "reportsAnalyzed": 6,
+      "datedReportCount": 6,
+      "analysisStartDate": "2026-07-06T12:00:00",
+      "analysisEndDate": "2026-08-10T12:00:00",
+      "hasSufficientHistory": true,
+      "overall": {
+        "reportCount": 6,
+        "startDate": "2026-07-06T12:00:00",
+        "endDate": "2026-08-10T12:00:00",
+        "tripDurationMinutes": 0.0,
+        "tripDistanceMiles": 0.0,
+        "averageGrades": {
+          "overall_grade": 93.0,
+          "speed_grade": 93.0,
+          "braking_grade": 93.0,
+          "acceleration_grade": 93.0,
+          "turning_grade": 93.0,
+          "focus_grade": 93.0,
+          "following_distance_grade": 93.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "weekly": [
+        {
+          "weekStarting": "2026-07-06",
+          "reportCount": 1,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-13",
+          "reportCount": 1,
+          "startDate": "2026-07-13T12:00:00",
+          "endDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-20",
+          "reportCount": 1,
+          "startDate": "2026-07-20T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-07-27",
+          "reportCount": 1,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-03",
+          "reportCount": 1,
+          "startDate": "2026-08-03T12:00:00",
+          "endDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        {
+          "weekStarting": "2026-08-10",
+          "reportCount": 1,
+          "startDate": "2026-08-10T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        }
+      ],
+      "comparison": {
+        "splitDate": "2026-07-24T00:00:00",
+        "earlier": {
+          "reportCount": 3,
+          "startDate": "2026-07-06T12:00:00",
+          "endDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        "recent": {
+          "reportCount": 3,
+          "startDate": "2026-07-27T12:00:00",
+          "endDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        },
+        "gradeChanges": {
+          "overall_grade": 0.0,
+          "speed_grade": 0.0,
+          "braking_grade": 0.0,
+          "acceleration_grade": 0.0,
+          "turning_grade": 0.0,
+          "focus_grade": 0.0,
+          "following_distance_grade": 0.0
+        },
+        "violationRateChanges": {
+          "Proper Speed": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Braking": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Accelerating": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Turning": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Focused Driving": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "reports": [
+        {
+          "id": 1,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-07-06T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        },
+        {
+          "id": 2,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-07-13T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        },
+        {
+          "id": 3,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-07-20T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        },
+        {
+          "id": 4,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-07-27T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        },
+        {
+          "id": 5,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-08-03T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        },
+        {
+          "id": 6,
+          "drivingMode": "regular",
+          "overallGrade": 93.0,
+          "speedGrade": 93.0,
+          "brakingGrade": 93.0,
+          "accelerationGrade": 93.0,
+          "turningGrade": 93.0,
+          "focusGrade": 93.0,
+          "followingDistanceGrade": 93.0,
+          "reportDate": "2026-08-10T12:00:00",
+          "tripDurationMinutes": 0.0,
+          "tripDistanceMiles": 0.0,
+          "violations": []
+        }
+      ]
+    },
+    "reference": {
+      "expectations": [
+        "All reports have zero driving duration and distance. Stored grades are 93, but driving habits are unobserved.",
+        "Recording-effort encouragement and one concrete instruction to obtain recorded driving time are appropriate."
+      ],
+      "overall": {
+        "reportCount": 6,
+        "averageGrades": {
+          "overall_grade": 93.0,
+          "speed_grade": 93.0,
+          "braking_grade": 93.0,
+          "acceleration_grade": 93.0,
+          "turning_grade": 93.0,
+          "focus_grade": 93.0,
+          "following_distance_grade": 93.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "earlier": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 93.0,
+          "speed_grade": 93.0,
+          "braking_grade": 93.0,
+          "acceleration_grade": 93.0,
+          "turning_grade": 93.0,
+          "focus_grade": 93.0,
+          "following_distance_grade": 93.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "recent": {
+        "reportCount": 3,
+        "averageGrades": {
+          "overall_grade": 93.0,
+          "speed_grade": 93.0,
+          "braking_grade": 93.0,
+          "acceleration_grade": 93.0,
+          "turning_grade": 93.0,
+          "focus_grade": 93.0,
+          "following_distance_grade": 93.0
+        },
+        "violationsByType": {
+          "Proper Speed": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Braking": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Accelerating": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Smooth Turning": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Focused Driving": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          },
+          "Adequate Following Distance": {
+            "count": 0,
+            "durationSeconds": 0,
+            "countPerDrivingHour": null,
+            "violationMinutesPerDrivingHour": null
+          }
+        }
+      },
+      "byMode": {
+        "regular": {
+          "reportCount": 6,
+          "averageGrades": {
+            "overall_grade": 93.0,
+            "speed_grade": 93.0,
+            "braking_grade": 93.0,
+            "acceleration_grade": 93.0,
+            "turning_grade": 93.0,
+            "focus_grade": 93.0,
+            "following_distance_grade": 93.0
+          },
+          "violationsByType": {
+            "Proper Speed": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Braking": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Accelerating": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Smooth Turning": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Focused Driving": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            },
+            "Adequate Following Distance": {
+              "count": 0,
+              "durationSeconds": 0,
+              "countPerDrivingHour": null,
+              "violationMinutesPerDrivingHour": null
+            }
+          }
+        }
+      }
+    }
+  }
+]

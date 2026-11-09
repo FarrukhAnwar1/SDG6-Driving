@@ -1,0 +1,7 @@
+{
+  "source_directory": "docs/benchmarks/2026-11-08-gemini-suggestions-improved-validation",
+  "new_calibration_api_calls": 0,
+  "judge_configuration_verified_identical": true,
+  "calibration_sha256": "10806b3ecfe9775bdada4ade58f9ef82c4751c92f26f8bc3a49d9b46232f7fd0",
+  "reason": "Reuse the known 6/7 failed-control evidence. Automatic ratings remain diagnostic; do not resample failed controls until passing."
+}

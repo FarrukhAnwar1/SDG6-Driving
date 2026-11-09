@@ -1,0 +1,8 @@
+{
+  "command": "python -m pytest tests/test_suggestions.py tests/test_suggestion_benchmark.py -q -p no:cacheprovider -o faulthandler_timeout=45",
+  "result": "65 passed",
+  "elapsed_seconds": 6.42,
+  "live_provider_calls_from_tests": 0,
+  "database": "in-memory SQLite",
+  "note": "The sandbox blocked FastAPI TestClient worker-thread startup; the same tests passed outside the sandbox. One dependency warning concerns AnyIO's use of a pytest alias deprecated for pytest 10."
+}
