@@ -108,8 +108,9 @@ Both production prompts require supported encouragement and one concrete action.
 They explain modes, exposure, missing data, and the difference between future
 advice and invented past causes. The writer receives full reports, statistics,
 and measured summaries by mode; the reviewer receives the same evidence plus
-the draft. JSON validation checks shape and length, and an approval must preserve
-the draft verbatim. Semantic checks belong to the AI reviewer and can fail.
+the draft. JSON validation checks shape and length. On approval the backend
+returns the original draft, ignoring the reviewer's message; only a correction
+uses replacement text. Semantic checks belong to the AI reviewer and can fail.
 The benchmark's separate evaluator scores the final message; production review
 verdicts alone are never counted as passing the quality requirements.
 

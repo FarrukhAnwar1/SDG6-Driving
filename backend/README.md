@@ -222,7 +222,7 @@ returns `503`; insufficient history returns its normal `200` response without
 contacting Gemini. The timeout defaults to 30 seconds and accepts values greater
 than zero and up to 120 seconds. This is a shared budget for two sequential calls:
 one drafts natural feedback and one reviews it against the same history, either
-approving it verbatim or providing a corrected paragraph. Each SDK request has
+accepting the original draft or providing a corrected paragraph. Each SDK request has
 automatic retries disabled. Provider errors, malformed, blocked, truncated, and
 empty replies fail immediately; there is no unreviewed-draft or model fallback.
 Feedback is generated on
@@ -834,10 +834,12 @@ motivational observation and one concrete action in a natural paragraph, normall
 2-4 sentences and at most 1200 characters. The public response shape is unchanged.
 Gemini writes the draft freely, then a separate call to the same configured model
 checks its facts, coaching elements, relevance, and format against the full
-history. The reviewer returns an approval with the identical draft or a complete
-corrected message. Only that reviewed message reaches the UI.
+history. On approval, the backend returns the original draft and ignores the
+reviewer's message field. On correction, it returns the reviewer's complete
+replacement paragraph.
 
-Python validates the JSON shape, length, verdict, and verbatim approvals. The AI
+Python validates the JSON shape, length, and verdict. Approval does not require
+the reviewer to copy the original wording. The AI
 review handles meaning; it can miss factual or instruction-following errors.
 There is no approved sentence catalog or restriction to prewritten advice.
 Neither AI review nor structured JSON establishes factual accuracy, sensor/grade

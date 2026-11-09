@@ -119,7 +119,9 @@ One month of recorded trips is sufficient context for long-term feedback here.
 
 Keep the wording natural, supportive, and concise: one plain-text paragraph,
 normally 2-4 sentences, no lists/headings, at most 1200 characters. When the draft
-meets every requirement, return decision 'approve' and copy its message exactly.
+meets every requirement, return decision 'approve'. The backend will display the
+original draft; your message field is ignored on approval and may contain a
+short acknowledgment.
 Otherwise return decision 'correct' and a complete corrected message that meets
 every requirement, checking your replacement against the same evidence. Fix all
 issues in this single pass. Return only JSON with decision and message, without
@@ -293,11 +295,9 @@ def generate_feedback(history: dict) -> str:
                 {"history": history, "draft": draft}, REVIEW_INSTRUCTION,
                 FeedbackReview.model_json_schema(),
             ))
-            if review.decision == "approve" and review.message != draft:
-                raise ValueError("An approval must preserve the reviewed draft")
             if monotonic() >= deadline:
                 raise SuggestionError(504, "Driving feedback timed out. Please try again.")
-            return review.message
+            return draft if review.decision == "approve" else review.message
     except errors.APIError as exc:
         # Never expose provider payloads, which can contain keys or report data
         if exc.code == 429:

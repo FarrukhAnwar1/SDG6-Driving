@@ -350,7 +350,7 @@ class FeedbackMessage(BaseModel):
 
 
 class FeedbackReview(FeedbackMessage):
-    """Internal reviewer verdict and the approved or corrected paragraph."""
+    """Internal verdict; replacement text is used only for corrections."""
 
     decision: Literal["approve", "correct"]
 

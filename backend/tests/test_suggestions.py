@@ -506,8 +506,21 @@ def test_reviewer_can_replace_an_inaccurate_or_noncompliant_draft(api, gemini, d
     assert review["history"]["reportsAnalyzed"] == 6
 
 
+@pytest.mark.parametrize("review_message", [
+    "Approved.",
+    DRAFT_MESSAGE.replace("showing progress", "showing steady progress"),
+])
+def test_approval_returns_original_draft_even_when_reviewer_does_not_copy_it(api, gemini, review_message):
+    client, engine = api
+    seed(engine, [report(index) for index in range(6)])
+    gemini["texts"] = [AUTO_RESPONSE, json.dumps({"decision": "approve", "message": review_message})]
+    response = client.get("/advanced-suggestion", headers=auth())
+    assert response.status_code == 200
+    assert response.json()["message"] == DRAFT_MESSAGE
+    assert len(gemini["requests"]) == 2
+
+
 @pytest.mark.parametrize("review", ["not json", "{}", '{"decision":"approve"}',
-    json.dumps({"decision": "approve", "message": "A changed draft."}),
     json.dumps({"decision": "reject", "message": DRAFT_MESSAGE}),
     json.dumps({"decision": "correct", "message": " "}),
     json.dumps({"decision": "correct", "message": "x" * 1201}),

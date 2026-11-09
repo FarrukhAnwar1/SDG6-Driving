@@ -84,8 +84,8 @@ def test_production_capture_and_report_distinguish_approval_from_correction(monk
     def handle(request):
         requests.append(json.loads(request.content))
         prompt = json.loads(requests[-1]["contents"][0]["parts"][0]["text"])
-        text = json.dumps({"decision": decision, "message": prompt["draft"] if decision == "approve"
-                          else prompt["draft"].replace("Check your", "On your next drive, check your")}
+        text = json.dumps({"decision": decision, "message":
+                          prompt["draft"].replace("Check your", "On your next drive, check your")}
                           if "draft" in prompt else {"message":
                           "Your speed grades improved across your recorded trips. Check your speed against posted limits."})
         return httpx.Response(200, json={
