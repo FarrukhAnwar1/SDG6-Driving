@@ -16,6 +16,8 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _loadError;
   String? _errorMessage;
 
+  bool _liveVoiceFeedback = true;
+
   @override
   void initState() {
     super.initState();
@@ -173,6 +175,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         ],
                       ),
                     ),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Live Voice Feedback'),
+                    subtitle: const Text(
+                      'Receive live voice feedback alerts during trips',),
+                    secondary: const Icon(Icons.record_voice_over),
+                    value: _liveVoiceFeedback,
+                    onChanged: (bool value) {
+                      setState(() {
+                        _liveVoiceFeedback = value;
+                      });
+                    },
                   ),
                 ],
               ),

@@ -42,7 +42,7 @@ dependencies:
   device_info_plus: ^13.2.0
   sensors_plus: ^7.1.0
   fl_chart: ^1.2.0
-  camera: 0.12.1
+  camera: ^0.12.2
   flutter_onnxruntime: 1.9.0
   # Live Voice Feedback relies on this version's Android audio focus and
   # navigation attributes, and its iOS ducking, as described in
