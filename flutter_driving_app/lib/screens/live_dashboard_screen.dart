@@ -20,6 +20,7 @@ import '../widgets/auth/auth_storage.dart';
 import '../widgets/voice_feedback/voice_alerts.dart';
 import '../widgets/voice_feedback/voice_feedback_service.dart';
 import '../widgets/voice_feedback/voice_output.dart';
+import 'settings_screen.dart';
 import 'driving_report_screen.dart';
 
 // Formats a duration as mm:ss, or hh:mm:ss if over an hour
@@ -151,6 +152,8 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       clock: widget.clock,
       enabled: widget.voiceFeedbackEnabled,
     );
+    liveVoiceFeedback.addListener(_syncVoiceFeedback);
+      _syncVoiceFeedback();
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _cameraResumed =
         lifecycle == null || lifecycle == AppLifecycleState.resumed;
@@ -166,6 +169,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _startAccelerometer();
     _startUserAccelerometer();
     _startGyroscope();
+  }
+  void _syncVoiceFeedback() {
+    _voiceFeedback.enabled = liveVoiceFeedback.value;
   }
 
   @override
@@ -290,6 +296,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
     _followingDistanceMonitoring.finalizeTrip();
+    liveVoiceFeedback.removeListener(_syncVoiceFeedback);
     unawaited(_followingDistanceCameraKey.currentState?.stop());
     // Drop back to the idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
@@ -636,6 +643,28 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: liveVoiceFeedback,
+                  builder: (context, isEnabled, child) {
+                    return SwitchListTile(
+                      title: const Text('Live Voice Feedback'),
+                      subtitle: Text(
+                        isEnabled
+                            ? 'Voice alerts enabled'
+                            : 'Voice alerts disabled',
+                      ),
+                      secondary: Icon(
+                        isEnabled ? Icons.volume_up : Icons.volume_off,
+                      ),
+                      value: isEnabled,
+                      onChanged: (bool value) {
+                        liveVoiceFeedback.value = value;
+                        _voiceFeedback.enabled = value;
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
                 _buildDrivingModeIndicator(context),
                 const SizedBox(height: 12),
                 // Allocate the available height so every grade stays visible
@@ -699,6 +728,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         ),
       ),
     );
+    
   }
 
   // Rounded, softly outlined container shared by the different dashboard sections

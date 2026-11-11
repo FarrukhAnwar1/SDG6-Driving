@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/driving/driving_mode.dart';
 import '../widgets/shared/error_banner.dart';
 
+final ValueNotifier<bool> liveVoiceFeedback = ValueNotifier<bool>(true);
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -154,6 +156,39 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   const SizedBox(height: 24),
 
+                  // Live Voice Feedback toggle
+                    Card(
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: liveVoiceFeedback,
+                      builder: (context, isEnabled, child) {
+                        return SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          title: Text(
+                            'Live Voice Feedback',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              'Receive spoken driving alerts during trips',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
+                          secondary: const Icon(Icons.record_voice_over),
+                          value: isEnabled,
+                          onChanged: (bool value) {
+                            liveVoiceFeedback.value = value;
+                          },
+                        );
+                      },
+                    ),
+                  ),
+
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -167,15 +202,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'The selected mode will apply to your next drive.',
+                              'These selected modes will apply to your next drive.',
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                  const SizedBox(height: 16),              
+          ],
+        ),
       ),
     );
   }
