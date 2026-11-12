@@ -94,6 +94,13 @@ class FamilyGrades {
     'Acceleration': 'accelerationGrade',
     'Turning': 'turningGrade',
     'Focused Driving': 'focusGrade',
+    'Adequate Following Distance': 'followingDistanceGrade',
+  };
+
+  // Categories that are null when a driving mode does not measure them.
+  static const optionalLabels = {
+    'Focused Driving',
+    'Adequate Following Distance',
   };
 
   factory FamilyGrades.fromJson(Map<String, dynamic> json) {
