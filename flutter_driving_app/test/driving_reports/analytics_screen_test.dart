@@ -16,7 +16,7 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
   });
 
-  for (final mode in ['regular', 'navigation']) {
+  for (final mode in ['regular', 'navigation', 'pocket']) {
     final otherMode = mode == 'regular' ? 'navigation' : 'regular';
 
     testWidgets(
@@ -681,6 +681,157 @@ void main() {
       }),
     );
   });
+  testWidgets('Pocket reports show their badge and Not Tracked rows', (
+    tester,
+  ) async {
+    final report = reportJson(
+      id: 1,
+      drivingMode: 'pocket',
+      focusGrade: null,
+      followingDistanceGrade: null,
+    );
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+        // One row for focus and one for following distance
+        expect(find.text('Not Tracked'), findsNWidgets(2));
+        await tester.scrollUntilVisible(find.text('Pocket Mode'), 300);
+        expect(find.text('Pocket Mode'), findsOneWidget);
+        expect(find.text('Regular Mode'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+      () => _analyticsClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'reports': [report],
+          }),
+          200,
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'Following distance chart skips untracked trips and keeps zero scores',
+    (tester) async {
+      final reports = [
+        reportJson(id: 3, followingDistanceGrade: 0),
+        reportJson(
+          id: 2,
+          drivingMode: 'pocket',
+          focusGrade: null,
+          followingDistanceGrade: null,
+        ),
+        reportJson(id: 1, followingDistanceGrade: 80),
+      ];
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(
+            find.byType(DropdownButtonFormField<String>),
+            300,
+          );
+          await tester.ensureVisible(
+            find.byType(DropdownButtonFormField<String>),
+          );
+          await tester.pumpAndSettle();
+          await tester.tap(find.byType(DropdownButtonFormField<String>));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Adequate Following Distance').last);
+          await tester.pumpAndSettle();
+
+          final spots = tester
+              .widget<LineChart>(find.byType(LineChart))
+              .data
+              .lineBarsData
+              .single
+              .spots;
+          expect(spots.map((spot) => spot.isNull()), [false, true, false]);
+          expect(spots.first.y, 80);
+          // A real score of zero is plotted, not treated as missing
+          expect(spots.last.y, 0);
+          expect(
+            find.text(
+              '1 of 3 trips did not track this grade and appear as gaps.',
+            ),
+            findsOneWidget,
+          );
+          expect(tester.takeException(), isNull);
+        },
+        () => _analyticsClient(
+          (_) async => http.Response(jsonEncode({'reports': reports}), 200),
+        ),
+      );
+    },
+  );
+
+  testWidgets('Following distance chart says when no trip tracked it', (
+    tester,
+  ) async {
+    final reports = [
+      for (final id in [2, 1])
+        reportJson(
+          id: id,
+          drivingMode: 'pocket',
+          focusGrade: null,
+          followingDistanceGrade: null,
+        ),
+    ];
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.byType(DropdownButtonFormField<String>),
+          300,
+        );
+        await tester.ensureVisible(
+          find.byType(DropdownButtonFormField<String>),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(DropdownButtonFormField<String>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Adequate Following Distance').last);
+        await tester.pumpAndSettle();
+        expect(find.byType(LineChart), findsNothing);
+        expect(
+          find.text('This grade was not tracked in the selected trips.'),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+      () => _analyticsClient(
+        (_) async => http.Response(jsonEncode({'reports': reports}), 200),
+      ),
+    );
+  });
+
+  testWidgets('driving totals include regular, navigation and pocket trips', (
+    tester,
+  ) async {
+    final reports = [
+      _modeReport(id: 3, mode: 'pocket', grade: 90),
+      _modeReport(id: 2, mode: 'navigation', grade: 90),
+      _modeReport(id: 1, mode: 'regular', grade: 90),
+    ];
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(find.text('Total Trips'), 200);
+        expect(find.text('3'), findsOneWidget);
+        // reportJson uses 12.4 miles per trip
+        expect(find.text('37.2 mi'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+      () => _analyticsClient(
+        (_) async => http.Response(jsonEncode({'reports': reports}), 200),
+      ),
+    );
+  });
 }
 
 Map<String, dynamic> _modeReport({
@@ -694,7 +845,8 @@ Map<String, dynamic> _modeReport({
     'brakingGrade': grade,
     'accelerationGrade': grade,
     'turningGrade': grade,
-    'focusGrade': mode == 'navigation' ? null : grade,
+    'focusGrade': mode == 'regular' ? grade : null,
+    'followingDistanceGrade': mode == 'pocket' ? null : grade,
   });
 
 MockClient _analyticsClient(

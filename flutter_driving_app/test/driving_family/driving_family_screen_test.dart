@@ -225,9 +225,70 @@ void main() {
       );
     },
   );
+  testWidgets(
+    'Not tracked replaces focus and following distance a drive did not measure',
+    (tester) async {
+      await _withScreen(
+        tester,
+        (_) async => _family(
+          members: [
+            familyMemberJson(
+              latestFocus: null,
+              latestFollowingDistance: null,
+            ),
+          ],
+        ),
+        () async {
+          final alex = find.byKey(const ValueKey('family-member-1'));
+          // Averages still show; only the latest drive lacks both grades
+          expect(
+            find.descendant(of: alex, matching: find.text('96%')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: alex, matching: find.text('89%')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: alex, matching: find.text('Not tracked')),
+            findsNWidgets(2),
+          );
+        },
+      );
+    },
+  );
 
   testWidgets(
-    'all six average/latest scores, totals and no-drive members are shown',
+    'Not tracked appears in the average column, and zero scores stay visible',
+    (tester) async {
+      final member = familyMemberJson();
+      member['averageGrades'] = familyGrades(focus: null, followingDistance: 0);
+      await _withScreen(
+        tester,
+        (_) async => _family(members: [member]),
+        () async {
+          final alex = find.byKey(const ValueKey('family-member-1'));
+          // Average focus is unavailable; the latest drive's focus still shows
+          expect(
+            find.descendant(of: alex, matching: find.text('Not tracked')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: alex, matching: find.text('98%')),
+            findsOneWidget,
+          );
+          // An average following distance of 0 is a real score
+          expect(
+            find.descendant(of: alex, matching: find.text('0%')),
+            findsOneWidget,
+          );
+        },
+      );
+    },
+  );
+
+  testWidgets(
+    'all seven average/latest scores, totals and no-drive members are shown',
     (tester) async {
       await _withScreen(tester, (_) async => _family(), () async {
         final alex = find.byKey(const ValueKey('family-member-1'));
@@ -246,6 +307,7 @@ void main() {
           'Acceleration',
           'Turning',
           'Focused Driving',
+          'Adequate Following Distance',
         ]) {
           expect(
             find.descendant(of: alex, matching: find.text(label)),
@@ -270,7 +332,7 @@ void main() {
         );
         expect(
           find.descendant(of: sam, matching: find.text('\u2014')),
-          findsNWidgets(12),
+          findsNWidgets(14),
         );
         expect(
           find.descendant(of: sam, matching: find.text('0.0 mi')),

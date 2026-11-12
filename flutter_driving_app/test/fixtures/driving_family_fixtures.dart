@@ -1,11 +1,16 @@
 // Sample data for testing Driving Family features
-Map<String, dynamic> familyGrades({double overall = 88}) => {
+Map<String, dynamic> familyGrades({
+  double overall = 88,
+  double? focus = 96,
+  double? followingDistance = 89,
+}) => {
   'overallGrade': overall,
   'speedGrade': 91.5,
   'brakingGrade': 82,
   'accelerationGrade': 85,
   'turningGrade': 94,
-  'focusGrade': 96,
+  'focusGrade': focus,
+  'followingDistanceGrade': followingDistance,
 };
 
 Map<String, dynamic> familyMemberJson({
@@ -14,6 +19,8 @@ Map<String, dynamic> familyMemberJson({
   int driveCount = 3,
   double averageOverall = 88,
   double latestOverall = 93,
+  double? latestFocus = 98,
+  double? latestFollowingDistance = 92,
 }) => {
   'userId': userId,
   'username': username,
@@ -25,7 +32,11 @@ Map<String, dynamic> familyMemberJson({
       ? null
       : {
           'reportDate': '2026-10-05T14:30:00Z',
-          ...familyGrades(overall: latestOverall),
+          ...familyGrades(
+            overall: latestOverall,
+            focus: latestFocus,
+            followingDistance: latestFollowingDistance,
+          ),
         },
   'totalDrivingMinutes': driveCount == 0 ? 0 : 90.5,
   'totalDistanceMiles': driveCount == 0 ? 0 : 45.6,
