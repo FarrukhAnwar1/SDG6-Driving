@@ -125,7 +125,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.directions_car_outlined,
                     title: 'Regular Mode',
                     description:
-                        'Use this mode when you are not using your phone for navigation. ',
+                        'Use this mode when you are not using your phone for navigation. ' 
+                        'Tracks speed, smoothness, focus, and following distance.',
                     isSelected: _drivingMode == DrivingMode.normal,
                     onTap: _isSaving
                         ? null
@@ -139,11 +140,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Navigation Mode',
                     description:
                         'Use this mode when your phone is being used for navigation. '
-                        'Focus tracking will be disabled and will not affect your grade.',
+                        'Focus tracking will be disabled and will not affect your grade.'
+                        'Following distance is still tracked.',
                     isSelected: _drivingMode == DrivingMode.navigation,
                     onTap: _isSaving
                         ? null
                         : () => _updateDrivingMode(DrivingMode.navigation),
+                  ),
+
+                 const SizedBox(height: 12),
+
+                  _ModeDescriptionCard(
+                    icon: Icons.phone_android_outlined,
+                    title: 'Pocket Mode',
+                    description:
+                        'Use this mode when your phone is in your pocket, a bag, or otherwise '
+                        'cannot see the road. Focus and following distance tracking will both '
+                        'be disabled and will not affect your grade.',
+                    isSelected: _drivingMode == DrivingMode.pocket,
+                    onTap: _isSaving
+                        ? null
+                        : () => _updateDrivingMode(DrivingMode.pocket),
                   ),
 
                   if (_isSaving) ...[
@@ -202,7 +219,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(width: 12),
                           const Expanded(
                             child: Text(
-                              'These selected modes will apply to your next drive.',
+                              'These selected modes will apply to your next drive. '
+                              'Driving mode can only be changed here, from Home, '
+                              'so it cannot be switched during a drive.',
                             ),
                           ),
                         ],

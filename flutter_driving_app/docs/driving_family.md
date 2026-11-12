@@ -201,8 +201,11 @@ expiration is a separate policy and is not required by these changes.
   case and punctuation. Only blank codes and embedded whitespace are rejected
   locally because the backend code format has not been specified.
 - Member cards show separate average and latest grades for Overall, Speed,
-  Braking, Acceleration, Turning, and Focused Driving, plus time and distance.
-  Drivers without reports show an empty score table and zero totals.
+  Braking, Acceleration, Turning, Focused Driving, and Adequate Following
+  Distance, plus time and distance. Drivers without reports show an empty score
+  table (em dashes) and zero totals. For a driver with reports, a null Focused
+  Driving or Adequate Following Distance score shows "Not tracked", because that
+  drive's mode did not measure it. A score of 0 is shown as 0%.
 - Only the admin sees the invitation button, and opening the form is guarded
   by the loaded admin ID. Other members see an explanation of the restriction.
   Invitation copy explains that the recipient must sign in with the invited

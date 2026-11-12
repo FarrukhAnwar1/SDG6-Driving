@@ -16,25 +16,55 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import '../fixtures/auth_fixtures.dart';
+import 'package:flutter_driving_app/widgets/following_distance/following_distance_grading_service.dart';
+import 'package:flutter_driving_app/widgets/grading/focused_driving_grading_service.dart';
 
 const _tripId = 'b316c158-ab2c-4401-8380-256d88b47749';
+final _focusViolation = FocusedDrivingViolation(
+  startTime: DateTime.utc(2026, 10, 18, 10, 1),
+  endTime: DateTime.utc(2026, 10, 18, 10, 2),
+  duration: const Duration(minutes: 1),
+  speedAtStartMph: 40,
+  latitude: 28.6,
+  longitude: -81.2,
+);
+final _followingViolation = FollowingDistanceViolation(
+  startTime: DateTime.utc(2026, 10, 18, 10, 3),
+  endTime: DateTime.utc(2026, 10, 18, 10, 4),
+  latitude: 28.6,
+  longitude: -81.2,
+  minimumHeadwaySeconds: 0.8,
+  minimumDistanceMeters: 12,
+  speedAtStartMph: 45,
+  penalizedDuration: const Duration(seconds: 30),
+);
+
 Future<DrivingReportResult> _send({
   String tripId = _tripId,
   String owner = '1',
   void Function()? onSaved,
+  DrivingMode mode = DrivingMode.normal,
+  double? focus = 90,
+  double? followingDistance,
+  bool withModeViolations = false,
 }) => DrivingReportApi.sendReport(
   clientTripId: tripId,
   ownerUserId: owner,
   startTime: DateTime.utc(2026, 10, 18, 10),
   endTime: DateTime.utc(2026, 10, 18, 10, 10),
   milesDriven: 2,
-  drivingMode: DrivingMode.normal,
+  drivingMode: mode,
   overallGrade: 90,
   properSpeedGrade: 90,
   brakingGrade: 90,
   acceleratingGrade: 90,
   turningGrade: 90,
-  focusedDrivingGrade: 90,
+  focusedDrivingGrade: focus,
+  followingDistanceGrade: followingDistance,
+  focusedDrivingViolations: withModeViolations ? [_focusViolation] : const [],
+  followingDistanceViolations: withModeViolations
+      ? [_followingViolation]
+      : const [],
   onSavedLocally: onSaved,
 );
 
@@ -68,6 +98,136 @@ void main() {
       'access_token': testAccessToken(),
     }),
   );
+
+    test(
+    'Pocket reports upload null focus and following grades and no such violations',
+    () async {
+      late Map<String, dynamic> body;
+      final result = await http.runWithClient(
+        () => _send(
+          mode: DrivingMode.pocket,
+          // Stale values must never leak into a Pocket report
+          focus: 90,
+          followingDistance: 85,
+          withModeViolations: true,
+        ),
+        () => MockClient((request) async {
+          body = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response('{}', 201);
+        }),
+      );
+      expect(result.success, isTrue);
+      expect(body['drivingMode'], 'pocket');
+      expect(body.containsKey('focusGrade'), isTrue);
+      expect(body['focusGrade'], isNull);
+      expect(body.containsKey('followingDistanceGrade'), isTrue);
+      expect(body['followingDistanceGrade'], isNull);
+      final types = (body['violations'] as List).map(
+        (v) => (v as Map)['violationType'],
+      );
+      expect(types, isNot(contains('Focused Driving')));
+      expect(types, isNot(contains('Adequate Following Distance')));
+    },
+  );
+
+  test(
+    'Navigation reports exclude only focus and keep following distance',
+    () async {
+      late Map<String, dynamic> body;
+      await http.runWithClient(
+        () => _send(
+          mode: DrivingMode.navigation,
+          focus: 90,
+          followingDistance: 85,
+          withModeViolations: true,
+        ),
+        () => MockClient((request) async {
+          body = jsonDecode(request.body) as Map<String, dynamic>;
+          return http.Response('{}', 201);
+        }),
+      );
+      expect(body['drivingMode'], 'navigation');
+      expect(body['focusGrade'], isNull);
+      expect(body['followingDistanceGrade'], 85);
+      final types = (body['violations'] as List).map(
+        (v) => (v as Map)['violationType'],
+      );
+      expect(types, isNot(contains('Focused Driving')));
+      expect(types, contains('Adequate Following Distance'));
+    },
+  );
+
+  test('Regular reports keep both focus and following distance', () async {
+    late Map<String, dynamic> body;
+    await http.runWithClient(
+      () => _send(focus: 90, followingDistance: 0, withModeViolations: true),
+      () => MockClient((request) async {
+        body = jsonDecode(request.body) as Map<String, dynamic>;
+        return http.Response('{}', 201);
+      }),
+    );
+    expect(body['drivingMode'], 'regular');
+    expect(body['focusGrade'], 90);
+    // Zero is a real following distance grade, not a missing one
+    expect(body['followingDistanceGrade'], 0);
+    final types = (body['violations'] as List).map(
+      (v) => (v as Map)['violationType'],
+    );
+    expect(
+      types,
+      containsAll(['Focused Driving', 'Adequate Following Distance']),
+    );
+  });
+
+  test(
+    'a failed Pocket upload retries the same payload and trip ID, then clears the queue',
+    () async {
+      final bodies = <String>[];
+      final first = await http.runWithClient(
+        () => _send(mode: DrivingMode.pocket, focus: null),
+        () => MockClient((request) async {
+          bodies.add(request.body);
+          return http.Response('{}', 500);
+        }),
+      );
+      expect(first.savedLocally, isTrue);
+      final saved = (await PendingReportStore.read('1')).single;
+      expect(saved['clientTripId'], _tripId);
+      expect(saved['drivingMode'], 'pocket');
+      expect(saved['focusGrade'], isNull);
+      expect(saved['followingDistanceGrade'], isNull);
+
+      final retry = await http.runWithClient(
+        DrivingReportApi.retryPendingReports,
+        () => MockClient((request) async {
+          bodies.add(request.body);
+          return http.Response('{}', 201);
+        }),
+      );
+      expect(retry.remaining, 0);
+      expect(bodies, hasLength(2));
+      expect(bodies.first, bodies.last);
+      expect(await PendingReportStore.read('1'), isEmpty);
+    },
+  );
+
+  test('re-sending a saved trip with different data is rejected', () async {
+    await http.runWithClient(
+      () => _send(mode: DrivingMode.pocket, focus: null),
+      () => MockClient((_) async => http.Response('{}', 500)),
+    );
+    final changed = await http.runWithClient(
+      // Same trip ID, different mode: must not overwrite the saved payload
+      () => _send(),
+      () => MockClient((_) async => fail('Must not upload a changed payload')),
+    );
+    expect(changed.success, isFalse);
+    expect(changed.savedLocally, isFalse);
+    expect(
+      (await PendingReportStore.read('1')).single['drivingMode'],
+      'pocket',
+    );
+  });
 
   test('a report is persisted before the network request starts', () async {
     var saved = false;

@@ -484,7 +484,7 @@ class _ReportCard extends StatelessWidget {
           for (final entry in report.gradesByLabel.entries)
             _GradeRow(label: entry.key, value: entry.value, averageValue: null),
           const Divider(height: 24),
-          if (report.focusedDrivingGrade == null) const _NotTrackedGradeRow(),
+          _NotTrackedGradeRows(report: report),
           Text(
             'Recorded Violations',
             style: Theme.of(context).textTheme.titleSmall,
@@ -506,28 +506,38 @@ class _DrivingModeBadge extends StatelessWidget {
   const _DrivingModeBadge({required this.mode});
   @override
   Widget build(BuildContext context) {
-    final isNavigation = mode == DrivingMode.navigation;
+    final colors = Theme.of(context).colorScheme;
+    final (icon, text, color) = switch (mode) {
+      DrivingMode.normal => (
+        Icons.directions_car_outlined,
+        'Regular Mode',
+        colors.surfaceContainerHighest,
+      ),
+      DrivingMode.navigation => (
+        Icons.navigation_outlined,
+        'Navigation Mode',
+        colors.primaryContainer,
+      ),
+      DrivingMode.pocket => (
+        Icons.phone_android_outlined,
+        'Pocket Mode',
+        colors.tertiaryContainer,
+      ),
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: isNavigation
-            ? Theme.of(context).colorScheme.primaryContainer
-            : Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: color,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            isNavigation
-                ? Icons.navigation_outlined
-                : Icons.directions_car_outlined,
-            size: 16,
-          ),
+          Icon(icon, size: 16),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
-              isNavigation ? 'Navigation Mode' : 'Regular Mode',
+              text,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
@@ -559,6 +569,7 @@ class _ViolationTile extends StatelessWidget {
       'Smooth Accelerating' => 'Acceleration',
       'Smooth Turning' => 'Turning',
       'Focused Driving' => 'Focused Driving',
+      'Adequate Following Distance' => 'Adequate Following Distance',
       _ => null,
     };
     return ListTile(
@@ -654,7 +665,7 @@ class _LastDriveCard extends StatelessWidget {
                 averageValue: priorAverages[entry.key],
               ),
             const SizedBox(height: 12),
-            if (trip.focusedDrivingGrade == null) const _NotTrackedGradeRow(),
+            _NotTrackedGradeRows(report: trip),
             Text(
               priorTrips.isEmpty
                   ? 'Complete another drive to start comparing trips.'
@@ -720,20 +731,46 @@ class _GradeRow extends StatelessWidget {
   }
 }
 
-//Adds a row to the last drive card for grades that are not tracked,
-//such as focused driving in navigation mode.
-class _NotTrackedGradeRow extends StatelessWidget {
-  const _NotTrackedGradeRow();
+// Adds a "Not Tracked" row for each optional grade a trip did not measure:
+// focus in Navigation and Pocket, following distance in Pocket (and older
+// reports saved before it existed).
+class _NotTrackedGradeRows extends StatelessWidget {
+  final DrivingReportSummary report;
+  const _NotTrackedGradeRows({required this.report});
+
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+    return Column(
+      children: [
+        if (report.focusedDrivingGrade == null)
+          const _NotTrackedGradeRow(label: 'Focused Driving'),
+        if (report.followingDistanceGrade == null)
+          const _NotTrackedGradeRow(label: 'Adequate Following Distance'),
+      ],
+    );
+  }
+}
+
+class _NotTrackedGradeRow extends StatelessWidget {
+  final String label;
+  const _NotTrackedGradeRow({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(Icons.remove_circle_outline, size: 12),
-          SizedBox(width: 10),
-          Expanded(child: Text('Focused Driving')),
-          Text('Not Tracked', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Icon(Icons.remove_circle_outline, size: 12),
+          const SizedBox(width: 10),
+          Expanded(child: Text(label)),
+          const Flexible(
+            child: Text(
+              'Not Tracked',
+              textAlign: TextAlign.end,
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );
@@ -988,7 +1025,12 @@ class _HistoryChartState extends State<_HistoryChart> {
     if (availableGrades.isEmpty) {
       return const SizedBox(
         height: 120,
-        child: Center(child: Text('No grades available for this metric.')),
+        child: Center(
+           child: Text(
+             'This grade was not tracked in the selected trips.',
+             textAlign: TextAlign.center,
+           ),
+         ),
       );
     }
     final lastIndex = (reports.length - 1).toDouble();
@@ -1066,7 +1108,7 @@ class _HistoryChartState extends State<_HistoryChart> {
           LineBarSpot(lineBars[i], i, lineBars[i].spots[selectedTripIndex]),
     ];
 
-    return TapRegion(
+    final chart = TapRegion(
       onTapOutside: (_) => _selectTrip(null),
       child: GestureDetector(
         // Axis labels and padding also dismiss the popup. Taps in the plot
@@ -1226,5 +1268,21 @@ class _HistoryChartState extends State<_HistoryChart> {
         ),
       ),
     );
-  }
+    final missingCount = reports.length - availableGrades.length;
+     if (missingCount == 0) return chart;
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+         chart,
+         const SizedBox(height: 8),
+         Text(
+           '$missingCount of ${reports.length} trips did not track this grade '
+           'and appear as gaps.',
+           style: Theme.of(
+             context,
+           ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+         ),
+       ],
+     );
+   }
 }

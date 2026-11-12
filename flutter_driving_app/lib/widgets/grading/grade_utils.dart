@@ -30,4 +30,5 @@ const Map<String, Color> metricColors = {
   'Acceleration': Colors.teal,
   'Turning': Colors.purple,
   'Focused Driving': Colors.green,
+  'Adequate Following Distance': Colors.cyan,
 };

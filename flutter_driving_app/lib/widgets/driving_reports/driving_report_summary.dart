@@ -19,6 +19,8 @@ class DrivingReportSummary {
   final double acceleratingGrade;
   final double turningGrade;
   final double? focusedDrivingGrade;
+  // Null when the trip did not track following distance (Pocket mode, or older reports before the category existed).
+  final double? followingDistanceGrade;
 
   const DrivingReportSummary({
     required this.id,
@@ -33,6 +35,7 @@ class DrivingReportSummary {
     required this.turningGrade,
     required this.focusedDrivingGrade,
     required this.drivingMode,
+    this.followingDistanceGrade,
   });
 
   Duration get elapsed => Duration(
@@ -42,6 +45,7 @@ class DrivingReportSummary {
 
   // Grades keyed by the labels Analytics displays, charts, and selects.
   // Navigation trips omit Focused Driving because it was not measured.
+  // Pocket skips Focused Driving and Adequate Following Distance because they were not measured.
   Map<String, double> get gradesByLabel => {
     'Overall': overallGrade,
     'Speed': properSpeedGrade,
@@ -49,6 +53,7 @@ class DrivingReportSummary {
     'Acceleration': acceleratingGrade,
     'Turning': turningGrade,
     'Focused Driving': ?focusedDrivingGrade,
+    'Adequate Following Distance': ?followingDistanceGrade,
   };
 
   // Read responses contain reportDate and decimal minutes, not the write
@@ -61,9 +66,9 @@ class DrivingReportSummary {
           : _parseReportTime(json['reportDate'] as String),
       tripDurationMinutes: (json['tripDurationMinutes'] as num).toDouble(),
       milesDriven: (json['tripDistanceMiles'] as num).toDouble(),
-      drivingMode: json['drivingMode'] == 'navigation'
-          ? DrivingMode.navigation
-          : DrivingMode.normal,
+      drivingMode: DrivingModeJson.fromApiValue(
+          json['drivingMode'] as String? ?? 'regular',
+      ),
       violations: List.unmodifiable(
         (json['violations'] as List<dynamic>).map(
           (item) =>
@@ -76,6 +81,7 @@ class DrivingReportSummary {
       acceleratingGrade: (json['accelerationGrade'] as num).toDouble(),
       turningGrade: (json['turningGrade'] as num).toDouble(),
       focusedDrivingGrade: (json['focusGrade'] as num?)?.toDouble(),
+      followingDistanceGrade: (json['followingDistanceGrade'] as num?)?.toDouble()
     );
   }
 }

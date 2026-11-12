@@ -39,6 +39,7 @@ void main() {
         'Acceleration',
         'Turning',
         'Focused Driving',
+        'Adequate Following Distance',
       ]);
       expect(member.latestDrive!.reportDate, DateTime.utc(2026, 10, 5, 14, 30));
       expect(member.totalDrivingMinutes, 90.5);
@@ -48,6 +49,30 @@ void main() {
       expect(family.members.last.latestDrive, isNull);
     },
   );
+
+    test('parses nullable focus and following distance grades', () async {
+    final member = familyMemberJson(
+      latestFocus: null,
+      latestFollowingDistance: null,
+    );
+    member['averageGrades'] = familyGrades(followingDistance: 0);
+    final family = await http.runWithClient(
+      DrivingFamilyApi.fetchCurrent,
+      () => MockClient(
+        (_) async =>
+            http.Response(jsonEncode(familyResponse(members: [member])), 200),
+      ),
+    );
+    final parsed = family!.members.single;
+    expect(parsed.latestDrive!.grades.byLabel['Focused Driving'], isNull);
+    expect(
+      parsed.latestDrive!.grades.byLabel['Adequate Following Distance'],
+      isNull,
+    );
+    expect(parsed.averageGrades!.byLabel['Focused Driving'], 96);
+    // A zero average is a score, not a missing value
+    expect(parsed.averageGrades!.byLabel['Adequate Following Distance'], 0);
+  });
 
   test('only explicit empty responses count as no membership', () async {
     for (final response in [

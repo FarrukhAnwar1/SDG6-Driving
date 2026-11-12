@@ -1,9 +1,9 @@
 # Live following-distance grading
 
 This frontend work covers the Live Dashboard, completed `TripSummary`, immediate
-Driving Report, and finalized results in the existing upload queue. Database
-changes, backend endpoints, the Pocket Settings card, saved-report parsing,
-Analytics, and Driving Family remain separate tasks.
+Driving Report, finalized results in the existing upload queue, the Settings
+Pocket card, saved-report parsing, Analytics, and Driving Family. Database
+changes and backend endpoints are separate backend work.
 
 ## Modes and presentation
 

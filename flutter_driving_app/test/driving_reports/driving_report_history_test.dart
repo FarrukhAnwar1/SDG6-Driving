@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
 
 import '../fixtures/driving_report_fixtures.dart';
 
@@ -56,6 +57,52 @@ void main() {
     expect(report.violations.first.elapsed, const Duration(seconds: 18));
   });
 
+    test('parses all three driving modes and nullable optional grades', () {
+    final regular = DrivingReportSummary.fromJson(
+      reportJson(drivingMode: 'regular', followingDistanceGrade: 0),
+    );
+    expect(regular.drivingMode, DrivingMode.normal);
+    expect(regular.followingDistanceGrade, 0);
+    // A real zero stays in the grade map instead of being treated as missing
+    expect(regular.gradesByLabel['Adequate Following Distance'], 0);
+
+    final navigation = DrivingReportSummary.fromJson(
+      reportJson(
+        drivingMode: 'navigation',
+        focusGrade: null,
+        followingDistanceGrade: 88,
+      ),
+    );
+    expect(navigation.drivingMode, DrivingMode.navigation);
+    expect(navigation.gradesByLabel.containsKey('Focused Driving'), isFalse);
+    expect(navigation.gradesByLabel['Adequate Following Distance'], 88);
+
+    final pocket = DrivingReportSummary.fromJson(
+      reportJson(
+        drivingMode: 'pocket',
+        focusGrade: null,
+        followingDistanceGrade: null,
+      ),
+    );
+    expect(pocket.drivingMode, DrivingMode.pocket);
+    expect(pocket.focusedDrivingGrade, isNull);
+    expect(pocket.followingDistanceGrade, isNull);
+    expect(pocket.gradesByLabel.keys, [
+      'Overall',
+      'Speed',
+      'Braking',
+      'Acceleration',
+      'Turning',
+    ]);
+
+    // Older reports have no drivingMode or following distance field at all
+    final legacy = DrivingReportSummary.fromJson(
+      reportJson()..remove('followingDistanceGrade'),
+    );
+    expect(legacy.drivingMode, DrivingMode.normal);
+    expect(legacy.followingDistanceGrade, isNull);
+  });
+  
   test('handles nullable dates, zero duration and empty violations', () {
     final report = DrivingReportSummary.fromJson(
       reportJson(reportDate: null, durationMinutes: 0),

@@ -1,8 +1,8 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Trip capabilities shared by the dashboard and completed reports. Settings
-// currently exposes Regular and Navigation; its Pocket card is a separate task.
-// Navigation excludes focus. Pocket excludes both focus and the road camera.
+// exposes all three modes. Navigation excludes focus. Pocket excludes both
+// focus and following distance (and so never starts the road camera).
 enum DrivingMode { normal, navigation, pocket }
 
 const _storage = FlutterSecureStorage();
