@@ -2,7 +2,7 @@
 
 See [Live following-distance grading](docs/following_distance.md) for the
 camera baseline, grading thresholds, trip modes, summary/report handoff,
-testing, and the separate backend/Settings integration work.
+testing, and summary/report handoff.
 
 See [Live Voice Feedback](docs/voice_feedback.md) for the spoken dashboard
 alerts, their rate limits, platform audio behavior, and the separate toggle task.
