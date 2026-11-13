@@ -50,6 +50,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   int get _tripLimit => _selectedRange.limit;
 
+  bool get _hasActiveFilters =>
+      _selectedRange != AnalyticsRange.last100 ||
+      _dateRange != null ||
+      _timeOfDay != AnalyticsTimeOfDay.all ||
+      _selectedDrivingModes.length != DrivingMode.values.length;
+
+  void _clearFilters() {
+    setState(() {
+      _selectedRange = AnalyticsRange.last100;
+      _dateRange = null;
+      _timeOfDay = AnalyticsTimeOfDay.all;
+      _selectedDrivingModes
+        ..clear()
+        ..addAll(DrivingMode.values);
+    });
+  }
+
   // Filter the cached history by driving mode and local trip end date/time,
   // then keep the latest matching trips. Filters do not reload report history.
   List<DrivingReportSummary> get _filteredReports {
@@ -73,10 +90,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return matching.skip(math.max(0, matching.length - _tripLimit)).toList();
   }
 
-  // Suggestions use the recent-trip count independently of mode/date/time filters
+  // Suggestions use the full history limit independently of every chart filter.
   Future<void> _loadSuggestions() async {
     final requestId = ++_suggestionsRequestId;
-    final limit = _tripLimit;
+    const limit = DrivingReportApi.historyLimit;
     setState(() {
       _isLoadingSuggestions = true;
       _suggestionsError = null;
@@ -109,7 +126,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         throw const FormatException('Empty suggestion');
       }
 
-      // A slower response for an old selection must not replace newer advice
+      // A slower response from before a refresh must not replace newer advice.
       if (!mounted || requestId != _suggestionsRequestId) return;
 
       setState(() {
@@ -221,7 +238,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent trips', style: Theme.of(context).textTheme.titleSmall),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Text(
+                    'Recent trips',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  TextButton(
+                    onPressed: _hasActiveFilters ? _clearFilters : null,
+                    child: const Text('Clear filters'),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -233,7 +267,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     onSelected: (selected) {
                       if (!selected) return;
                       setState(() => _selectedRange = range);
-                      _loadSuggestions();
                     },
                   ),
               ],
@@ -394,7 +427,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _SectionHeader('Driving Suggestions'),
           const SizedBox(height: 8),
           Text(
-            'Based on up to $_tripLimit latest saved trips, across all driving modes, dates and times.',
+            'Based on up to ${DrivingReportApi.historyLimit} latest saved trips, across all driving modes, dates and times.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
