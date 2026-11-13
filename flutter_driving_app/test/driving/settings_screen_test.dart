@@ -22,6 +22,7 @@ void main() {
       await body(tester);
     });
   }
+
   const selectableModes = DrivingMode.values;
   const cardTitles = {
     DrivingMode.normal: 'Regular Mode',
@@ -39,7 +40,7 @@ void main() {
     'plugins.it_nomads.com/flutter_secure_storage',
   );
   const saveError = 'Could not save your driving mode. Please try again.';
-  const loadError = 'Could not load your driving mode. Please try again.';
+  const loadError = 'Could not load your settings. Please try again.';
 
   late Map<String, String> storedValues;
   late bool failReads;
@@ -310,7 +311,9 @@ void main() {
     });
   }
 
-  testSettings('tapping the selected mode does not write again', (tester) async {
+  testSettings('tapping the selected mode does not write again', (
+    tester,
+  ) async {
     storedValues['driving_mode'] = 'pocket';
     await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
     await tester.pumpAndSettle();
@@ -339,6 +342,21 @@ void main() {
       [for (final mode in DrivingMode.values) mode.tracksFollowingDistance],
       [true, true, false],
     );
+  });
+
+  testSettings('voice feedback loads and saves the shared preference', (
+    tester,
+  ) async {
+    storedValues['live_voice_feedback'] = 'false';
+    await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+    await tester.pumpAndSettle();
+    final toggle = find.byType(SwitchListTile);
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    expect(storedValues['live_voice_feedback'], 'true');
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
   });
 
   testSettings('an unrecognized stored mode loads as Regular', (tester) async {

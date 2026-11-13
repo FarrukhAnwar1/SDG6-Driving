@@ -2,9 +2,9 @@
 
 During a trip, the Live Dashboard speaks a short, plain-language alert when the
 driver does something that starts costing grade points. This frontend work
-covers detection, rate limiting and speech on the dashboard. The synced Live
-Voice Feedback on/off toggle on the Settings and Live Dashboard screens (UI,
-stored setting and syncing) is a separate task; see [Toggle hook-up](#toggle-hook-up).
+covers detection, rate limiting and speech on the dashboard. Settings and the
+dashboard speaker icon share a saved on/off preference; see
+[Toggle hook-up](#toggle-hook-up).
 Warnings before points are lost (for example during grace windows), visual or
 haptic alerts, and backend changes are not part of this feature. Voice feedback
 never changes grades, violations, `TripSummary`, reports, uploads or analytics.
@@ -84,20 +84,19 @@ Maps guidance) can still speak at the same time as an alert.
 
 ## Toggle hook-up
 
-The toggle is a separate task. Voice feedback is owned by
-`_LiveDashboardScreenState` and exposes two seams:
+`voice_feedback_settings.dart` owns the shared `voiceFeedbackSettings` notifier.
+It loads `live_voice_feedback` from `FlutterSecureStorage` before the app opens
+and when Settings loads. A missing preference defaults to enabled. Both toggles
+call `setEnabled`, which saves before publishing the new value. While saving,
+both controls are disabled; failures retain the current value and show a retry
+message. If startup cannot read storage, it logs the error and keeps the default;
+Settings can retry loading.
 
-- **Starting state:** `LiveDashboardScreen(voiceFeedbackEnabled: ...)`, default
-  `true`, read once when the dashboard opens.
-- **Mid-trip changes:** `_voiceFeedback.enabled = value;` inside
-  `_LiveDashboardScreenState`. Turning it off stops speech immediately and drops
-  any waiting alert. Turning it on resumes with the next new alert: missed
-  alerts are never replayed and an episode already in progress is not
-  announced. `_voiceFeedback.enabled` reads the current value. After Stop Trip
-  or dispose the setter has no effect.
-
-The storage key, Settings UI, syncing and `settings_screen.dart` belong to the
-toggle task; voice feedback reads no settings.
+The dashboard initializes its voice service from this notifier and listens for
+changes throughout the trip. Turning feedback off stops speech and drops any
+waiting alert. Turning it on resumes with the next new alert: missed alerts are
+never replayed and an episode already in progress is not announced. After Stop
+Trip or dispose the voice service's setter has no effect.
 
 ## Code and verification
 

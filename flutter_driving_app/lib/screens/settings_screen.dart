@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/driving/driving_mode.dart';
 import '../widgets/shared/error_banner.dart';
 
-final ValueNotifier<bool> liveVoiceFeedback = ValueNotifier<bool>(true);
+import '../widgets/voice_feedback/voice_feedback_settings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -32,6 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     try {
       final mode = await loadDrivingMode();
+      await voiceFeedbackSettings.load();
       if (!mounted) return;
 
       setState(() {
@@ -42,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
       if (!mounted) return;
 
       setState(() {
-        _loadError = 'Could not load your driving mode. Please try again.';
+        _loadError = 'Could not load your settings. Please try again.';
         _isLoading = false;
       });
     }
@@ -75,6 +76,19 @@ class _SettingsPageState extends State<SettingsPage> {
           _isSaving = false;
         });
       }
+    }
+  }
+
+  Future<void> _updateVoiceFeedback(bool enabled) async {
+    try {
+      await voiceFeedbackSettings.setEnabled(enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save voice feedback. Please try again.'),
+        ),
+      );
     }
   }
 
@@ -182,7 +196,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   // Live Voice Feedback toggle
                     Card(
                     child: ValueListenableBuilder<bool>(
-                      valueListenable: liveVoiceFeedback,
+                      valueListenable: voiceFeedbackSettings,
                       builder: (context, isEnabled, child) {
                         return SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
@@ -204,9 +218,9 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           secondary: const Icon(Icons.record_voice_over),
                           value: isEnabled,
-                          onChanged: (bool value) {
-                            liveVoiceFeedback.value = value;
-                          },
+                          onChanged: voiceFeedbackSettings.isSaving
+                              ? null
+                              : _updateVoiceFeedback,
                         );
                       },
                     ),

@@ -740,7 +740,7 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byType(DropdownButtonFormField<String>));
           await tester.pumpAndSettle();
-          await tester.tap(find.text('Adequate Following Distance').last);
+          await tester.tap(find.text('Following Distance').last);
           await tester.pumpAndSettle();
 
           final spots = tester
@@ -794,7 +794,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byType(DropdownButtonFormField<String>));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Adequate Following Distance').last);
+        await tester.tap(find.text('Following Distance').last);
         await tester.pumpAndSettle();
         expect(find.byType(LineChart), findsNothing);
         expect(

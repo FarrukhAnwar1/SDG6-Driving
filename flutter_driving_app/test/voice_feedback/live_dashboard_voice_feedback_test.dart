@@ -11,6 +11,7 @@ import 'package:flutter_driving_app/widgets/following_distance/following_distanc
 import 'package:flutter_driving_app/widgets/following_distance/vehicle_distance_estimator.dart';
 import 'package:flutter_driving_app/widgets/voice_feedback/voice_alerts.dart';
 import 'package:flutter_driving_app/widgets/voice_feedback/voice_output.dart';
+import 'package:flutter_driving_app/widgets/voice_feedback/voice_feedback_settings.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -107,6 +108,11 @@ void main() {
     FollowingDistanceCameraBuilder? cameraBuilder,
     bool voiceFeedbackEnabled = true,
   }) async {
+    FlutterSecureStorage.setMockInitialValues({
+      'access_token': 'test-token',
+      VoiceFeedbackSettings.storageKey: voiceFeedbackEnabled.toString(),
+    });
+    await voiceFeedbackSettings.load();
     tester.view.physicalSize = const Size(360, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -121,7 +127,6 @@ void main() {
                 clock: () => locations.timestamp,
                 followingDistanceCameraBuilder:
                     cameraBuilder ?? (_, _, _) => const SizedBox(),
-                voiceFeedbackEnabled: voiceFeedbackEnabled,
                 voiceOutput: speech,
               ),
             ),
@@ -286,6 +291,37 @@ void main() {
       },
     );
   }
+
+  testWidgets('speaker toggle saves and updates the shared preference', (
+    tester,
+  ) async {
+    await onDashboard(
+      tester,
+      () async {
+        await tester.tap(find.byTooltip('Turn off live voice feedback'));
+        await tester.pump();
+        expect(voiceFeedbackSettings.value, isFalse);
+        expect(find.byTooltip('Turn on live voice feedback'), findsOneWidget);
+        expect(
+          await const FlutterSecureStorage().read(
+            key: VoiceFeedbackSettings.storageKey,
+          ),
+          'false',
+        );
+        await tester.tap(find.byTooltip('Turn on live voice feedback'));
+        await tester.pump();
+        expect(voiceFeedbackSettings.value, isTrue);
+        expect(
+          await const FlutterSecureStorage().read(
+            key: VoiceFeedbackSettings.storageKey,
+          ),
+          'true',
+        );
+      },
+      mode: DrivingMode.normal,
+      speedLimitMph: 25,
+    );
+  });
 
   testWidgets('starting with voice feedback off speaks nothing', (
     tester,
