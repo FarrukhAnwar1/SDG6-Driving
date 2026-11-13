@@ -16,6 +16,161 @@ void main() {
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
   });
 
+  testWidgets(
+    'mode badges default to all selected and support empty selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var requests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pumpAndSettle();
+          for (final label in ['Regular', 'Navigation', 'Pocket']) {
+            expect(
+              tester
+                  .widget<FilterChip>(find.widgetWithText(FilterChip, label))
+                  .selected,
+              isTrue,
+            );
+          }
+          expect(find.text('Showing 3 matching trips.'), findsOneWidget);
+          for (final (label, remaining) in [
+            ('Regular', 2),
+            ('Navigation', 1),
+            ('Pocket', 0),
+          ]) {
+            await tester.tap(find.widgetWithText(FilterChip, label));
+            await tester.pumpAndSettle();
+            expect(
+              tester
+                  .widget<FilterChip>(find.widgetWithText(FilterChip, label))
+                  .selected,
+              isFalse,
+            );
+            expect(
+              find.text(
+                'Showing $remaining matching trip${remaining == 1 ? '' : 's'}.',
+              ),
+              findsOneWidget,
+            );
+          }
+          await tester.scrollUntilVisible(
+            find.textContaining('No trips match these filters'),
+            150,
+          );
+          await _scrollToTop(tester);
+          await tester.tap(find.widgetWithText(FilterChip, 'Pocket'));
+          await tester.pumpAndSettle();
+          expect(find.text('Showing 1 matching trip.'), findsOneWidget);
+          expect(requests, 2); // Initial history and suggestions only.
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          requests++;
+          if (request.url.path == '/advanced-suggestion') {
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'reports': [
+                _modeReport(id: 3, mode: 'pocket', grade: 90),
+                _modeReport(id: 2, mode: 'navigation', grade: 80),
+                _modeReport(id: 1, mode: 'regular', grade: 70),
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
+
+  testWidgets('mode and time filters apply before the recent-trip limit', (
+    tester,
+  ) async {
+    var historyRequests = 0;
+    var suggestionRequests = 0;
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ChoiceChip, '10'));
+        await tester.pumpAndSettle();
+        for (final label in ['Navigation', 'Pocket']) {
+          await tester.tap(find.widgetWithText(FilterChip, label));
+          await tester.pumpAndSettle();
+        }
+        // Twelve regular trips exist, including older ones outside the latest
+        // ten trips across all modes. Keep the latest ten matching trips.
+        expect(find.text('Showing 10 matching trips.'), findsOneWidget);
+        await tester.ensureVisible(find.text('AM'));
+        await tester.tap(find.text('AM'));
+        await tester.pumpAndSettle();
+        expect(find.text('Showing 6 matching trips.'), findsOneWidget);
+
+        // Last drive, averages, chart and report list use the same selection.
+        await tester.scrollUntilVisible(find.text('74%').first, 150);
+        expect(find.text('74%'), findsWidgets);
+        await tester.scrollUntilVisible(find.text('Total Trips'), 150);
+        expect(find.text('6'), findsOneWidget);
+        expect(find.text('74.4 mi'), findsOneWidget);
+        expect(find.text('59%'), findsOneWidget);
+        await tester.scrollUntilVisible(find.byType(LineChart), 250);
+        expect(
+          tester
+              .widget<LineChart>(find.byType(LineChart))
+              .data
+              .lineBarsData
+              .single
+              .spots
+              .map((spot) => spot.y),
+          [44, 50, 56, 62, 68, 74],
+        );
+        await tester.scrollUntilVisible(
+          find.byKey(const PageStorageKey(34)),
+          250,
+        );
+        expect(
+          tester.widget<ExpansionTile>(find.byType(ExpansionTile).first).key,
+          const PageStorageKey(34),
+        );
+        expect(historyRequests, 1);
+        expect(suggestionRequests, 2); // Initial load and recent-count change.
+        expect(tester.takeException(), isNull);
+      },
+      () => MockClient((request) async {
+        if (request.url.path == '/advanced-suggestion') {
+          suggestionRequests++;
+          return http.Response('{"message":"Keep recording your trips."}', 200);
+        }
+        historyRequests++;
+        return http.Response(
+          jsonEncode({
+            'reports': [
+              for (var id = 36; id > 0; id--)
+                _modeReport(
+                    id: id,
+                    mode: ['regular', 'navigation', 'pocket'][(id - 1) % 3],
+                    grade: 40.0 + id,
+                  )
+                  ..['reportDate'] = DateTime(2026, 7, 1)
+                      .add(Duration(days: id, hours: id.isEven ? 9 : 15))
+                      .toUtc()
+                      .toIso8601String(),
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+  });
+
   for (final mode in ['regular', 'navigation', 'pocket']) {
     final otherMode = mode == 'regular' ? 'navigation' : 'regular';
 

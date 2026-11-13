@@ -41,6 +41,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   AnalyticsRange _selectedRange = AnalyticsRange.last100;
   DateTimeRange? _dateRange;
   AnalyticsTimeOfDay _timeOfDay = AnalyticsTimeOfDay.all;
+  final Set<DrivingMode> _selectedDrivingModes = DrivingMode.values.toSet();
 
   bool _isLoadingSuggestions = false;
   String? _suggestionsError;
@@ -49,10 +50,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   int get _tripLimit => _selectedRange.limit;
 
-  // Filter the cached history by local trip end date/time, then keep the latest
-  // matching trips. No filter change reloads report history from the backend.
+  // Filter the cached history by driving mode and local trip end date/time,
+  // then keep the latest matching trips. Filters do not reload report history.
   List<DrivingReportSummary> get _filteredReports {
     final matching = _reports.where((report) {
+      if (!_selectedDrivingModes.contains(report.drivingMode)) return false;
       final date = report.reportDate?.toLocal();
       if (_dateRange != null) {
         if (date == null) return false;
@@ -71,7 +73,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return matching.skip(math.max(0, matching.length - _tripLimit)).toList();
   }
 
-  // Suggestions use the recent-trip count independently of date/time filters
+  // Suggestions use the recent-trip count independently of mode/date/time filters
   Future<void> _loadSuggestions() async {
     final requestId = ++_suggestionsRequestId;
     final limit = _tripLimit;
@@ -237,6 +239,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
             ),
             const SizedBox(height: 12),
+            Text('Driving mode', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final mode in DrivingMode.values)
+                  FilterChip(
+                    label: Text(
+                      mode == DrivingMode.normal ? 'Regular' : mode.label,
+                    ),
+                    selected: _selectedDrivingModes.contains(mode),
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedDrivingModes.add(mode);
+                        } else {
+                          _selectedDrivingModes.remove(mode);
+                        }
+                      });
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8,
@@ -367,7 +394,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _SectionHeader('Driving Suggestions'),
           const SizedBox(height: 8),
           Text(
-            'Based on up to $_tripLimit latest saved trips, across all dates and times.',
+            'Based on up to $_tripLimit latest saved trips, across all driving modes, dates and times.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
