@@ -691,6 +691,9 @@ class _LastDriveCard extends StatelessWidget {
   }
 }
 
+String _metricDisplayName(String label) =>
+    label == 'Adequate Following Distance' ? 'Following Distance' : label;
+
 class _GradeRow extends StatelessWidget {
   final String label;
   final double value;
@@ -710,7 +713,7 @@ class _GradeRow extends StatelessWidget {
         children: [
           CircleAvatar(radius: 5, backgroundColor: metricColors[label]),
           const SizedBox(width: 10),
-          Expanded(child: Text(label)),
+          Expanded(child: Text(_metricDisplayName(label))),
           const SizedBox(width: 12),
           // Shared column widths keep scores and changes aligned across rows
           SizedBox(
@@ -763,7 +766,7 @@ class _NotTrackedGradeRow extends StatelessWidget {
         children: [
           const Icon(Icons.remove_circle_outline, size: 12),
           const SizedBox(width: 10),
-          Expanded(child: Text(label)),
+          Expanded(child: Text(_metricDisplayName(label))),
           const Flexible(
             child: Text(
               'Not Tracked',
@@ -959,7 +962,7 @@ class _MetricDropdown extends StatelessWidget {
               children: [
                 CircleAvatar(backgroundColor: entry.value, radius: 6),
                 const SizedBox(width: 10),
-                Expanded(child: Text(entry.key)),
+                Expanded(child: Text(_metricDisplayName(entry.key))),
               ],
             ),
           ),

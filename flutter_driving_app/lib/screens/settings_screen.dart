@@ -140,7 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     title: 'Navigation Mode',
                     description:
                         'Use this mode when your phone is being used for navigation. '
-                        'Focus tracking will be disabled and will not affect your grade.'
+                        'Focus tracking will be disabled and will not affect your grade. '
                         'Following distance is still tracked.',
                     isSelected: _drivingMode == DrivingMode.navigation,
                     onTap: _isSaving
@@ -172,6 +172,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   ],
 
                   const SizedBox(height: 24),
+
+                  Text(
+                    'Personalization',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
 
                   // Live Voice Feedback toggle
                     Card(

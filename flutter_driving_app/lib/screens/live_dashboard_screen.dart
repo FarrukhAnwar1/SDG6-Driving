@@ -643,28 +643,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ValueListenableBuilder<bool>(
-                  valueListenable: liveVoiceFeedback,
-                  builder: (context, isEnabled, child) {
-                    return SwitchListTile(
-                      title: const Text('Live Voice Feedback'),
-                      subtitle: Text(
-                        isEnabled
-                            ? 'Voice alerts enabled'
-                            : 'Voice alerts disabled',
-                      ),
-                      secondary: Icon(
-                        isEnabled ? Icons.volume_up : Icons.volume_off,
-                      ),
-                      value: isEnabled,
-                      onChanged: (bool value) {
-                        liveVoiceFeedback.value = value;
-                        _voiceFeedback.enabled = value;
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
                 _buildDrivingModeIndicator(context),
                 const SizedBox(height: 12),
                 // Allocate the available height so every grade stays visible
@@ -1164,7 +1142,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // Mode and a small road preview for positioning the mounted rear camera.
+  // Mode, voice feedback control, and a small road preview for the rear camera.
   Widget _buildDrivingModeIndicator(BuildContext context) {
     final isNavigationMode = widget.drivingMode == DrivingMode.navigation;
     final (modeLabel, modeIcon) = switch (widget.drivingMode) {
@@ -1201,6 +1179,23 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               modeLabel,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: liveVoiceFeedback,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                tooltip: isEnabled
+                    ? 'Turn off live voice feedback'
+                    : 'Turn on live voice feedback',
+                isSelected: isEnabled,
+                icon: const Icon(Icons.volume_off),
+                selectedIcon: const Icon(Icons.volume_up),
+                onPressed: () {
+                  liveVoiceFeedback.value = !isEnabled;
+                  _voiceFeedback.enabled = !isEnabled;
+                },
+              );
+            },
           ),
           if (_isFollowingDistanceGraded) ...[
             const SizedBox(width: 10),
