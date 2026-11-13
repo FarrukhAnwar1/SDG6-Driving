@@ -676,16 +676,16 @@ class _FamilyMemberCard extends StatelessWidget {
     ],
   );
 
-    // No grade set at all (no drives yet) is an em dash. A grade set where focus
-    // or following distance is null means that drive's mode did not measure it.
-    String _score(FamilyGrades? grades, String label) {
-      if (grades == null) return '\u2014';
-      final value = grades.byLabel[label];
-      if (value == null) {
-        return FamilyGrades.optionalLabels.contains(label)
-            ? 'Not tracked'
-            : '\u2014';
-      }
+  // No grade set at all (no drives yet) is an em dash. A grade set where focus
+  // or following distance is null means that drive's mode did not measure it.
+  String _score(FamilyGrades? grades, String label) {
+    if (grades == null) return '\u2014';
+    final value = grades.byLabel[label];
+    if (value == null) {
+      return FamilyGrades.optionalLabels.contains(label)
+          ? 'Not tracked'
+          : '\u2014';
+    }
     final precision = value == value.roundToDouble() ? 0 : 1;
     return '${value.toStringAsFixed(precision)}%';
   }

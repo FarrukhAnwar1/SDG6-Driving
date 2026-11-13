@@ -57,7 +57,7 @@ void main() {
     expect(report.violations.first.elapsed, const Duration(seconds: 18));
   });
 
-    test('parses all three driving modes and nullable optional grades', () {
+  test('parses all three driving modes and nullable optional grades', () {
     final regular = DrivingReportSummary.fromJson(
       reportJson(drivingMode: 'regular', followingDistanceGrade: 0),
     );
@@ -102,7 +102,7 @@ void main() {
     expect(legacy.drivingMode, DrivingMode.normal);
     expect(legacy.followingDistanceGrade, isNull);
   });
-  
+
   test('handles nullable dates, zero duration and empty violations', () {
     final report = DrivingReportSummary.fromJson(
       reportJson(reportDate: null, durationMinutes: 0),

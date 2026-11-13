@@ -1029,11 +1029,11 @@ class _HistoryChartState extends State<_HistoryChart> {
       return const SizedBox(
         height: 120,
         child: Center(
-           child: Text(
-             'This grade was not tracked in the selected trips.',
-             textAlign: TextAlign.center,
-           ),
-         ),
+          child: Text(
+            'This grade was not tracked in the selected trips.',
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
     final lastIndex = (reports.length - 1).toDouble();
@@ -1272,20 +1272,20 @@ class _HistoryChartState extends State<_HistoryChart> {
       ),
     );
     final missingCount = reports.length - availableGrades.length;
-     if (missingCount == 0) return chart;
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         chart,
-         const SizedBox(height: 8),
-         Text(
-           '$missingCount of ${reports.length} trips did not track this grade '
-           'and appear as gaps.',
-           style: Theme.of(
-             context,
-           ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-         ),
-       ],
-     );
-   }
+    if (missingCount == 0) return chart;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        chart,
+        const SizedBox(height: 8),
+        Text(
+          '$missingCount of ${reports.length} trips did not track this grade '
+          'and appear as gaps.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
 }

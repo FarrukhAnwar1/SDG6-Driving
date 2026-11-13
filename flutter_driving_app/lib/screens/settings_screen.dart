@@ -139,7 +139,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     icon: Icons.directions_car_outlined,
                     title: 'Regular Mode',
                     description:
-                        'Use this mode when you are not using your phone for navigation. ' 
+                        'Use this mode when you are not using your phone for navigation. '
                         'Tracks speed, smoothness, focus, and following distance.',
                     isSelected: _drivingMode == DrivingMode.normal,
                     onTap: _isSaving
@@ -162,7 +162,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         : () => _updateDrivingMode(DrivingMode.navigation),
                   ),
 
-                 const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
                   _ModeDescriptionCard(
                     icon: Icons.phone_android_outlined,
@@ -194,7 +194,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 8),
 
                   // Live Voice Feedback toggle
-                    Card(
+                  Card(
                     child: ValueListenableBuilder<bool>(
                       valueListenable: voiceFeedbackSettings,
                       builder: (context, isEnabled, child) {
@@ -205,9 +205,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           title: Text(
                             'Live Voice Feedback',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 6),
@@ -248,9 +247,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),              
-          ],
-        ),
+                  const SizedBox(height: 16),
+                ],
+              ),
       ),
     );
   }

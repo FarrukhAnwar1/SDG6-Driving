@@ -232,10 +232,7 @@ void main() {
         tester,
         (_) async => _family(
           members: [
-            familyMemberJson(
-              latestFocus: null,
-              latestFollowingDistance: null,
-            ),
+            familyMemberJson(latestFocus: null, latestFollowingDistance: null),
           ],
         ),
         () async {

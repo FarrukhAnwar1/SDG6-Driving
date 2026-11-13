@@ -166,6 +166,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _startUserAccelerometer();
     _startGyroscope();
   }
+
   void _syncVoiceFeedback() {
     _voiceFeedback.enabled = voiceFeedbackSettings.value;
   }
@@ -715,7 +716,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         ),
       ),
     );
-    
   }
 
   // Rounded, softly outlined container shared by the different dashboard sections
