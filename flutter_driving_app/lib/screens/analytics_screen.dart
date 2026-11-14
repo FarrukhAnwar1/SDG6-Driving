@@ -8,6 +8,7 @@ import '../widgets/shared/api_config.dart';
 import '../widgets/auth/auth_storage.dart';
 import '../widgets/driving_reports/driving_report_api.dart';
 import '../widgets/driving_reports/driving_report_summary.dart';
+import '../widgets/driving_reports/analytics_date_range_dialog.dart';
 import '../widgets/shared/error_banner.dart';
 import '../widgets/grading/grade_utils.dart';
 import '../widgets/driving/driving_mode.dart';
@@ -41,6 +42,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   AnalyticsRange _selectedRange = AnalyticsRange.last100;
   DateTimeRange? _dateRange;
   AnalyticsTimeOfDay _timeOfDay = AnalyticsTimeOfDay.all;
+  final Set<DrivingMode> _selectedDrivingModes = DrivingMode.values.toSet();
 
   bool _isLoadingSuggestions = false;
   String? _suggestionsError;
@@ -49,10 +51,28 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   int get _tripLimit => _selectedRange.limit;
 
-  // Filter the cached history by local trip end date/time, then keep the latest
-  // matching trips. No filter change reloads report history from the backend.
+  bool get _hasActiveFilters =>
+      _selectedRange != AnalyticsRange.last100 ||
+      _dateRange != null ||
+      _timeOfDay != AnalyticsTimeOfDay.all ||
+      _selectedDrivingModes.length != DrivingMode.values.length;
+
+  void _clearFilters() {
+    setState(() {
+      _selectedRange = AnalyticsRange.last100;
+      _dateRange = null;
+      _timeOfDay = AnalyticsTimeOfDay.all;
+      _selectedDrivingModes
+        ..clear()
+        ..addAll(DrivingMode.values);
+    });
+  }
+
+  // Filter the cached history by driving mode and local trip end date/time,
+  // then keep the latest matching trips. Filters do not reload report history.
   List<DrivingReportSummary> get _filteredReports {
     final matching = _reports.where((report) {
+      if (!_selectedDrivingModes.contains(report.drivingMode)) return false;
       final date = report.reportDate?.toLocal();
       if (_dateRange != null) {
         if (date == null) return false;
@@ -71,10 +91,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return matching.skip(math.max(0, matching.length - _tripLimit)).toList();
   }
 
-  // Suggestions use the recent-trip count independently of date/time filters
+  // Suggestions use the full history limit independently of every chart filter.
   Future<void> _loadSuggestions() async {
     final requestId = ++_suggestionsRequestId;
-    final limit = _tripLimit;
+    const limit = DrivingReportApi.historyLimit;
     setState(() {
       _isLoadingSuggestions = true;
       _suggestionsError = null;
@@ -107,7 +127,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         throw const FormatException('Empty suggestion');
       }
 
-      // A slower response for an old selection must not replace newer advice
+      // A slower response from before a refresh must not replace newer advice.
       if (!mounted || requestId != _suggestionsRequestId) return;
 
       setState(() {
@@ -200,12 +220,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       today,
       (latest, date) => date.isAfter(latest) ? date : latest,
     );
-    final selected = await showDateRangePicker(
-      context: context,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      initialDateRange: _dateRange,
-    );
+    final mediaQuery = MediaQuery.of(context);
+    // Flutter's range input uses a fixed-height form and a wide calendar header.
+    // Use a flexible form when width or enlarged text would overflow that layout.
+    final useFlexibleInput =
+        mediaQuery.size.width < 400 || mediaQuery.textScaler.scale(16) > 16;
+    final selected = useFlexibleInput
+        ? await showDialog<DateTimeRange>(
+            context: context,
+            builder: (_) => AnalyticsDateRangeDialog(
+              firstDate: firstDate,
+              lastDate: lastDate,
+              initialDateRange: _dateRange,
+            ),
+          )
+        : await showDateRangePicker(
+            context: context,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            initialDateRange: _dateRange,
+          );
     if (!mounted || selected == null) return;
     setState(() => _dateRange = selected);
   }
@@ -219,7 +253,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent trips', style: Theme.of(context).textTheme.titleSmall),
+            SizedBox(
+              width: double.infinity,
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Text(
+                    'Recent trips',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  TextButton(
+                    onPressed: _hasActiveFilters ? _clearFilters : null,
+                    child: const Text('Clear filters'),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -231,7 +282,31 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     onSelected: (selected) {
                       if (!selected) return;
                       setState(() => _selectedRange = range);
-                      _loadSuggestions();
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('Driving mode', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final mode in DrivingMode.values)
+                  FilterChip(
+                    label: Text(
+                      mode == DrivingMode.normal ? 'Regular' : mode.label,
+                    ),
+                    selected: _selectedDrivingModes.contains(mode),
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedDrivingModes.add(mode);
+                        } else {
+                          _selectedDrivingModes.remove(mode);
+                        }
+                      });
                     },
                   ),
               ],
@@ -367,7 +442,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           _SectionHeader('Driving Suggestions'),
           const SizedBox(height: 8),
           Text(
-            'Based on up to $_tripLimit latest saved trips, across all dates and times.',
+            'Based on up to ${DrivingReportApi.historyLimit} latest saved trips, across all driving modes, dates and times.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -691,6 +766,9 @@ class _LastDriveCard extends StatelessWidget {
   }
 }
 
+String _metricDisplayName(String label) =>
+    label == 'Adequate Following Distance' ? 'Following Distance' : label;
+
 class _GradeRow extends StatelessWidget {
   final String label;
   final double value;
@@ -704,28 +782,72 @@ class _GradeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final scoreWidth = scaler.scale(48);
+    final change = averageValue == null
+        ? null
+        : _GradeChange(delta: value - averageValue!);
+    final score = SizedBox(
+      width: scoreWidth,
+      child: Text(
+        '${value.toStringAsFixed(0)}%',
+        textAlign: TextAlign.end,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+    final marker = CircleAvatar(
+      radius: 5,
+      backgroundColor: metricColors[label],
+    );
+    final title = Text(_metricDisplayName(label));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 5, backgroundColor: metricColors[label]),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label)),
-          const SizedBox(width: 12),
-          // Shared column widths keep scores and changes aligned across rows
-          SizedBox(
-            width: MediaQuery.textScalerOf(context).scale(48),
-            child: Text(
-              '${value.toStringAsFixed(0)}%',
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          if (averageValue != null) ...[
-            const SizedBox(width: 14),
-            _GradeChange(delta: value - averageValue!),
-          ],
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Reserve useful space for the category label before adding columns.
+          final rowWidth =
+              10 +
+              10 +
+              scaler.scale(100) +
+              12 +
+              scoreWidth +
+              (change == null ? 0 : 14 + 22 + scaler.scale(44));
+          if (constraints.maxWidth < rowWidth) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    marker,
+                    const SizedBox(width: 10),
+                    Expanded(child: title),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 14,
+                    runSpacing: 4,
+                    children: [score, ?change],
+                  ),
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              marker,
+              const SizedBox(width: 10),
+              Expanded(child: title),
+              const SizedBox(width: 12),
+              score,
+              if (change != null) ...[const SizedBox(width: 14), change],
+            ],
+          );
+        },
       ),
     );
   }
@@ -763,7 +885,7 @@ class _NotTrackedGradeRow extends StatelessWidget {
         children: [
           const Icon(Icons.remove_circle_outline, size: 12),
           const SizedBox(width: 10),
-          Expanded(child: Text(label)),
+          Expanded(child: Text(_metricDisplayName(label))),
           const Flexible(
             child: Text(
               'Not Tracked',
@@ -959,7 +1081,7 @@ class _MetricDropdown extends StatelessWidget {
               children: [
                 CircleAvatar(backgroundColor: entry.value, radius: 6),
                 const SizedBox(width: 10),
-                Expanded(child: Text(entry.key)),
+                Expanded(child: Text(_metricDisplayName(entry.key))),
               ],
             ),
           ),
@@ -1026,11 +1148,11 @@ class _HistoryChartState extends State<_HistoryChart> {
       return const SizedBox(
         height: 120,
         child: Center(
-           child: Text(
-             'This grade was not tracked in the selected trips.',
-             textAlign: TextAlign.center,
-           ),
-         ),
+          child: Text(
+            'This grade was not tracked in the selected trips.',
+            textAlign: TextAlign.center,
+          ),
+        ),
       );
     }
     final lastIndex = (reports.length - 1).toDouble();
@@ -1269,20 +1391,20 @@ class _HistoryChartState extends State<_HistoryChart> {
       ),
     );
     final missingCount = reports.length - availableGrades.length;
-     if (missingCount == 0) return chart;
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         chart,
-         const SizedBox(height: 8),
-         Text(
-           '$missingCount of ${reports.length} trips did not track this grade '
-           'and appear as gaps.',
-           style: Theme.of(
-             context,
-           ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-         ),
-       ],
-     );
-   }
+    if (missingCount == 0) return chart;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        chart,
+        const SizedBox(height: 8),
+        Text(
+          '$missingCount of ${reports.length} trips did not track this grade '
+          'and appear as gaps.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
 }

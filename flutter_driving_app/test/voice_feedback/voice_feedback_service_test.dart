@@ -181,6 +181,37 @@ void main() {
     expect(output.spoken, [speeding]);
   });
 
+  test('an expired urgent alert does not discard a fresh alert', () async {
+    check(0, [VoiceAlert.speeding]);
+    check(1, [VoiceAlert.followingDistance]);
+    await finishPhrase(5);
+    check(6);
+    // Following distance is now stale, while braking has just been detected.
+    check(7.1, [VoiceAlert.harshBraking]);
+    expect(output.spoken, [speeding, braking]);
+  });
+
+  test(
+    'a fresh alert can wait after replacing an expired urgent alert',
+    () async {
+      check(0, [VoiceAlert.speeding]);
+      check(0.5, [VoiceAlert.followingDistance]);
+      check(7, [VoiceAlert.harshBraking]);
+      expect(output.spoken, [speeding]);
+      await finishPhrase(7.5);
+      check(9.5);
+      expect(output.spoken, [speeding, braking]);
+    },
+  );
+
+  test('an urgent alert at the age limit still has priority', () async {
+    check(0, [VoiceAlert.speeding]);
+    check(1, [VoiceAlert.followingDistance]);
+    await finishPhrase(5);
+    check(7, [VoiceAlert.harshBraking]);
+    expect(output.spoken, [speeding, following]);
+  });
+
   test('a phrase that never reports completion is timed out', () {
     check(0, [VoiceAlert.speeding]);
     check(3, [VoiceAlert.harshBraking]);
@@ -208,6 +239,42 @@ void main() {
   });
 
   group('on/off', () {
+    for (final alert in VoiceAlert.values) {
+      test('muted events do not consume the ${alert.name} cooldown', () {
+        voice = build(enabled: false);
+        check(0, [alert]);
+        expect(output.spoken, isEmpty);
+
+        voice.enabled = true;
+        check(1);
+        expect(output.spoken, isEmpty, reason: 'Do not replay the muted event');
+        check(10, [alert]);
+        expect(output.spoken, [alert.phrase]);
+      });
+    }
+
+    test('muting preserves the cooldown of an earlier enabled alert', () async {
+      check(0, [VoiceAlert.speeding]);
+      await finishPhrase(1);
+      voice.enabled = false;
+      check(2, [VoiceAlert.speeding]);
+      voice.enabled = true;
+      check(4, [VoiceAlert.speeding]);
+      expect(output.spoken, [speeding]);
+      check(30, [VoiceAlert.speeding]);
+      expect(output.spoken, [speeding, speeding]);
+    });
+
+    test('muted events do not restart an expired cooldown', () async {
+      check(0, [VoiceAlert.speeding]);
+      await finishPhrase(1);
+      voice.enabled = false;
+      check(31, [VoiceAlert.speeding]);
+      voice.enabled = true;
+      check(32, [VoiceAlert.speeding]);
+      expect(output.spoken, [speeding, speeding]);
+    });
+
     test('turning off stops speech and drops the waiting alert', () async {
       check(0, [VoiceAlert.speeding]);
       check(1, [VoiceAlert.harshBraking]);

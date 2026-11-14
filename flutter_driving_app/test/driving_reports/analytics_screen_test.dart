@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/analytics_screen.dart';
+import 'package:flutter_driving_app/widgets/driving_reports/driving_report_api.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +16,331 @@ void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
   });
+
+  testWidgets(
+    'history timeout allows retry and ignores the late old response',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      var historyRequests = 0;
+      var suggestionRequests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(DrivingReportApi.historyRequestTimeout);
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Loading trip history timed out. Please try again.'),
+            findsOneWidget,
+          );
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          expect(
+            tester
+                .widget<IconButton>(
+                  find.byWidgetPredicate(
+                    (widget) =>
+                        widget is IconButton &&
+                        widget.tooltip == 'Refresh trip history',
+                  ),
+                )
+                .onPressed,
+            isNotNull,
+          );
+          await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+          expect(find.text('95%'), findsWidgets);
+          delayed.complete(
+            http.Response(
+              jsonEncode({
+                'reports': [reportJson(overallGrade: 10)],
+              }),
+              200,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text('95%'), findsWidgets);
+          expect(find.text('10%'), findsNothing);
+          expect(historyRequests, 2);
+          expect(suggestionRequests, 1);
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          if (request.url.path == '/advanced-suggestion') {
+            suggestionRequests++;
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          historyRequests++;
+          if (historyRequests == 1) return delayed.future;
+          return http.Response(
+            jsonEncode({
+              'reports': [reportJson(overallGrade: 95)],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
+
+  testWidgets(
+    'mode badges default to all selected and support empty selection',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var requests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pumpAndSettle();
+          for (final label in ['Regular', 'Navigation', 'Pocket']) {
+            expect(
+              tester
+                  .widget<FilterChip>(find.widgetWithText(FilterChip, label))
+                  .selected,
+              isTrue,
+            );
+          }
+          expect(find.text('Showing 3 matching trips.'), findsOneWidget);
+          for (final (label, remaining) in [
+            ('Regular', 2),
+            ('Navigation', 1),
+            ('Pocket', 0),
+          ]) {
+            await tester.tap(find.widgetWithText(FilterChip, label));
+            await tester.pumpAndSettle();
+            expect(
+              tester
+                  .widget<FilterChip>(find.widgetWithText(FilterChip, label))
+                  .selected,
+              isFalse,
+            );
+            expect(
+              find.text(
+                'Showing $remaining matching trip${remaining == 1 ? '' : 's'}.',
+              ),
+              findsOneWidget,
+            );
+          }
+          await tester.scrollUntilVisible(
+            find.textContaining('No trips match these filters'),
+            150,
+          );
+          await _scrollToTop(tester);
+          await tester.tap(find.widgetWithText(FilterChip, 'Pocket'));
+          await tester.pumpAndSettle();
+          expect(find.text('Showing 1 matching trip.'), findsOneWidget);
+          expect(requests, 2); // Initial history and suggestions only.
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          requests++;
+          if (request.url.path == '/advanced-suggestion') {
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'reports': [
+                _modeReport(id: 3, mode: 'pocket', grade: 90),
+                _modeReport(id: 2, mode: 'navigation', grade: 80),
+                _modeReport(id: 1, mode: 'regular', grade: 70),
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
+
+  testWidgets('mode and time filters apply before the recent-trip limit', (
+    tester,
+  ) async {
+    var historyRequests = 0;
+    var suggestionRequests = 0;
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ChoiceChip, '10'));
+        await tester.pumpAndSettle();
+        for (final label in ['Navigation', 'Pocket']) {
+          await tester.tap(find.widgetWithText(FilterChip, label));
+          await tester.pumpAndSettle();
+        }
+        // Twelve regular trips exist, including older ones outside the latest
+        // ten trips across all modes. Keep the latest ten matching trips.
+        expect(find.text('Showing 10 matching trips.'), findsOneWidget);
+        await tester.ensureVisible(find.text('AM'));
+        await tester.tap(find.text('AM'));
+        await tester.pumpAndSettle();
+        expect(find.text('Showing 6 matching trips.'), findsOneWidget);
+
+        // Last drive, averages, chart and report list use the same selection.
+        await tester.scrollUntilVisible(find.text('74%').first, 150);
+        expect(find.text('74%'), findsWidgets);
+        await tester.scrollUntilVisible(find.text('Total Trips'), 150);
+        expect(find.text('6'), findsOneWidget);
+        expect(find.text('74.4 mi'), findsOneWidget);
+        expect(find.text('59%'), findsOneWidget);
+        await tester.scrollUntilVisible(find.byType(LineChart), 250);
+        expect(
+          tester
+              .widget<LineChart>(find.byType(LineChart))
+              .data
+              .lineBarsData
+              .single
+              .spots
+              .map((spot) => spot.y),
+          [44, 50, 56, 62, 68, 74],
+        );
+        await tester.scrollUntilVisible(
+          find.byKey(const PageStorageKey(34)),
+          250,
+        );
+        expect(
+          tester.widget<ExpansionTile>(find.byType(ExpansionTile).first).key,
+          const PageStorageKey(34),
+        );
+        expect(historyRequests, 1);
+        expect(
+          suggestionRequests,
+          1,
+        ); // Initial load only, independent of filters.
+        expect(tester.takeException(), isNull);
+      },
+      () => MockClient((request) async {
+        if (request.url.path == '/advanced-suggestion') {
+          suggestionRequests++;
+          return http.Response('{"message":"Keep recording your trips."}', 200);
+        }
+        historyRequests++;
+        return http.Response(
+          jsonEncode({
+            'reports': [
+              for (var id = 36; id > 0; id--)
+                _modeReport(
+                    id: id,
+                    mode: ['regular', 'navigation', 'pocket'][(id - 1) % 3],
+                    grade: 40.0 + id,
+                  )
+                  ..['reportDate'] = DateTime(2026, 7, 1)
+                      .add(Duration(days: id, hours: id.isEven ? 9 : 15))
+                      .toUtc()
+                      .toIso8601String(),
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+  });
+
+  testWidgets(
+    'clear filters restores every default without refreshing advice',
+    (tester) async {
+      var historyRequests = 0;
+      var suggestionRequests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pumpAndSettle();
+          final clear = find.widgetWithText(TextButton, 'Clear filters');
+          expect(tester.widget<TextButton>(clear).onPressed, isNull);
+          expect(find.text('Showing 30 matching trips.'), findsOneWidget);
+
+          await tester.tap(find.widgetWithText(ChoiceChip, '10'));
+          await tester.pumpAndSettle();
+          for (final label in ['Regular', 'Navigation', 'Pocket']) {
+            await tester.tap(find.widgetWithText(FilterChip, label));
+            await tester.pumpAndSettle();
+          }
+          await tester.ensureVisible(find.text('AM'));
+          await tester.tap(find.text('AM'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Date range'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('Switch to input'));
+          await tester.pumpAndSettle();
+          await tester.enterText(find.byType(TextField).at(0), '07/10/2026');
+          await tester.enterText(find.byType(TextField).at(1), '07/20/2026');
+          await tester.tap(find.text('OK'));
+          await tester.pumpAndSettle();
+          expect(find.text('Showing 0 matching trips.'), findsOneWidget);
+          expect(find.byTooltip('Clear date range'), findsOneWidget);
+
+          await _scrollToTop(tester);
+          expect(tester.widget<TextButton>(clear).onPressed, isNotNull);
+          await tester.tap(clear);
+          await tester.pumpAndSettle();
+          expect(tester.widget<TextButton>(clear).onPressed, isNull);
+          expect(
+            tester
+                .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '100'))
+                .selected,
+            isTrue,
+          );
+          for (final label in ['Regular', 'Navigation', 'Pocket']) {
+            expect(
+              tester
+                  .widget<FilterChip>(find.widgetWithText(FilterChip, label))
+                  .selected,
+              isTrue,
+            );
+          }
+          expect(
+            tester
+                .widget<SegmentedButton<AnalyticsTimeOfDay>>(
+                  find.byType(SegmentedButton<AnalyticsTimeOfDay>),
+                )
+                .selected,
+            {AnalyticsTimeOfDay.all},
+          );
+          expect(find.text('Date range'), findsOneWidget);
+          expect(find.byTooltip('Clear date range'), findsNothing);
+          expect(find.text('Showing 30 matching trips.'), findsOneWidget);
+          await tester.scrollUntilVisible(find.text('Original advice'), 200);
+          expect(historyRequests, 1);
+          expect(suggestionRequests, 1);
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          if (request.url.path == '/advanced-suggestion') {
+            suggestionRequests++;
+            return http.Response('{"message":"Original advice"}', 200);
+          }
+          historyRequests++;
+          return http.Response(
+            jsonEncode({
+              'reports': [
+                for (var id = 30; id > 0; id--)
+                  _modeReport(
+                      id: id,
+                      mode: ['regular', 'navigation', 'pocket'][(id - 1) % 3],
+                      grade: 90,
+                    )
+                    ..['reportDate'] = DateTime(
+                      2026,
+                      7,
+                      id,
+                      id.isEven ? 9 : 15,
+                    ).toUtc().toIso8601String(),
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
 
   for (final mode in ['regular', 'navigation', 'pocket']) {
     final otherMode = mode == 'regular' ? 'navigation' : 'regular';
@@ -131,7 +457,7 @@ void main() {
   }
 
   testWidgets(
-    'recent count filters cached history and updates suggestion limit',
+    'recent count filters cached history without refreshing suggestions',
     (tester) async {
       var historyRequests = 0;
       final suggestionLimits = <String>[];
@@ -175,11 +501,17 @@ void main() {
           );
           await _scrollToTop(tester);
           await tester.scrollUntilVisible(
-            find.text('Advice for 25 trips'),
+            find.text('Advice for 100 trips'),
             300,
           );
+          expect(
+            find.text(
+              'Based on up to 100 latest saved trips, across all driving modes, dates and times.',
+            ),
+            findsOneWidget,
+          );
           expect(historyRequests, 1);
-          expect(suggestionLimits, ['100', '25']);
+          expect(suggestionLimits, ['100']);
           expect(tester.takeException(), isNull);
         },
         () => MockClient((request) async {
@@ -329,7 +661,7 @@ void main() {
           );
 
           // Combine filters, then choose an empty date range without losing the
-          // controls needed to recover. Suggestions continue to use recent count.
+          // controls needed to recover. Suggestions stay independent of filters.
           await _scrollToTop(tester);
           await tester.tap(find.text('AM'));
           await tester.pumpAndSettle();
@@ -407,13 +739,18 @@ void main() {
     tester,
   ) async {
     final oldResponse = Completer<http.Response>();
+    var suggestionRequests = 0;
     await http.runWithClient(
       () async {
         await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
         await tester.tap(find.widgetWithText(ChoiceChip, '25'));
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(suggestionRequests, 1); // Keep the initial request in flight.
+        await tester.tap(find.byTooltip('Refresh trip history'));
         await tester.pumpAndSettle();
+        expect(suggestionRequests, 2);
         oldResponse.complete(http.Response('{"message":"Old advice"}', 200));
         await tester.pumpAndSettle();
         await tester.scrollUntilVisible(find.text('New advice'), 300);
@@ -422,7 +759,9 @@ void main() {
       },
       () => MockClient((request) async {
         if (request.url.path == '/advanced-suggestion') {
-          if (request.url.queryParameters['limit'] == '100') {
+          expect(request.url.queryParameters['limit'], '100');
+          suggestionRequests++;
+          if (suggestionRequests == 1) {
             return oldResponse.future;
           }
           return http.Response('{"message":"New advice"}', 200);
@@ -545,6 +884,183 @@ void main() {
       ),
     );
   });
+
+  testWidgets('large-text grade comparisons keep category labels readable', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: const AnalyticsScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(find.text('Following Distance'), 150);
+        final labelBounds = tester.getRect(find.text('Following Distance'));
+        expect(labelBounds.width, greaterThan(100));
+        expect(labelBounds.left, greaterThanOrEqualTo(0));
+        expect(labelBounds.right, lessThanOrEqualTo(320));
+        expect(find.text('80%'), findsOneWidget);
+        expect(find.text('20 pts'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+      () => _analyticsClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'reports': [
+              reportJson(id: 2, followingDistanceGrade: 80),
+              reportJson(id: 1, followingDistanceGrade: 100),
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'compact enlarged date input validates, applies and cancels ranges',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var requests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(
+            MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(1.5)),
+                child: child!,
+              ),
+              home: const AnalyticsScreen(),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text('Date range'));
+          await tester.tap(find.text('Date range'));
+          await tester.pumpAndSettle();
+          final fields = find.byType(TextField);
+          final localizations = MaterialLocalizations.of(
+            tester.element(fields.first),
+          );
+          expect(
+            MediaQuery.textScalerOf(tester.element(fields.first)).scale(16),
+            24,
+          );
+          await tester.enterText(fields.at(0), 'not a date');
+          await tester.enterText(fields.at(1), '07/31/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(localizations.invalidDateFormatLabel),
+            findsOneWidget,
+          );
+          await tester.enterText(fields.at(0), '07/29/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text(localizations.dateOutOfRangeLabel), findsOneWidget);
+          await tester.enterText(fields.at(0), '07/31/2026');
+          await tester.enterText(fields.at(1), '07/30/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(localizations.invalidDateRangeLabel),
+            findsOneWidget,
+          );
+          await tester.enterText(fields.at(0), '07/30/2026');
+          await tester.enterText(fields.at(1), '07/31/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byType(AlertDialog), findsNothing);
+          expect(find.text('Showing 2 matching trips.'), findsOneWidget);
+
+          await tester.tap(find.byIcon(Icons.date_range));
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextField>(fields.at(0)).controller!.text,
+            '07/30/2026',
+          );
+          expect(
+            tester.widget<TextField>(fields.at(1)).controller!.text,
+            '07/31/2026',
+          );
+          await tester.tap(find.byTooltip('Choose start date'));
+          await tester.pumpAndSettle();
+          final calendar = find.byType(DatePickerDialog);
+          await tester.tap(
+            find.descendant(of: calendar, matching: find.text('31')).last,
+          );
+          await tester.tap(
+            find.descendant(
+              of: calendar,
+              matching: find.widgetWithText(
+                TextButton,
+                localizations.okButtonLabel,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextField>(fields.at(0)).controller!.text,
+            '07/31/2026',
+          );
+          tester.view.viewInsets = FakeViewPadding(
+            bottom: 300 * tester.view.devicePixelRatio,
+          );
+          addTearDown(tester.view.resetViewInsets);
+          await tester.pumpAndSettle();
+          final cancel = find.widgetWithText(
+            TextButton,
+            localizations.cancelButtonLabel,
+          );
+          await tester.ensureVisible(cancel);
+          await tester.tap(cancel);
+          await tester.pumpAndSettle();
+          expect(find.text('Showing 2 matching trips.'), findsOneWidget);
+          expect(requests, 2); // Initial history and suggestions only.
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          requests++;
+          if (request.url.path == '/advanced-suggestion') {
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'reports': [
+                reportJson(id: 3, reportDate: '2026-08-02T14:00:00'),
+                reportJson(id: 2, reportDate: '2026-07-31T14:00:00'),
+                reportJson(id: 1, reportDate: '2026-07-30T14:00:00'),
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
 
   for (final scenario in [
     (count: 7, width: 440.0, textScale: 1.0, unknownDates: false),
@@ -740,7 +1256,7 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byType(DropdownButtonFormField<String>));
           await tester.pumpAndSettle();
-          await tester.tap(find.text('Adequate Following Distance').last);
+          await tester.tap(find.text('Following Distance').last);
           await tester.pumpAndSettle();
 
           final spots = tester
@@ -794,7 +1310,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byType(DropdownButtonFormField<String>));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('Adequate Following Distance').last);
+        await tester.tap(find.text('Following Distance').last);
         await tester.pumpAndSettle();
         expect(find.byType(LineChart), findsNothing);
         expect(

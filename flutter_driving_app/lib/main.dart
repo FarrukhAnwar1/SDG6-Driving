@@ -2,9 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'widgets/auth/auth_gate.dart';
+import 'widgets/voice_feedback/voice_feedback_settings.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await voiceFeedbackSettings.load();
+  } catch (error) {
+    debugPrint('Could not load voice feedback preference: $error');
+  }
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,

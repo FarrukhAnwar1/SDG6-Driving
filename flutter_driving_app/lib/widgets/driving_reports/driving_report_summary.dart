@@ -67,7 +67,7 @@ class DrivingReportSummary {
       tripDurationMinutes: (json['tripDurationMinutes'] as num).toDouble(),
       milesDriven: (json['tripDistanceMiles'] as num).toDouble(),
       drivingMode: DrivingModeJson.fromApiValue(
-          json['drivingMode'] as String? ?? 'regular',
+        json['drivingMode'] as String? ?? 'regular',
       ),
       violations: List.unmodifiable(
         (json['violations'] as List<dynamic>).map(
@@ -81,7 +81,8 @@ class DrivingReportSummary {
       acceleratingGrade: (json['accelerationGrade'] as num).toDouble(),
       turningGrade: (json['turningGrade'] as num).toDouble(),
       focusedDrivingGrade: (json['focusGrade'] as num?)?.toDouble(),
-      followingDistanceGrade: (json['followingDistanceGrade'] as num?)?.toDouble()
+      followingDistanceGrade: (json['followingDistanceGrade'] as num?)
+          ?.toDouble(),
     );
   }
 }

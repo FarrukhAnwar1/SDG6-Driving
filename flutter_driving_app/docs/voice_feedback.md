@@ -2,9 +2,9 @@
 
 During a trip, the Live Dashboard speaks a short, plain-language alert when the
 driver does something that starts costing grade points. This frontend work
-covers detection, rate limiting and speech on the dashboard. The synced Live
-Voice Feedback on/off toggle on the Settings and Live Dashboard screens (UI,
-stored setting and syncing) is a separate task; see [Toggle hook-up](#toggle-hook-up).
+covers detection, rate limiting and speech on the dashboard. Settings and the
+dashboard speaker icon share a saved on/off preference; see
+[Toggle hook-up](#toggle-hook-up).
 Warnings before points are lost (for example during grace windows), visual or
 haptic alerts, and backend changes are not part of this feature. Voice feedback
 never changes grades, violations, `TripSummary`, reports, uploads or analytics.
@@ -37,14 +37,17 @@ not re-announced.
 
 - **One alert per episode**, with no repeating reminders. After an onset is
   accepted, the same alert is ignored for its cooldown, even if it was not
-  spoken (feedback off, stale, or backgrounded on iOS/web). Cooldowns are
-  longer than the graders' merge windows (10 s speed, 5 s smoothness) because
-  merged speeding streaks, GPS gaps, speed-limit refreshes and flapping camera
-  detection can each restart grace.
+  spoken (stale or backgrounded on iOS/web). Onsets while feedback is disabled
+  are tracked and discarded without starting or extending a cooldown. Existing
+  cooldowns from enabled alerts remain in effect when feedback is toggled.
+  Cooldowns are longer than the graders' merge windows (10 s speed, 5 s
+  smoothness) because merged speeding streaks, GPS gaps, speed-limit refreshes
+  and flapping camera detection can each restart grace.
 - **Never overlapping.** A phrase is never interrupted by another alert. At most
   one alert waits; a more urgent one replaces it. It plays 2 s after the
   previous phrase ends (`minGapBetweenAlerts`) or is dropped once older than
-  6 s (`maxAlertAge`).
+  6 s (`maxAlertAge`). Expired alerts are removed before comparing new onsets
+  by priority.
 - If the speech engine never reports the end of a phrase, it is treated as
   ended after 8 s (`maxUtteranceDuration`).
 
@@ -76,6 +79,7 @@ the dashboard or Stop Trip.
 
 Stop Trip silences voice feedback before the graders are finalized, so closing
 out a trailing violation cannot trigger an alert. Dispose does the same.
+Stopping also cancels speech still waiting for the TTS engine to initialize.
 
 Known limitations: on Android an engine error can leave other audio ducked
 until the next phrase finishes, and on iOS stopping a phrase early (turning
@@ -84,20 +88,19 @@ Maps guidance) can still speak at the same time as an alert.
 
 ## Toggle hook-up
 
-The toggle is a separate task. Voice feedback is owned by
-`_LiveDashboardScreenState` and exposes two seams:
+`voice_feedback_settings.dart` owns the shared `voiceFeedbackSettings` notifier.
+It loads `live_voice_feedback` from `FlutterSecureStorage` before the app opens
+and when Settings loads. A missing preference defaults to enabled. Both toggles
+call `setEnabled`, which saves before publishing the new value. While saving,
+both controls are disabled; failures retain the current value and show a retry
+message. If startup cannot read storage, it logs the error and keeps the default;
+Settings can retry loading.
 
-- **Starting state:** `LiveDashboardScreen(voiceFeedbackEnabled: ...)`, default
-  `true`, read once when the dashboard opens.
-- **Mid-trip changes:** `_voiceFeedback.enabled = value;` inside
-  `_LiveDashboardScreenState`. Turning it off stops speech immediately and drops
-  any waiting alert. Turning it on resumes with the next new alert: missed
-  alerts are never replayed and an episode already in progress is not
-  announced. `_voiceFeedback.enabled` reads the current value. After Stop Trip
-  or dispose the setter has no effect.
-
-The storage key, Settings UI, syncing and `settings_screen.dart` belong to the
-toggle task; voice feedback reads no settings.
+The dashboard initializes its voice service from this notifier and listens for
+changes throughout the trip. Turning feedback off stops speech and drops any
+waiting alert. Turning it on resumes with the next new alert: missed alerts are
+never replayed and an episode already in progress is not announced. After Stop
+Trip or dispose the voice service's setter has no effect.
 
 ## Code and verification
 
@@ -111,6 +114,11 @@ Run `flutter analyze` and `flutter test`. Tests in `test/voice_feedback/` cover
 onset detection against the real graders, rate limiting, queueing, on/off,
 Stop Trip, background policy and error handling with a fake output and clock,
 and simulated dashboard drives for speeding, following distance and focus.
+`voice_output_test.dart` controls the TTS platform channel to cover startup
+cancellation and completion callbacks. Run
+`flutter test --platform chrome test/voice_feedback/voice_output_test.dart`
+to also check the web plugin's null acknowledgement, which must wait for a
+completion callback before the next alert can play.
 `test/grading/speed_grading_is_penalizing_test.dart` and
 `test/following_distance/following_distance_is_penalizing_test.dart` cover the
 read-only signals. Widget tests that don't inject an output use the real one;

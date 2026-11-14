@@ -20,7 +20,7 @@ import '../widgets/auth/auth_storage.dart';
 import '../widgets/voice_feedback/voice_alerts.dart';
 import '../widgets/voice_feedback/voice_feedback_service.dart';
 import '../widgets/voice_feedback/voice_output.dart';
-import 'settings_screen.dart';
+import '../widgets/voice_feedback/voice_feedback_settings.dart';
 import 'driving_report_screen.dart';
 
 // Formats a duration as mm:ss, or hh:mm:ss if over an hour
@@ -51,8 +51,6 @@ class LiveDashboardScreen extends StatefulWidget {
   final String? ownerUserId;
   final FollowingDistanceCameraBuilder? followingDistanceCameraBuilder;
   final DateTime Function()? clock;
-  // Starting state of Live Voice Feedback; see docs/voice_feedback.md
-  final bool voiceFeedbackEnabled;
   final VoiceOutput? voiceOutput;
 
   const LiveDashboardScreen({
@@ -61,7 +59,6 @@ class LiveDashboardScreen extends StatefulWidget {
     this.ownerUserId,
     this.followingDistanceCameraBuilder,
     this.clock,
-    this.voiceFeedbackEnabled = true,
     this.voiceOutput,
   });
 
@@ -150,10 +147,9 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       ),
       output: widget.voiceOutput,
       clock: widget.clock,
-      enabled: widget.voiceFeedbackEnabled,
+      enabled: voiceFeedbackSettings.value,
     );
-    liveVoiceFeedback.addListener(_syncVoiceFeedback);
-      _syncVoiceFeedback();
+    voiceFeedbackSettings.addListener(_syncVoiceFeedback);
     final lifecycle = WidgetsBinding.instance.lifecycleState;
     _cameraResumed =
         lifecycle == null || lifecycle == AppLifecycleState.resumed;
@@ -170,8 +166,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _startUserAccelerometer();
     _startGyroscope();
   }
+
   void _syncVoiceFeedback() {
-    _voiceFeedback.enabled = liveVoiceFeedback.value;
+    _voiceFeedback.enabled = voiceFeedbackSettings.value;
+  }
+
+  Future<void> _updateVoiceFeedback(bool enabled) async {
+    try {
+      await voiceFeedbackSettings.setEnabled(enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save voice feedback. Please try again.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -296,7 +306,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     _userAccelerometerSubscription?.cancel();
     _gyroscopeSubscription?.cancel();
     _followingDistanceMonitoring.finalizeTrip();
-    liveVoiceFeedback.removeListener(_syncVoiceFeedback);
+    voiceFeedbackSettings.removeListener(_syncVoiceFeedback);
     unawaited(_followingDistanceCameraKey.currentState?.stop());
     // Drop back to the idle GPS interval now that the trip is over
     BackgroundLocationService.exitTripMode();
@@ -643,28 +653,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ValueListenableBuilder<bool>(
-                  valueListenable: liveVoiceFeedback,
-                  builder: (context, isEnabled, child) {
-                    return SwitchListTile(
-                      title: const Text('Live Voice Feedback'),
-                      subtitle: Text(
-                        isEnabled
-                            ? 'Voice alerts enabled'
-                            : 'Voice alerts disabled',
-                      ),
-                      secondary: Icon(
-                        isEnabled ? Icons.volume_up : Icons.volume_off,
-                      ),
-                      value: isEnabled,
-                      onChanged: (bool value) {
-                        liveVoiceFeedback.value = value;
-                        _voiceFeedback.enabled = value;
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
                 _buildDrivingModeIndicator(context),
                 const SizedBox(height: 12),
                 // Allocate the available height so every grade stays visible
@@ -728,7 +716,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
         ),
       ),
     );
-    
   }
 
   // Rounded, softly outlined container shared by the different dashboard sections
@@ -1164,7 +1151,7 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // Mode and a small road preview for positioning the mounted rear camera.
+  // Mode, voice feedback control, and a small road preview for the rear camera.
   Widget _buildDrivingModeIndicator(BuildContext context) {
     final isNavigationMode = widget.drivingMode == DrivingMode.navigation;
     final (modeLabel, modeIcon) = switch (widget.drivingMode) {
@@ -1201,6 +1188,22 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               modeLabel,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: voiceFeedbackSettings,
+            builder: (context, isEnabled, child) {
+              return IconButton(
+                tooltip: isEnabled
+                    ? 'Turn off live voice feedback'
+                    : 'Turn on live voice feedback',
+                isSelected: isEnabled,
+                icon: const Icon(Icons.volume_off),
+                selectedIcon: const Icon(Icons.volume_up),
+                onPressed: voiceFeedbackSettings.isSaving
+                    ? null
+                    : () => _updateVoiceFeedback(!isEnabled),
+              );
+            },
           ),
           if (_isFollowingDistanceGraded) ...[
             const SizedBox(width: 10),

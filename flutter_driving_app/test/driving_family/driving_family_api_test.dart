@@ -50,7 +50,7 @@ void main() {
     },
   );
 
-    test('parses nullable focus and following distance grades', () async {
+  test('parses nullable focus and following distance grades', () async {
     final member = familyMemberJson(
       latestFocus: null,
       latestFollowingDistance: null,
