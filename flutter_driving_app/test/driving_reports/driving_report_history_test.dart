@@ -1,4 +1,5 @@
 // Unit tests for the DrivingReportSummary and DrivingReportApi classes
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_driving_app/widgets/driving_reports/driving_report_api.dart';
 import 'package:flutter_driving_app/widgets/driving_reports/driving_report_summary.dart';
@@ -197,6 +198,27 @@ void main() {
     }
   });
 
+  testWidgets('history timeout closes its client and returns a useful error', (
+    tester,
+  ) async {
+    final response = Completer<http.Response>();
+    final client = _TrackingClient((_) => response.future);
+    await http.runWithClient(() async {
+      final pending = DrivingReportApi.fetchHistory();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(DrivingReportApi.historyRequestTimeout);
+      final result = await pending;
+      expect(result.success, isFalse);
+      expect(
+        result.errorMessage,
+        'Loading trip history timed out. Please try again.',
+      );
+      expect(client.closed, isTrue);
+      response.complete(http.Response('{"reports": []}', 200));
+      await tester.pump();
+    }, () => client);
+  });
+
   test(
     'reports invalid responses distinctly from connection failures',
     () async {
@@ -219,4 +241,16 @@ void main() {
       expect(result.errorMessage, 'Could not connect to backend.');
     },
   );
+}
+
+class _TrackingClient extends MockClient {
+  _TrackingClient(super.handler);
+
+  bool closed = false;
+
+  @override
+  void close() {
+    closed = true;
+    super.close();
+  }
 }

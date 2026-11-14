@@ -1,4 +1,5 @@
 // Sends a driving report to the backend, and fetches saved report history.
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../shared/api_config.dart';
@@ -48,6 +49,7 @@ class DrivingReportApi {
   DrivingReportApi._();
 
   static const int historyLimit = 100;
+  static const Duration historyRequestTimeout = Duration(seconds: 20);
   static final Map<String, Future<void>> _uploads = {};
 
   static Future<T> _serializeUpload<T>(
@@ -214,21 +216,20 @@ class DrivingReportApi {
   }
 
   static Future<DrivingReportHistoryResult> fetchHistory() async {
-    final token = await AuthStorage.readToken();
-
-    if (token == null) {
-      return DrivingReportHistoryResult.failure('Not logged in.');
-    }
-
+    http.Client? client;
     try {
+      final token = await AuthStorage.readToken();
+      if (token == null) {
+        return DrivingReportHistoryResult.failure('Not logged in.');
+      }
       final uri = Uri.parse(
         '${ApiConfig.baseUrl}/driving-reports',
       ).replace(queryParameters: {'limit': '$historyLimit'});
 
-      final response = await http.get(
-        uri,
-        headers: {'Authorization': 'Bearer $token'},
-      );
+      client = http.Client();
+      final response = await client
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(historyRequestTimeout);
 
       if (response.statusCode == 401) {
         return DrivingReportHistoryResult.failure(
@@ -274,10 +275,16 @@ class DrivingReportApi {
           'Could not read trip history. Please try again.',
         );
       }
+    } on TimeoutException {
+      return DrivingReportHistoryResult.failure(
+        'Loading trip history timed out. Please try again.',
+      );
     } catch (_) {
       return DrivingReportHistoryResult.failure(
         'Could not connect to backend.',
       );
+    } finally {
+      client?.close();
     }
   }
 

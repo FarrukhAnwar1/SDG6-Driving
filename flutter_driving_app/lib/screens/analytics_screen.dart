@@ -8,6 +8,7 @@ import '../widgets/shared/api_config.dart';
 import '../widgets/auth/auth_storage.dart';
 import '../widgets/driving_reports/driving_report_api.dart';
 import '../widgets/driving_reports/driving_report_summary.dart';
+import '../widgets/driving_reports/analytics_date_range_dialog.dart';
 import '../widgets/shared/error_banner.dart';
 import '../widgets/grading/grade_utils.dart';
 import '../widgets/driving/driving_mode.dart';
@@ -219,12 +220,26 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       today,
       (latest, date) => date.isAfter(latest) ? date : latest,
     );
-    final selected = await showDateRangePicker(
-      context: context,
-      firstDate: firstDate,
-      lastDate: lastDate,
-      initialDateRange: _dateRange,
-    );
+    final mediaQuery = MediaQuery.of(context);
+    // Flutter's range input uses a fixed-height form and a wide calendar header.
+    // Use a flexible form when width or enlarged text would overflow that layout.
+    final useFlexibleInput =
+        mediaQuery.size.width < 400 || mediaQuery.textScaler.scale(16) > 16;
+    final selected = useFlexibleInput
+        ? await showDialog<DateTimeRange>(
+            context: context,
+            builder: (_) => AnalyticsDateRangeDialog(
+              firstDate: firstDate,
+              lastDate: lastDate,
+              initialDateRange: _dateRange,
+            ),
+          )
+        : await showDateRangePicker(
+            context: context,
+            firstDate: firstDate,
+            lastDate: lastDate,
+            initialDateRange: _dateRange,
+          );
     if (!mounted || selected == null) return;
     setState(() => _dateRange = selected);
   }
@@ -767,28 +782,72 @@ class _GradeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    final scoreWidth = scaler.scale(48);
+    final change = averageValue == null
+        ? null
+        : _GradeChange(delta: value - averageValue!);
+    final score = SizedBox(
+      width: scoreWidth,
+      child: Text(
+        '${value.toStringAsFixed(0)}%',
+        textAlign: TextAlign.end,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
+    final marker = CircleAvatar(
+      radius: 5,
+      backgroundColor: metricColors[label],
+    );
+    final title = Text(_metricDisplayName(label));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          CircleAvatar(radius: 5, backgroundColor: metricColors[label]),
-          const SizedBox(width: 10),
-          Expanded(child: Text(_metricDisplayName(label))),
-          const SizedBox(width: 12),
-          // Shared column widths keep scores and changes aligned across rows
-          SizedBox(
-            width: MediaQuery.textScalerOf(context).scale(48),
-            child: Text(
-              '${value.toStringAsFixed(0)}%',
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          if (averageValue != null) ...[
-            const SizedBox(width: 14),
-            _GradeChange(delta: value - averageValue!),
-          ],
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Reserve useful space for the category label before adding columns.
+          final rowWidth =
+              10 +
+              10 +
+              scaler.scale(100) +
+              12 +
+              scoreWidth +
+              (change == null ? 0 : 14 + 22 + scaler.scale(44));
+          if (constraints.maxWidth < rowWidth) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    marker,
+                    const SizedBox(width: 10),
+                    Expanded(child: title),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: Wrap(
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 14,
+                    runSpacing: 4,
+                    children: [score, ?change],
+                  ),
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              marker,
+              const SizedBox(width: 10),
+              Expanded(child: title),
+              const SizedBox(width: 12),
+              score,
+              if (change != null) ...[const SizedBox(width: 14), change],
+            ],
+          );
+        },
       ),
     );
   }

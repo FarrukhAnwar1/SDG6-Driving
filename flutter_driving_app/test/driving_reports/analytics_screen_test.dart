@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/analytics_screen.dart';
+import 'package:flutter_driving_app/widgets/driving_reports/driving_report_api.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -15,6 +16,75 @@ void main() {
   setUp(() {
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
   });
+
+  testWidgets(
+    'history timeout allows retry and ignores the late old response',
+    (tester) async {
+      final delayed = Completer<http.Response>();
+      var historyRequests = 0;
+      var suggestionRequests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: AnalyticsScreen()));
+          await tester.pump(const Duration(milliseconds: 100));
+          await tester.pump(DrivingReportApi.historyRequestTimeout);
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Loading trip history timed out. Please try again.'),
+            findsOneWidget,
+          );
+          expect(find.byType(CircularProgressIndicator), findsNothing);
+          expect(
+            tester
+                .widget<IconButton>(
+                  find.byWidgetPredicate(
+                    (widget) =>
+                        widget is IconButton &&
+                        widget.tooltip == 'Refresh trip history',
+                  ),
+                )
+                .onPressed,
+            isNotNull,
+          );
+          await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(find.text('Last Drive'), 150);
+          expect(find.text('95%'), findsWidgets);
+          delayed.complete(
+            http.Response(
+              jsonEncode({
+                'reports': [reportJson(overallGrade: 10)],
+              }),
+              200,
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text('95%'), findsWidgets);
+          expect(find.text('10%'), findsNothing);
+          expect(historyRequests, 2);
+          expect(suggestionRequests, 1);
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          if (request.url.path == '/advanced-suggestion') {
+            suggestionRequests++;
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          historyRequests++;
+          if (historyRequests == 1) return delayed.future;
+          return http.Response(
+            jsonEncode({
+              'reports': [reportJson(overallGrade: 95)],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
 
   testWidgets(
     'mode badges default to all selected and support empty selection',
@@ -814,6 +884,183 @@ void main() {
       ),
     );
   });
+
+  testWidgets('large-text grade comparisons keep category labels readable', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await http.runWithClient(
+      () async {
+        await tester.pumpWidget(
+          MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(2)),
+              child: child!,
+            ),
+            home: const AnalyticsScreen(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(find.text('Following Distance'), 150);
+        final labelBounds = tester.getRect(find.text('Following Distance'));
+        expect(labelBounds.width, greaterThan(100));
+        expect(labelBounds.left, greaterThanOrEqualTo(0));
+        expect(labelBounds.right, lessThanOrEqualTo(320));
+        expect(find.text('80%'), findsOneWidget);
+        expect(find.text('20 pts'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+      () => _analyticsClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'reports': [
+              reportJson(id: 2, followingDistanceGrade: 80),
+              reportJson(id: 1, followingDistanceGrade: 100),
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+  });
+
+  testWidgets(
+    'compact enlarged date input validates, applies and cancels ranges',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      var requests = 0;
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(
+            MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(1.5)),
+                child: child!,
+              ),
+              home: const AnalyticsScreen(),
+            ),
+          );
+          await tester.pumpAndSettle();
+          await tester.ensureVisible(find.text('Date range'));
+          await tester.tap(find.text('Date range'));
+          await tester.pumpAndSettle();
+          final fields = find.byType(TextField);
+          final localizations = MaterialLocalizations.of(
+            tester.element(fields.first),
+          );
+          expect(
+            MediaQuery.textScalerOf(tester.element(fields.first)).scale(16),
+            24,
+          );
+          await tester.enterText(fields.at(0), 'not a date');
+          await tester.enterText(fields.at(1), '07/31/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(localizations.invalidDateFormatLabel),
+            findsOneWidget,
+          );
+          await tester.enterText(fields.at(0), '07/29/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text(localizations.dateOutOfRangeLabel), findsOneWidget);
+          await tester.enterText(fields.at(0), '07/31/2026');
+          await tester.enterText(fields.at(1), '07/30/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.text(localizations.invalidDateRangeLabel),
+            findsOneWidget,
+          );
+          await tester.enterText(fields.at(0), '07/30/2026');
+          await tester.enterText(fields.at(1), '07/31/2026');
+          await tester.tap(
+            find.widgetWithText(TextButton, localizations.okButtonLabel),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byType(AlertDialog), findsNothing);
+          expect(find.text('Showing 2 matching trips.'), findsOneWidget);
+
+          await tester.tap(find.byIcon(Icons.date_range));
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextField>(fields.at(0)).controller!.text,
+            '07/30/2026',
+          );
+          expect(
+            tester.widget<TextField>(fields.at(1)).controller!.text,
+            '07/31/2026',
+          );
+          await tester.tap(find.byTooltip('Choose start date'));
+          await tester.pumpAndSettle();
+          final calendar = find.byType(DatePickerDialog);
+          await tester.tap(
+            find.descendant(of: calendar, matching: find.text('31')).last,
+          );
+          await tester.tap(
+            find.descendant(
+              of: calendar,
+              matching: find.widgetWithText(
+                TextButton,
+                localizations.okButtonLabel,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expect(
+            tester.widget<TextField>(fields.at(0)).controller!.text,
+            '07/31/2026',
+          );
+          tester.view.viewInsets = FakeViewPadding(
+            bottom: 300 * tester.view.devicePixelRatio,
+          );
+          addTearDown(tester.view.resetViewInsets);
+          await tester.pumpAndSettle();
+          final cancel = find.widgetWithText(
+            TextButton,
+            localizations.cancelButtonLabel,
+          );
+          await tester.ensureVisible(cancel);
+          await tester.tap(cancel);
+          await tester.pumpAndSettle();
+          expect(find.text('Showing 2 matching trips.'), findsOneWidget);
+          expect(requests, 2); // Initial history and suggestions only.
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          requests++;
+          if (request.url.path == '/advanced-suggestion') {
+            return http.Response(
+              '{"message":"Keep recording your trips."}',
+              200,
+            );
+          }
+          return http.Response(
+            jsonEncode({
+              'reports': [
+                reportJson(id: 3, reportDate: '2026-08-02T14:00:00'),
+                reportJson(id: 2, reportDate: '2026-07-31T14:00:00'),
+                reportJson(id: 1, reportDate: '2026-07-30T14:00:00'),
+              ],
+            }),
+            200,
+          );
+        }),
+      );
+    },
+  );
 
   for (final scenario in [
     (count: 7, width: 440.0, textScale: 1.0, unknownDates: false),
