@@ -41,6 +41,8 @@ class FlutterTtsVoiceOutput implements VoiceOutput {
   Future<bool>? _ready;
   Completer<void>? _utterance;
   bool _unavailable = false;
+  // Invalidates speech still awaiting engine setup or an acknowledgement.
+  int _requestId = 0;
 
   static bool get _isAndroid =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -50,14 +52,16 @@ class FlutterTtsVoiceOutput implements VoiceOutput {
   @override
   Future<void> speak(String text) async {
     if (_unavailable) return;
+    final requestId = ++_requestId;
     try {
-      if (!await (_ready ??= _configure())) return;
+      if (!await (_ready ??= _configure()) || requestId != _requestId) return;
       _finishUtterance();
       final utterance = _utterance = Completer<void>();
-      // 1 means the engine accepted the phrase; it then reports completion,
-      // cancellation, or an error through the handlers set in _configure.
+      // Native engines acknowledge with 1; flutter_tts 4.2.5's web output
+      // returns null after submitting speech. Both finish through callbacks.
       final result = await _tts!.speak(text, focus: _isAndroid);
-      if (result != 1) {
+      if (requestId != _requestId) return;
+      if (result != 1 && !(kIsWeb && result == null)) {
         debugPrint('VOICE FEEDBACK ERROR: speak returned $result');
         _finishUtterance();
       }
@@ -66,12 +70,13 @@ class FlutterTtsVoiceOutput implements VoiceOutput {
       _disable(e);
     } catch (e) {
       debugPrint('VOICE FEEDBACK ERROR: $e');
-      _finishUtterance();
+      if (requestId == _requestId) _finishUtterance();
     }
   }
 
   @override
   Future<void> stop() async {
+    _requestId++;
     final tts = _tts;
     _finishUtterance();
     if (tts == null || _unavailable) return;

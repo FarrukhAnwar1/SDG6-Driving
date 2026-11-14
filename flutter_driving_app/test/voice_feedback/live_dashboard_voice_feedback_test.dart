@@ -323,6 +323,39 @@ void main() {
     );
   });
 
+  testWidgets(
+    'enabling voice mid-trip announces the next new speeding episode',
+    (tester) async {
+      await onDashboard(
+        tester,
+        () async {
+          await drive(tester, 30, 12);
+          expect(gradeText(tester), isNot('100'));
+          expect(speech.spoken, isEmpty);
+
+          await tester.tap(find.byTooltip('Turn on live voice feedback'));
+          await tester.pump();
+          expect(voiceFeedbackSettings.value, isTrue);
+          // The episode already in progress must not be announced on enabling.
+          await drive(tester, 30, 2);
+          expect(speech.spoken, isEmpty);
+
+          // A safe fix ends that episode; the next one is within the 30 s
+          // cooldown that the muted episode would previously have consumed.
+          await drive(tester, 25, 1);
+          await drive(tester, 30, 7);
+          expect(speech.spoken, [VoiceAlert.speeding.phrase]);
+          await drive(tester, 30, 10);
+          expect(speech.spoken, [VoiceAlert.speeding.phrase]);
+          expect(tester.takeException(), isNull);
+        },
+        mode: DrivingMode.pocket,
+        speedLimitMph: 25,
+        voiceFeedbackEnabled: false,
+      );
+    },
+  );
+
   testWidgets('starting with voice feedback off speaks nothing', (
     tester,
   ) async {

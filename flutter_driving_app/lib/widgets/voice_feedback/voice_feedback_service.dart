@@ -4,7 +4,7 @@
 // RATE LIMITING:
 // - One alert per episode. After an onset is accepted, the same alert is
 //   ignored for its cooldown (VoiceAlertDetails), even if it was never spoken
-//   (feedback off, stale, or backgrounded on iOS/web).
+//   (stale or backgrounded on iOS/web). Muted onsets do not consume cooldowns.
 // - Phrases never overlap and are never interrupted by another alert. At most
 //   one alert waits; a more urgent one replaces it. A waiting alert is
 //   spoken [minGapBetweenAlerts] after the previous phrase ends, or dropped
@@ -94,6 +94,9 @@ class VoiceFeedbackService {
     if (_stopped) return;
     final now = _clock();
     final alerts = _detector.detectNewAlerts();
+    // Track muted episodes so they are not replayed, but do not let them
+    // start or extend a cooldown that would suppress a later enabled alert.
+    if (!_enabled) return;
 
     final speakingSince = _speakingSince;
     if (speakingSince != null &&
@@ -102,7 +105,13 @@ class VoiceFeedbackService {
       _finishUtterance(_utteranceId);
     }
 
-    final canSpeak = _enabled && (_speaksInBackground || _isAppInForeground());
+    // An expired alert must not win priority over a newly detected onset.
+    final waiting = _pending;
+    if (waiting != null && now.difference(waiting.detectedAt) > maxAlertAge) {
+      _pending = null;
+    }
+
+    final canSpeak = _speaksInBackground || _isAppInForeground();
     for (final alert in alerts) {
       final lastAccepted = _lastAcceptedAt[alert];
       if (lastAccepted != null &&
@@ -118,18 +127,14 @@ class VoiceFeedbackService {
     }
 
     if (!canSpeak) {
-      // Disabled alerts were never queued; on iOS/web, don't let anything
-      // queued or playing carry on in the background.
+      // On iOS/web, don't let anything queued or playing carry on in the
+      // background.
       if (_pending != null || _isSpeaking) _silence();
       return;
     }
 
     final pending = _pending;
     if (pending == null) return;
-    if (now.difference(pending.detectedAt) > maxAlertAge) {
-      _pending = null;
-      return;
-    }
     final lastFinished = _lastFinishedAt;
     if (_isSpeaking ||
         (lastFinished != null &&

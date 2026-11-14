@@ -37,14 +37,17 @@ not re-announced.
 
 - **One alert per episode**, with no repeating reminders. After an onset is
   accepted, the same alert is ignored for its cooldown, even if it was not
-  spoken (feedback off, stale, or backgrounded on iOS/web). Cooldowns are
-  longer than the graders' merge windows (10 s speed, 5 s smoothness) because
-  merged speeding streaks, GPS gaps, speed-limit refreshes and flapping camera
-  detection can each restart grace.
+  spoken (stale or backgrounded on iOS/web). Onsets while feedback is disabled
+  are tracked and discarded without starting or extending a cooldown. Existing
+  cooldowns from enabled alerts remain in effect when feedback is toggled.
+  Cooldowns are longer than the graders' merge windows (10 s speed, 5 s
+  smoothness) because merged speeding streaks, GPS gaps, speed-limit refreshes
+  and flapping camera detection can each restart grace.
 - **Never overlapping.** A phrase is never interrupted by another alert. At most
   one alert waits; a more urgent one replaces it. It plays 2 s after the
   previous phrase ends (`minGapBetweenAlerts`) or is dropped once older than
-  6 s (`maxAlertAge`).
+  6 s (`maxAlertAge`). Expired alerts are removed before comparing new onsets
+  by priority.
 - If the speech engine never reports the end of a phrase, it is treated as
   ended after 8 s (`maxUtteranceDuration`).
 
@@ -76,6 +79,7 @@ the dashboard or Stop Trip.
 
 Stop Trip silences voice feedback before the graders are finalized, so closing
 out a trailing violation cannot trigger an alert. Dispose does the same.
+Stopping also cancels speech still waiting for the TTS engine to initialize.
 
 Known limitations: on Android an engine error can leave other audio ducked
 until the next phrase finishes, and on iOS stopping a phrase early (turning
@@ -110,6 +114,11 @@ Run `flutter analyze` and `flutter test`. Tests in `test/voice_feedback/` cover
 onset detection against the real graders, rate limiting, queueing, on/off,
 Stop Trip, background policy and error handling with a fake output and clock,
 and simulated dashboard drives for speeding, following distance and focus.
+`voice_output_test.dart` controls the TTS platform channel to cover startup
+cancellation and completion callbacks. Run
+`flutter test --platform chrome test/voice_feedback/voice_output_test.dart`
+to also check the web plugin's null acknowledgement, which must wait for a
+completion callback before the next alert can play.
 `test/grading/speed_grading_is_penalizing_test.dart` and
 `test/following_distance/following_distance_is_penalizing_test.dart` cover the
 read-only signals. Widget tests that don't inject an output use the real one;
