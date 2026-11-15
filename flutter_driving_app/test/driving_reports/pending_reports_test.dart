@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/driving_report_screen.dart';
 import 'package:flutter_driving_app/screens/home_screen.dart';
+import 'package:flutter_driving_app/screens/login_screen.dart';
+import 'package:flutter_driving_app/screens/settings_screen.dart';
 import 'package:flutter_driving_app/widgets/shared/api_config.dart';
 import 'package:flutter_driving_app/widgets/auth/auth_storage.dart';
 import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
@@ -534,8 +536,17 @@ void main() {
       () async {
         await tester.pumpWidget(const MaterialApp(home: HomePage()));
         await tester.pumpAndSettle();
-        final delete = find.widgetWithText(OutlinedButton, 'Delete Account');
-        await tester.ensureVisible(delete);
+        expect(find.text('Change Password'), findsNothing);
+        expect(find.text('Delete Account'), findsNothing);
+        await tester.tap(find.widgetWithText(OutlinedButton, 'Settings'));
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<SettingsPage>(find.byType(SettingsPage)).ownerUserId,
+          '1',
+        );
+        final delete = find.widgetWithText(ListTile, 'Delete Account');
+        await tester.scrollUntilVisible(delete.hitTestable(), 300);
+        await tester.pumpAndSettle();
         await tester.tap(delete);
         await tester.pumpAndSettle();
         await tester.tap(find.widgetWithText(TextButton, 'Delete'));
@@ -543,6 +554,7 @@ void main() {
         expect(await AuthStorage.readToken(), isNull);
         expect(await PendingReportStore.read('1'), isEmpty);
         expect(await PendingReportStore.read('2'), hasLength(1));
+        expect(find.byType(LoginPage), findsOneWidget);
       },
       () => MockClient((request) async {
         if (request.method == 'GET') {

@@ -83,6 +83,10 @@ void main() {
   testWidgets(
     'Start Trip handles a mode read failure and retries the saved mode',
     (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       try {
         await http.runWithClient(
           () async {

@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_driving_app/screens/analytics_screen.dart';
 import 'package:flutter_driving_app/widgets/driving_reports/driving_report_api.dart';
+import 'package:flutter_driving_app/widgets/theme/app_theme.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -1228,6 +1229,57 @@ void main() {
       ),
     );
   });
+
+  for (final (mode, label, icon) in [
+    ('regular', 'Regular Mode', Icons.directions_car_outlined),
+    ('navigation', 'Navigation Mode', Icons.navigation_outlined),
+    ('pocket', 'Pocket Mode', Icons.phone_android_outlined),
+  ]) {
+    testWidgets('dark $mode badge keeps its icon contrast when expanded', (
+      tester,
+    ) async {
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(
+            MaterialApp(theme: AppTheme.dark, home: const AnalyticsScreen()),
+          );
+          await tester.pumpAndSettle();
+          final badge = find.text(label);
+          await tester.scrollUntilVisible(badge, 300);
+          final tile = find.ancestor(
+            of: badge,
+            matching: find.byType(ExpansionTile),
+          );
+          final modeIcon = find.descendant(
+            of: tile,
+            matching: find.byIcon(icon),
+          );
+          Color? iconColor() =>
+              tester.widget<Icon>(modeIcon).color ??
+              IconTheme.of(tester.element(modeIcon)).color;
+          final collapsedColor = iconColor();
+          expect(collapsedColor, AppTheme.dark.colorScheme.onSurfaceVariant);
+
+          await tester.tap(badge);
+          await tester.pumpAndSettle();
+          expect(find.text('Recorded Violations'), findsOneWidget);
+          expect(iconColor(), collapsedColor);
+          await tester.tap(badge);
+          await tester.pumpAndSettle();
+          expect(iconColor(), collapsedColor);
+          expect(tester.takeException(), isNull);
+        },
+        () => _analyticsClient(
+          (_) async => http.Response(
+            jsonEncode({
+              'reports': [_modeReport(id: 1, mode: mode, grade: 90)],
+            }),
+            200,
+          ),
+        ),
+      );
+    });
+  }
 
   testWidgets(
     'Following distance chart skips untracked trips and keeps zero scores',

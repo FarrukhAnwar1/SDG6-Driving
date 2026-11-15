@@ -41,8 +41,8 @@ def send_family_invitation_email(to_email: str, code: str, inviter_username: str
         "html": (
             f"<p>{inviter} has invited you to join their Driving Family.</p>"
             "<p>Sign in to the app with this email address, open Driving Family, "
-            "choose Join Family, and enter this code:</p>"
-            f'<p style="font-size:16px;font-weight:bold;">{code}</p>'
+            "choose Join Family, and enter this 6-digit code:</p>"
+            f'<p style="font-size:28px;font-weight:bold;letter-spacing:6px;">{code}</p>'
             "<p>This code can only be used once.</p>"
         ),
     })

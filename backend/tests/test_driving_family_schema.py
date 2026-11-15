@@ -162,12 +162,15 @@ def test_malformed_invitation_email_is_rejected(email):
         schemas.FamilyInvitationCreate(email=email)
 
 
-def test_join_code_is_trimmed_but_keeps_case_and_punctuation():
-    assert schemas.FamilyJoinRequest(code="  AbC-123_x.  ").code == "AbC-123_x."
+def test_join_code_is_trimmed_and_keeps_leading_zeroes():
+    assert schemas.FamilyJoinRequest(code="  042917  ").code == "042917"
 
 
-@pytest.mark.parametrize("code", ["", "   ", "abc def", "abc\tdef"])
-def test_blank_or_split_join_code_is_rejected(code):
+@pytest.mark.parametrize("code", [
+    "", "   ", "123 456", "123\t456", "12345", "1234567", "abcdef", "１２３４５６",
+    "a" * 43,
+])
+def test_malformed_join_code_is_rejected(code):
     with pytest.raises(ValidationError):
         schemas.FamilyJoinRequest(code=code)
 

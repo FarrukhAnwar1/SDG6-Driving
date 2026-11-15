@@ -216,8 +216,8 @@ class FamilyInvitation(Base):
 
     A row lives only until it is redeemed: joining deletes it in the same
     transaction that sets the user's family_id, which is what makes each code
-    single use. Only the code's hash is stored. It is a SHA-256 digest rather
-    than bcrypt so the join endpoint can find the row from the code alone.
+    single use. Only a keyed SHA-256 digest is stored so the join endpoint can
+    find the row without exposing the short code in a database dump.
     """
 
     __tablename__ = "family_invitations"
@@ -231,7 +231,7 @@ class FamilyInvitation(Base):
     invited_by_user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE")
     )
-    # Hex SHA-256 of the emailed join code
+    # Hex HMAC-SHA-256 of the emailed join code
     code_hash: Mapped[str] = mapped_column(String(64), unique=True)
     created_at: Mapped[datetime | None] = mapped_column(
         DateTime, server_default=func.now()

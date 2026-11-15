@@ -345,7 +345,7 @@ class _DrivingFamilyScreenState extends State<DrivingFamilyScreen>
             Icon(
               Icons.groups_outlined,
               size: 64,
-              color: theme.colorScheme.primary,
+              color: theme.colorScheme.secondary,
             ),
             const SizedBox(height: 20),
             Text(
@@ -662,7 +662,7 @@ class _FamilyMemberCard extends StatelessWidget {
   ) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+      Icon(icon, size: 20, color: Theme.of(context).colorScheme.secondary),
       const SizedBox(width: 8),
       Flexible(
         child: Column(

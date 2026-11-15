@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_screen.dart';
-import 'change_password_screen.dart';
 import 'live_dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'driving_family_screen.dart';
@@ -14,7 +13,6 @@ import '../widgets/driving/background_location_service.dart';
 import '../widgets/driving/driving_mode.dart';
 import '../widgets/shared/error_banner.dart';
 import '../widgets/driving_reports/driving_report_api.dart';
-import '../widgets/driving_reports/pending_report_store.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -26,7 +24,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   // State variables
   bool _isLoading = true;
-  bool _isDeleting = false;
   bool _isStartingTrip = false;
   String? _username;
   int? _userId;
@@ -194,119 +191,42 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Future<void> _openSettings() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
-  }
-
-  Future<void> _openChangePassword() async {
-    final changed = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => ChangePasswordPage()));
-
-    if (changed == true && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Your password was updated.')),
-      );
-    }
-  }
-
-  Future<void> _confirmAndDeleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This will permanently delete your account. This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsPage(ownerUserId: _userId?.toString()),
       ),
     );
-
-    if (confirmed != true) return;
-    await _deleteAccount();
-  }
-
-  Future<void> _deleteAccount() async {
-    if (_isDeleting) return;
-
-    setState(() {
-      _isDeleting = true;
-    });
-
-    final token = await AuthStorage.readToken();
-
-    try {
-      final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}/users/me'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      debugPrint('DELETE ACCOUNT STATUS: ${response.statusCode}');
-
-      if (response.statusCode == 204) {
-        final owner = _userId?.toString() ?? AuthStorage.userIdFromToken(token);
-        if (owner != null) await PendingReportStore.clear(owner);
-        await BackgroundLocationService.stop();
-        await AuthStorage.deleteToken();
-        _goToLogin();
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not delete account. Please try again.'),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('DELETE ACCOUNT ERROR: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not connect to backend.')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isDeleting = false;
-        });
-      }
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Home'),
-        actions: [
-          IconButton(
-            onPressed: _logout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Log out',
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Center(child: _buildBody(context)),
+    final theme = Theme.of(context);
+    return Theme(
+      data: theme.copyWith(textTheme: theme.textTheme.apply(fontSizeDelta: 2)),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Home'),
+          actions: [
+            IconButton(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout),
+              tooltip: 'Log out',
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Center(child: _buildBody(context)),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -401,28 +321,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onPressed: _openSettings,
                   icon: const Icon(Icons.settings_outlined),
                   label: const Text('Settings'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _openChangePassword,
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text('Change Password'),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: _isDeleting ? null : _confirmAndDeleteAccount,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                  ),
-                  icon: _isDeleting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline),
-                  label: const Text('Delete Account'),
                 ),
               ],
             ),

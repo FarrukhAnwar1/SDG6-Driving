@@ -20,7 +20,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app import models, schemas
+from app import models, schemas, security
 from app.config import settings
 from app.database import Base
 from app.dependencies import get_db
@@ -137,7 +137,7 @@ def assert_error(response, status_code, code):
 PROTECTED_ROUTES = [
     ("POST", "/families", {}),
     ("GET", "/families/me", None),
-    ("POST", "/families/join", {"code": "test-code"}),
+    ("POST", "/families/join", {"code": "123456"}),
     ("POST", "/families/leave", {}),
     ("POST", "/families/me/invitations", {"email": "member@example.test"}),
     ("DELETE", "/families/me/members/2", None),
@@ -175,7 +175,7 @@ def test_invitation_email_is_normalized_and_only_hash_is_stored(api, family_engi
     family_id = create(client)
     code = invite(client, email, "  Member@Example.TEST ")
     email.assert_called_once_with("member@example.test", code, "admin")
-    assert len(code) >= 32
+    assert len(code) == 6 and code.isascii() and code.isdigit()
     with Session(family_engine) as db:
         invitation = db.scalar(select(models.FamilyInvitation))
         assert invitation.family_id == family_id
@@ -183,6 +183,71 @@ def test_invitation_email_is_normalized_and_only_hash_is_stored(api, family_engi
         assert invitation.invited_by_user_id == 1
         assert invitation.code_hash == hash_invitation_code(code)
         assert invitation.code_hash != code
+
+
+@pytest.mark.parametrize("number,expected", [(0, "000000"), (42917, "042917"), (999999, "999999")])
+def test_invitation_generation_preserves_all_six_digits(monkeypatch, number, expected):
+    random = Mock(return_value=number)
+    monkeypatch.setattr(security.secrets, "randbelow", random)
+    assert security.generate_invitation_code() == expected
+    random.assert_called_once_with(1_000_000)
+
+
+def test_invitation_hash_is_keyed(monkeypatch):
+    import hashlib
+
+    first = hash_invitation_code("042917")
+    assert len(first) == 64
+    assert first != hashlib.sha256(b"042917").hexdigest()
+    monkeypatch.setattr(settings, "jwt_secret_key", "a-different-test-secret")
+    assert hash_invitation_code("042917") != first
+
+
+def test_invitation_has_no_expiry_or_join_attempt_limit(api, family_engine, monkeypatch):
+    client, email = api
+    family_id = create(client)
+    monkeypatch.setattr(families, "generate_invitation_code", lambda: "000007")
+    code = invite(client, email)
+    with Session(family_engine) as db:
+        db.scalar(select(models.FamilyInvitation)).created_at = datetime(2000, 1, 1)
+        db.commit()
+    for _ in range(20):
+        assert_error(join(client, "000008"), 400, "invalid_invitation")
+    response = join(client, code)
+    assert response.status_code == 200, response.text
+    assert response.json()["family"]["id"] == family_id
+    assert pending(family_engine) == []
+
+
+def test_duplicate_numeric_code_retries_without_sending_duplicate_mail(api, family_engine, monkeypatch):
+    client, email = api
+    create(client)
+    create(client, 4)
+    generate = Mock(side_effect=["042917", "042917", "000008"])
+    monkeypatch.setattr(families, "generate_invitation_code", generate)
+    first = invite(client, email)
+    second = invite(client, email, "outsider@example.test", admin=4)
+    assert first == "042917" and second == "000008"
+    assert generate.call_count == 3
+    assert email.call_count == 2
+    assert set(pending(family_engine)) == {hash_invitation_code(first), hash_invitation_code(second)}
+    assert join(client, first).status_code == 200
+    assert join(client, second, 3).status_code == 200
+
+
+def test_repeated_code_collisions_fail_cleanly_and_preserve_existing_invitation(api, family_engine, monkeypatch):
+    client, email = api
+    create(client)
+    monkeypatch.setattr(families, "generate_invitation_code", lambda: "042917")
+    first = invite(client, email)
+    email.reset_mock()
+    response = client.post(
+        "/families/me/invitations", json={"email": "outsider@example.test"}, headers=auth(1),
+    )
+    assert response.status_code == 503, response.text
+    email.assert_not_called()
+    assert pending(family_engine) == [hash_invitation_code(first)]
+    assert join(client, first).status_code == 200
 
 
 def test_wrong_email_preserves_invitation_and_correct_email_can_join(api, family_engine):

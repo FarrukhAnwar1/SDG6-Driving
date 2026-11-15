@@ -14,7 +14,7 @@ proposed database does not include a name.
 | --- | --- | --- |
 | Load membership and summaries | `GET /families/me` | None |
 | Create family | `POST /families` | `{}` |
-| Join by emailed code | `POST /families/join` | `{"code":"opaque-code"}` |
+| Join by emailed code | `POST /families/join` | `{"code":"042917"}` |
 | Invite by email (admin only) | `POST /families/me/invitations` | `{"email":"sam@example.com"}` |
 | Leave family | `POST /families/leave` | `{}` |
 | Remove another member | `DELETE /families/me/members/{userId}` | None |
@@ -25,6 +25,9 @@ endpoint is responsible for generating a code and sending the email; the
 frontend never generates, hashes, or stores invitation codes. Each invitation
 code is single-use and is bound to the invited email. Joining submits only the
 code; the server obtains the account identity and email from authentication.
+New codes contain exactly six digits, including leading zeroes. They have no
+expiry or join-attempt limit. Codes use a keyed HMAC-SHA-256 lookup, without a
+database migration.
 
 `GET /families/me` returns HTTP 200 with the following camelCase shape,
 matching the existing driving report API's grade names and units:
@@ -124,6 +127,8 @@ rejoining requires a new invitation and code.
    before creating an invitation or sending an email.
 3. Validate and normalize the recipient email, generate a secure random code,
    save the invitation with only the code's hash, and email the original code.
+   Use six digits and preserve leading zeroes. Retry unique-index collisions
+   with a fresh code; send email only after the invitation is committed.
 4. Set `invited_by_user_id` from the authenticated admin, never from request data.
 
 `POST /families/join` must enforce both single use and email matching on the
@@ -190,16 +195,17 @@ returns the signed-in email, so no invitation-preview endpoint is needed.
 Backend validation should cover non-admin invitation attempts, correct-email
 redemption with invitation deletion, wrong-email rejection without deletion,
 rollback after a failed join, reuse after leaving or removal, and concurrent
-redemption attempts. A code may produce at most one successful join. Code
-expiration is a separate policy and is not required by these changes.
+redemption attempts. A code may produce at most one successful join. Invitations
+do not expire, and joining has no attempt limit.
 
 ## UI behavior
 
 - Without membership, Create Family opens an explanation and confirmation;
   Join Family opens a single-use code form that shows the signed-in email and
-  explains that it must match the invited email. Codes are trimmed and retain their
-  case and punctuation. Only blank codes and embedded whitespace are rejected
-  locally because the backend code format has not been specified.
+  explains that it must match the invited email. The form requests a six-digit
+  code with a numeric keyboard and one-time-code autofill. It trims surrounding
+  whitespace, preserves leading zeroes, and validates the full entry before
+  submitting.
 - Member cards show separate average and latest grades for Overall, Speed,
   Braking, Acceleration, Turning, Focused Driving, and Adequate Following
   Distance, plus time and distance. Drivers without reports show an empty score

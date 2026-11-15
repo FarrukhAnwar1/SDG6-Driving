@@ -1,5 +1,6 @@
 // Form for creating, joining, or inviting members to a Driving Family
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'driving_family_api.dart';
 import '../shared/error_banner.dart';
@@ -44,8 +45,8 @@ class _DrivingFamilyFormState extends State<DrivingFamilyForm> {
     final text = value?.trim() ?? '';
     if (widget.kind == DrivingFamilyFormKind.join) {
       if (text.isEmpty) return 'Enter your join code.';
-      if (RegExp(r'\s').hasMatch(text)) {
-        return 'Join codes cannot contain spaces.';
+      if (!RegExp(r'^[0-9]{6}$').hasMatch(text)) {
+        return 'Enter the 6-digit join code from your email.';
       }
     } else if (widget.kind == DrivingFamilyFormKind.invite) {
       if (text.isEmpty) return 'Enter an email address.';
@@ -102,11 +103,11 @@ class _DrivingFamilyFormState extends State<DrivingFamilyForm> {
             'admin and can invite or remove members. As admin, you can leave only when you '
             'are the last member.',
       DrivingFamilyFormKind.join =>
-        'Enter the single-use join code sent by the family admin. '
+        'Enter the 6-digit, single-use join code sent by the family admin. '
             'The invited email must match your signed-in account. '
             'You can belong to one Driving Family at a time.',
       DrivingFamilyFormKind.invite =>
-        'We will email a single-use join code to this address. '
+        'We will email a 6-digit, single-use join code to this address. '
             'The recipient must sign in with this email address to join '
             'and share driving summaries with your family.',
     };
@@ -149,12 +150,22 @@ class _DrivingFamilyFormState extends State<DrivingFamilyForm> {
                       widget.kind == DrivingFamilyFormKind.invite,
                   keyboardType: widget.kind == DrivingFamilyFormKind.invite
                       ? TextInputType.emailAddress
-                      : TextInputType.visiblePassword,
+                      : TextInputType.number,
+                  maxLength: widget.kind == DrivingFamilyFormKind.join
+                      ? 6
+                      : null,
+                  // Validate the complete entry, including pasted whitespace,
+                  // rather than silently truncating a mistyped code.
+                  maxLengthEnforcement: MaxLengthEnforcement.none,
+                  autofillHints: widget.kind == DrivingFamilyFormKind.join
+                      ? const [AutofillHints.oneTimeCode]
+                      : null,
                   textInputAction: TextInputAction.done,
                   decoration: InputDecoration(
                     labelText: widget.kind == DrivingFamilyFormKind.invite
                         ? 'Email address'
-                        : 'Join code',
+                        : '6-digit join code',
+                    counterText: '',
                     border: const OutlineInputBorder(),
                   ),
                   validator: _validate,

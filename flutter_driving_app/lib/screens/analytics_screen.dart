@@ -400,7 +400,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.insights, size: 48, color: Colors.grey.shade400),
+            Icon(
+              Icons.insights,
+              size: 48,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(height: 12),
             Text(
               'No trips yet. Finish a drive to see your stats here.',
@@ -535,9 +539,13 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = report.violations.length;
+    final theme = Theme.of(context);
     return Card(
       child: ExpansionTile(
         key: PageStorageKey(report.id),
+        iconColor: theme.brightness == Brightness.dark
+            ? theme.colorScheme.onSurfaceVariant
+            : null,
         title: Text(_formatReportDate(context, report.reportDate)),
         // Subtitle shows the driving mode (retroactivly), distance, duration, and violation count.
         subtitle: Column(
@@ -725,7 +733,9 @@ class _LastDriveCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${trip.milesDriven.toStringAsFixed(1)} mi · ${_formatDuration(trip.elapsed)}',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -745,9 +755,9 @@ class _LastDriveCard extends StatelessWidget {
               priorTrips.isEmpty
                   ? 'Complete another drive to start comparing trips.'
                   : 'Compared with the average of your ${priorTrips.length} prior trip${priorTrips.length == 1 ? '' : 's'}.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             if (sameModePriorTrips.length < priorTrips.length)
               Text(
@@ -755,9 +765,9 @@ class _LastDriveCard extends StatelessWidget {
                     ? 'Overall comparison needs an earlier trip in this driving mode.'
                     : 'Overall is compared with your ${sameModePriorTrips.length} prior '
                           'trip${sameModePriorTrips.length == 1 ? '' : 's'} in this driving mode.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
           ],
         ),
@@ -1034,7 +1044,10 @@ class _StatTile extends StatelessWidget {
           children: [
             Text(
               label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -1133,7 +1146,9 @@ class _HistoryChartState extends State<_HistoryChart> {
           child: Text(
             'Complete another drive to see grade trends over time.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
@@ -1268,8 +1283,11 @@ class _HistoryChartState extends State<_HistoryChart> {
                     );
                   },
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => Colors.white,
-                    tooltipBorder: const BorderSide(color: Colors.black),
+                    getTooltipColor: (_) =>
+                        Theme.of(context).colorScheme.surfaceContainerHigh,
+                    tooltipBorder: BorderSide(
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
                     fitInsideHorizontally: true,
                     fitInsideVertically: true,
                     getTooltipItems: (touchedSpots) {
@@ -1296,8 +1314,8 @@ class _HistoryChartState extends State<_HistoryChart> {
                       // Put the date and time on separate lines above the score
                       items[0] = LineTooltipItem(
                         '$date\n',
-                        const TextStyle(
-                          color: Colors.black,
+                        TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1319,7 +1337,9 @@ class _HistoryChartState extends State<_HistoryChart> {
                 ),
                 borderData: FlBorderData(
                   show: true,
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
                 ),
                 titlesData: FlTitlesData(
                   topTitles: const AxisTitles(
@@ -1400,9 +1420,9 @@ class _HistoryChartState extends State<_HistoryChart> {
         Text(
           '$missingCount of ${reports.length} trips did not track this grade '
           'and appear as gaps.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

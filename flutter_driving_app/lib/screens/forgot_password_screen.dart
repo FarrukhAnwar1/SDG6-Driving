@@ -322,7 +322,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           Icon(
             Icons.mark_email_read_outlined,
             size: 48,
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.secondary,
           ),
           const SizedBox(height: 16),
           Text(
@@ -461,7 +461,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         Icon(
           Icons.check_circle_outline,
           size: 64,
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.secondary,
         ),
         const SizedBox(height: 16),
         Text(

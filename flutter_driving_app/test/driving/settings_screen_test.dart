@@ -3,9 +3,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_driving_app/screens/change_password_screen.dart';
 import 'package:flutter_driving_app/screens/settings_screen.dart';
 import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
+import 'package:flutter_driving_app/widgets/theme/app_theme.dart';
+import 'package:flutter_driving_app/widgets/theme/theme_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 
 void main() {
   // The Settings page is taller than the default 800x600 test screen now that
@@ -282,7 +287,7 @@ void main() {
     );
     expect(
       find.textContaining('cannot be switched during a drive'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });
@@ -350,7 +355,7 @@ void main() {
     storedValues['live_voice_feedback'] = 'false';
     await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
     await tester.pumpAndSettle();
-    final toggle = find.byType(SwitchListTile);
+    final toggle = find.widgetWithText(SwitchListTile, 'Live Voice Feedback');
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     await tester.ensureVisible(toggle);
     await tester.tap(toggle);
@@ -365,4 +370,183 @@ void main() {
     await tester.pumpAndSettle();
     expectSelected(DrivingMode.normal);
   });
+
+  testSettings('theme defaults, manual switching, and automatic selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ListenableBuilder(
+        listenable: themeSettings,
+        builder: (context, child) => MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeSettings.themeMode,
+          home: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final auto = find.byKey(const ValueKey('auto-theme-switch'));
+    final dark = find.byKey(const ValueKey('dark-theme-switch'));
+    expect(tester.widget<SwitchListTile>(auto).value, isFalse);
+    expect(tester.widget<SwitchListTile>(dark).value, isTrue);
+    expect(Theme.of(tester.element(dark)).brightness, Brightness.dark);
+
+    await tester.ensureVisible(dark);
+    await tester.tap(dark);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(dark).value, isFalse);
+    expect(Theme.of(tester.element(dark)).brightness, Brightness.light);
+
+    await tester.ensureVisible(auto);
+    await tester.tap(auto);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(auto).value, isTrue);
+    expect(dark, findsNothing);
+    expect(find.textContaining('Waiting for your location'), findsOneWidget);
+
+    await tester.tap(auto);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(dark).value, isFalse);
+    await themeSettings.load();
+    await tester.pumpAndSettle();
+    expect(themeSettings.isDark, isFalse);
+    expect(themeSettings.autoSwitch, isFalse);
+  });
+
+  testSettings(
+    'failed theme save keeps the previous selection and shows an error',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      await tester.pumpAndSettle();
+      failWrites = true;
+      final dark = find.byKey(const ValueKey('dark-theme-switch'));
+      await tester.ensureVisible(dark);
+      await tester.tap(dark);
+      await tester.pumpAndSettle();
+      expect(themeSettings.isDark, isTrue);
+      expect(tester.widget<SwitchListTile>(dark).value, isTrue);
+      expect(
+        find.text('Could not save your theme. Please try again.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testSettings(
+    'Account opens Change Password and returns after a successful update',
+    (tester) async {
+      storedValues['access_token'] = 'test-token';
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+          await tester.pumpAndSettle();
+          final changePassword = find.widgetWithText(
+            ListTile,
+            'Change Password',
+          );
+          await tester.scrollUntilVisible(changePassword, 300);
+          expect(find.text('Account'), findsOneWidget);
+          await tester.tap(changePassword);
+          await tester.pumpAndSettle();
+          expect(find.byType(ChangePasswordPage), findsOneWidget);
+          await tester.enterText(
+            find.byType(TextFormField).at(0),
+            'oldpassword1',
+          );
+          await tester.enterText(
+            find.byType(TextFormField).at(1),
+            'newpassword2',
+          );
+          await tester.enterText(
+            find.byType(TextFormField).at(2),
+            'newpassword2',
+          );
+          await tester.tap(
+            find.widgetWithText(FilledButton, 'Update password'),
+          );
+          await tester.pumpAndSettle();
+          expect(find.byType(ChangePasswordPage), findsNothing);
+          expect(find.byType(SettingsPage), findsOneWidget);
+          expect(find.text('Password changed successfully.'), findsOneWidget);
+        },
+        () => MockClient((request) async {
+          expect(request.method, 'POST');
+          expect(request.url.path, '/change-password');
+          expect(request.headers['Authorization'], 'Bearer test-token');
+          return http.Response('', 204);
+        }),
+      );
+    },
+  );
+
+  testSettings(
+    'account deletion can be canceled and recovers after a failed request',
+    (tester) async {
+      storedValues['access_token'] = 'test-token';
+      var deleteRequests = 0;
+      final response = Completer<http.Response>();
+      await http.runWithClient(
+        () async {
+          await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+          await tester.pumpAndSettle();
+          final delete = find.widgetWithText(ListTile, 'Delete Account');
+          await tester.scrollUntilVisible(delete, 300);
+          await tester.tap(delete);
+          await tester.pumpAndSettle();
+          expect(find.text('Delete account?'), findsOneWidget);
+          expect(deleteRequests, 0);
+          await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+          await tester.pumpAndSettle();
+          expect(deleteRequests, 0);
+          expect(storedValues['access_token'], 'test-token');
+
+          await tester.tap(delete);
+          await tester.pumpAndSettle();
+          await tester.tap(find.widgetWithText(TextButton, 'Delete'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 300));
+          expect(deleteRequests, 1);
+          expect(
+            tester
+                .widget<ListTile>(
+                  find.widgetWithText(ListTile, 'Deleting Account...'),
+                )
+                .onTap,
+            isNull,
+          );
+          expect(
+            tester
+                .widget<ListTile>(
+                  find.widgetWithText(ListTile, 'Change Password'),
+                )
+                .onTap,
+            isNull,
+          );
+          expect(
+            tester.widget<PopScope>(find.byType(PopScope)).canPop,
+            isFalse,
+          );
+
+          response.complete(http.Response('', 500));
+          await tester.pumpAndSettle();
+          expect(
+            find.text('Could not delete account. Please try again.'),
+            findsOneWidget,
+          );
+          expect(storedValues['access_token'], 'test-token');
+          expect(tester.widget<ListTile>(delete).onTap, isNotNull);
+          expect(tester.widget<PopScope>(find.byType(PopScope)).canPop, isTrue);
+          expect(tester.takeException(), isNull);
+        },
+        () => MockClient((request) async {
+          expect(request.method, 'DELETE');
+          expect(request.url.path, '/users/me');
+          expect(request.headers['Authorization'], 'Bearer test-token');
+          deleteRequests++;
+          return response.future;
+        }),
+      );
+    },
+  );
 }
