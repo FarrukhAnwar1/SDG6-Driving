@@ -212,59 +212,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 8),
 
-                  ListenableBuilder(
-                    listenable: themeSettings,
-                    builder: (context, child) => Column(
-                      children: [
-                        Card(
-                          child: SwitchListTile(
-                            key: const ValueKey('auto-theme-switch'),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            title: const Text('Auto Theme Switching'),
-                            subtitle: Text(
-                              themeSettings.waitingForLocation
-                                  ? 'Waiting for your location. Dark theme is used until it is available.'
-                                  : 'Use light theme from sunrise to sunset at your location, and dark theme at night.',
-                            ),
-                            secondary: const Icon(Icons.brightness_auto),
-                            value: themeSettings.autoSwitch,
-                            onChanged: themeSettings.isSaving
-                                ? null
-                                : (value) => _updateTheme(autoSwitch: value),
-                          ),
-                        ),
-                        if (!themeSettings.autoSwitch)
-                          Card(
-                            child: SwitchListTile(
-                              key: const ValueKey('dark-theme-switch'),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              title: const Text('Dark Theme'),
-                              subtitle: Text(
-                                themeSettings.isDark
-                                    ? 'Dark theme selected'
-                                    : 'Light theme selected',
-                              ),
-                              secondary: Icon(
-                                themeSettings.isDark
-                                    ? Icons.dark_mode_outlined
-                                    : Icons.light_mode_outlined,
-                              ),
-                              value: themeSettings.isDark,
-                              onChanged: themeSettings.isSaving
-                                  ? null
-                                  : (value) => _updateTheme(dark: value),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-
                   // Live Voice Feedback toggle
                   Card(
                     child: ValueListenableBuilder<bool>(
@@ -294,6 +241,67 @@ class _SettingsPageState extends State<SettingsPage> {
                               : _updateVoiceFeedback,
                         );
                       },
+                    ),
+                  ),
+
+                  ListenableBuilder(
+                    listenable: themeSettings,
+                    builder: (context, child) => Column(
+                      children: [
+                        Card(
+                          child: SwitchListTile(
+                            key: const ValueKey('auto-theme-switch'),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            title: Text(
+                              'Auto Theme Switching',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(
+                              themeSettings.waitingForLocation
+                                  ? 'Waiting for your location. Dark theme is used until it is available.'
+                                  : 'Use light theme from sunrise to sunset at your location, and dark theme at night.',
+                            ),
+                            secondary: const Icon(Icons.brightness_auto),
+                            value: themeSettings.autoSwitch,
+                            onChanged: themeSettings.isSaving
+                                ? null
+                                : (value) => _updateTheme(autoSwitch: value),
+                          ),
+                        ),
+                        if (!themeSettings.autoSwitch)
+                          Card(
+                            child: SwitchListTile(
+                              key: const ValueKey('dark-theme-switch'),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              title: Text(
+                                'Dark Theme',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                themeSettings.isDark
+                                    ? 'Dark theme selected'
+                                    : 'Light theme selected',
+                              ),
+                              secondary: Icon(
+                                themeSettings.isDark
+                                    ? Icons.dark_mode_outlined
+                                    : Icons.light_mode_outlined,
+                              ),
+                              value: themeSettings.isDark,
+                              onChanged: themeSettings.isSaving
+                                  ? null
+                                  : (value) => _updateTheme(dark: value),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
 

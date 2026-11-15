@@ -1219,6 +1219,11 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                 tooltip: isEnabled
                     ? 'Turn off live voice feedback'
                     : 'Turn on live voice feedback',
+                style: Theme.of(context).brightness == Brightness.dark
+                    ? IconButton.styleFrom(
+                        foregroundColor: scheme.onSurfaceVariant,
+                      )
+                    : null,
                 isSelected: isEnabled,
                 icon: const Icon(Icons.volume_off),
                 selectedIcon: const Icon(Icons.volume_up),

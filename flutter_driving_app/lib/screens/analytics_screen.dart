@@ -539,9 +539,13 @@ class _ReportCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final count = report.violations.length;
+    final theme = Theme.of(context);
     return Card(
       child: ExpansionTile(
         key: PageStorageKey(report.id),
+        iconColor: theme.brightness == Brightness.dark
+            ? theme.colorScheme.onSurfaceVariant
+            : null,
         title: Text(_formatReportDate(context, report.reportDate)),
         // Subtitle shows the driving mode (retroactivly), distance, duration, and violation count.
         subtitle: Column(

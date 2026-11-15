@@ -105,6 +105,10 @@ void main() {
     testWidgets(
       'trip of $miles miles shows requirement without a report or upload',
       (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
         var requests = 0;
         await http.runWithClient(
           () async {

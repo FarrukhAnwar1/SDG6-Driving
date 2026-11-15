@@ -414,7 +414,9 @@ class _ReportItem extends StatelessWidget {
         subtitle: subtitle == null ? null : Text(subtitle!),
         trailing: Text(
           value,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
     );

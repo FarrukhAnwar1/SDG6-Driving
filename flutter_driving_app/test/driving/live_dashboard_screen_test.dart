@@ -16,6 +16,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
 import 'package:flutter_driving_app/widgets/theme/app_theme.dart';
 import 'package:flutter_driving_app/widgets/theme/theme_settings.dart';
+import 'package:flutter_driving_app/widgets/voice_feedback/voice_feedback_settings.dart';
 import 'package:flutter_driving_app/widgets/following_distance/following_distance_camera.dart';
 import 'package:flutter_driving_app/widgets/following_distance/vehicle_distance_estimator.dart';
 
@@ -81,6 +82,7 @@ void main() {
     SensorsPlatform.instance = _Sensors();
     FlutterSecureStorage.setMockInitialValues({'access_token': 'test-token'});
     await themeSettings.load();
+    await voiceFeedbackSettings.load();
   });
 
   tearDown(() {
@@ -180,6 +182,34 @@ void main() {
       }, mode: DrivingMode.pocket);
     },
   );
+
+  testWidgets('dark voice icon keeps its contrast when feedback is toggled', (
+    tester,
+  ) async {
+    setViewport(tester, const Size(360, 800));
+    await voiceFeedbackSettings.setEnabled(false);
+    await onDashboard(tester, () async {
+      Color? iconColor(IconData icon) {
+        final finder = find.byIcon(icon);
+        return tester.widget<Icon>(finder).color ??
+            IconTheme.of(tester.element(finder)).color;
+      }
+
+      final offColor = iconColor(Icons.volume_off);
+      expect(offColor, AppTheme.dark.colorScheme.onSurfaceVariant);
+      await tester.tap(find.byTooltip('Turn on live voice feedback'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(voiceFeedbackSettings.value, isTrue);
+      expect(iconColor(Icons.volume_up), offColor);
+
+      await tester.tap(find.byTooltip('Turn off live voice feedback'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(iconColor(Icons.volume_off), offColor);
+      expect(tester.takeException(), isNull);
+    }, mode: DrivingMode.pocket);
+  });
 
   for (final mode in [DrivingMode.normal, DrivingMode.navigation]) {
     testWidgets(
