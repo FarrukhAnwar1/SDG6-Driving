@@ -191,10 +191,10 @@ void main() {
             );
             final row = find.widgetWithText(
               ListTile,
-              'Adequate Following Distance Score',
+              'Adequate Following Distance',
             );
             expect(
-              find.text('Focused Driving Score'),
+              find.text('Focused Driving'),
               mode.tracksFocus ? findsOneWidget : findsNothing,
             );
             if (mode.tracksFollowingDistance) {

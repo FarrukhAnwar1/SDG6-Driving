@@ -317,13 +317,13 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
         ),
         _ReportItem(
           icon: Icons.speed,
-          title: 'Proper Speed Score',
+          title: 'Proper Speed',
           value: '${summary.properSpeedGrade.toStringAsFixed(0)}%',
         ),
 
         _ReportItem(
           icon: Icons.multiline_chart,
-          title: 'Smoothness Score',
+          title: 'Smoothness',
           value: '${summary.smoothnessGrade.toStringAsFixed(0)}%',
           subtitle:
               'Braking: ${summary.brakingGrade.toStringAsFixed(0)}%\n'
@@ -335,14 +335,14 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
         if (focusGrade != null)
           _ReportItem(
             icon: Icons.visibility_outlined,
-            title: 'Focused Driving Score',
+            title: 'Focused Driving',
             value: '${focusGrade.toStringAsFixed(0)}%',
           ),
 
         if (summary.drivingMode.tracksFollowingDistance)
           _ReportItem(
             icon: Icons.social_distance_outlined,
-            title: 'Adequate Following Distance Score',
+            title: 'Adequate Following Distance',
             value: summary.followingDistanceGrade == null
                 ? 'Unavailable'
                 : '${summary.followingDistanceGrade!.toStringAsFixed(0)}%',

@@ -127,8 +127,8 @@ void main() {
               findsOneWidget,
             );
             expect(find.textContaining('Overall Score:'), findsNothing);
-            expect(find.text('Smoothness Score'), findsNothing);
-            expect(find.text('Focused Driving Score'), findsNothing);
+            expect(find.text('Smoothness'), findsNothing);
+            expect(find.text('Focused Driving'), findsNothing);
             expect(find.text('Helpful Tip!'), findsNothing);
             expect(find.text('Retry'), findsNothing);
             expect(find.byType(CircularProgressIndicator), findsNothing);
@@ -167,7 +167,7 @@ void main() {
 
           expect(find.text('Trip too short for a report'), findsNothing);
           expect(find.text('Overall Score: 74%'), findsOneWidget);
-          final smoothness = find.widgetWithText(ListTile, 'Smoothness Score');
+          final smoothness = find.widgetWithText(ListTile, 'Smoothness');
           expect(
             find.descendant(of: smoothness, matching: find.text('80%')),
             findsOneWidget,
@@ -176,7 +176,11 @@ void main() {
             find.text('Braking: 80%\nAcceleration: 60%\nTurning: 100%'),
             findsOneWidget,
           );
-          final focus = find.widgetWithText(ListTile, 'Focused Driving Score');
+          final focus = find.widgetWithText(ListTile, 'Focused Driving');
+          expect(
+            tester.getTopLeft(focus).dy,
+            greaterThan(tester.getTopLeft(smoothness).dy),
+          );
           expect(
             find.descendant(of: focus, matching: find.text('40%')),
             findsOneWidget,
@@ -217,8 +221,8 @@ void main() {
 
         expect(find.text('Trip too short for a report'), findsNothing);
         expect(find.text('Overall Score: 74%'), findsOneWidget);
-        expect(find.text('Smoothness Score'), findsOneWidget);
-        expect(find.text('Focused Driving Score'), findsOneWidget);
+        expect(find.text('Smoothness'), findsOneWidget);
+        expect(find.text('Focused Driving'), findsOneWidget);
         expect(find.text('Retry'), findsNothing);
         expect(requests, 1);
       },

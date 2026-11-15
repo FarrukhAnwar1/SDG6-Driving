@@ -1075,14 +1075,6 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               _properSpeedGrading.grade,
             ),
           ),
-          if (_isFocusGraded)
-            Expanded(
-              child: _buildGradeRow(
-                context,
-                'Focused Driving',
-                _focusedDrivingGrading.grade,
-              ),
-            ),
           Expanded(
             child: _buildGradeRow(
               context,
@@ -1093,6 +1085,14 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
                   3,
             ),
           ),
+          if (_isFocusGraded)
+            Expanded(
+              child: _buildGradeRow(
+                context,
+                'Focused Driving',
+                _focusedDrivingGrading.grade,
+              ),
+            ),
           if (_isFollowingDistanceGraded)
             Expanded(
               child: _buildGradeRow(
