@@ -21,6 +21,7 @@ import '../widgets/voice_feedback/voice_alerts.dart';
 import '../widgets/voice_feedback/voice_feedback_service.dart';
 import '../widgets/voice_feedback/voice_output.dart';
 import '../widgets/voice_feedback/voice_feedback_settings.dart';
+import '../widgets/theme/theme_settings.dart';
 import 'driving_report_screen.dart';
 
 // Formats a duration as mm:ss, or hh:mm:ss if over an hour
@@ -179,6 +180,19 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not save voice feedback. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleTheme() async {
+    try {
+      await themeSettings.setDark(!themeSettings.isDark);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save your theme. Please try again.'),
         ),
       );
     }
@@ -1151,22 +1165,13 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
     );
   }
 
-  // Mode, voice feedback control, and a small road preview for the rear camera.
+  // Mode, theme/voice controls, and a small road preview for the rear camera.
   Widget _buildDrivingModeIndicator(BuildContext context) {
     final isNavigationMode = widget.drivingMode == DrivingMode.navigation;
     final (modeLabel, modeIcon) = switch (widget.drivingMode) {
-      DrivingMode.normal => (
-        'Regular Mode Active',
-        Icons.directions_car_outlined,
-      ),
-      DrivingMode.navigation => (
-        'Navigation Mode Active',
-        Icons.navigation_outlined,
-      ),
-      DrivingMode.pocket => (
-        'Pocket Mode Active',
-        Icons.phone_android_outlined,
-      ),
+      DrivingMode.normal => ('Regular Mode', Icons.directions_car_outlined),
+      DrivingMode.navigation => ('Navigation Mode', Icons.navigation_outlined),
+      DrivingMode.pocket => ('Pocket Mode', Icons.phone_android_outlined),
     };
 
     final scheme = Theme.of(context).colorScheme;
@@ -1188,6 +1193,24 @@ class _LiveDashboardScreenState extends State<LiveDashboardScreen>
               modeLabel,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
+          ),
+          ListenableBuilder(
+            listenable: themeSettings,
+            builder: (context, child) {
+              if (themeSettings.autoSwitch) return const SizedBox.shrink();
+              return IconButton(
+                key: const ValueKey('dashboard-theme-toggle'),
+                tooltip: themeSettings.isDark
+                    ? 'Switch to light theme'
+                    : 'Switch to dark theme',
+                icon: Icon(
+                  themeSettings.isDark
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
+                ),
+                onPressed: themeSettings.isSaving ? null : _toggleTheme,
+              );
+            },
           ),
           ValueListenableBuilder<bool>(
             valueListenable: voiceFeedbackSettings,

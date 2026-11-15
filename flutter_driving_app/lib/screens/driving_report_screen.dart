@@ -199,7 +199,7 @@ class _DrivingReportScreenState extends State<DrivingReportScreen> {
         Icon(
           Icons.info_outline,
           size: 64,
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.secondary,
         ),
         const SizedBox(height: 24),
         Text(

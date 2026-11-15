@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/driving/driving_mode.dart';
 import '../widgets/shared/error_banner.dart';
+import '../widgets/theme/theme_settings.dart';
 
 import '../widgets/voice_feedback/voice_feedback_settings.dart';
 
@@ -33,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final mode = await loadDrivingMode();
       await voiceFeedbackSettings.load();
+      await themeSettings.load();
       if (!mounted) return;
 
       setState(() {
@@ -87,6 +89,23 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Could not save voice feedback. Please try again.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _updateTheme({bool? autoSwitch, bool? dark}) async {
+    try {
+      if (autoSwitch != null) {
+        await themeSettings.setAutoSwitch(autoSwitch);
+      } else if (dark != null) {
+        await themeSettings.setDark(dark);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not save your theme. Please try again.'),
         ),
       );
     }
@@ -193,6 +212,59 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 8),
 
+                  ListenableBuilder(
+                    listenable: themeSettings,
+                    builder: (context, child) => Column(
+                      children: [
+                        Card(
+                          child: SwitchListTile(
+                            key: const ValueKey('auto-theme-switch'),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            title: const Text('Auto Theme Switching'),
+                            subtitle: Text(
+                              themeSettings.waitingForLocation
+                                  ? 'Waiting for your location. Dark theme is used until it is available.'
+                                  : 'Use light theme from sunrise to sunset at your location, and dark theme at night.',
+                            ),
+                            secondary: const Icon(Icons.brightness_auto),
+                            value: themeSettings.autoSwitch,
+                            onChanged: themeSettings.isSaving
+                                ? null
+                                : (value) => _updateTheme(autoSwitch: value),
+                          ),
+                        ),
+                        if (!themeSettings.autoSwitch)
+                          Card(
+                            child: SwitchListTile(
+                              key: const ValueKey('dark-theme-switch'),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              title: const Text('Dark Theme'),
+                              subtitle: Text(
+                                themeSettings.isDark
+                                    ? 'Dark theme selected'
+                                    : 'Light theme selected',
+                              ),
+                              secondary: Icon(
+                                themeSettings.isDark
+                                    ? Icons.dark_mode_outlined
+                                    : Icons.light_mode_outlined,
+                              ),
+                              value: themeSettings.isDark,
+                              onChanged: themeSettings.isSaving
+                                  ? null
+                                  : (value) => _updateTheme(dark: value),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
                   // Live Voice Feedback toggle
                   Card(
                     child: ValueListenableBuilder<bool>(
@@ -233,7 +305,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         children: [
                           Icon(
                             Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                           const SizedBox(width: 12),
                           const Expanded(
@@ -314,7 +386,7 @@ class _ModeDescriptionCard extends StatelessWidget {
                           if (isSelected)
                             Icon(
                               Icons.check_circle,
-                              color: colorScheme.primary,
+                              color: colorScheme.onPrimaryContainer,
                             ),
                         ],
                       ),

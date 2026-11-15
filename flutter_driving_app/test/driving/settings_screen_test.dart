@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_driving_app/screens/settings_screen.dart';
 import 'package:flutter_driving_app/widgets/driving/driving_mode.dart';
+import 'package:flutter_driving_app/widgets/theme/app_theme.dart';
+import 'package:flutter_driving_app/widgets/theme/theme_settings.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -350,7 +352,7 @@ void main() {
     storedValues['live_voice_feedback'] = 'false';
     await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
     await tester.pumpAndSettle();
-    final toggle = find.byType(SwitchListTile);
+    final toggle = find.widgetWithText(SwitchListTile, 'Live Voice Feedback');
     expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     await tester.ensureVisible(toggle);
     await tester.tap(toggle);
@@ -365,4 +367,66 @@ void main() {
     await tester.pumpAndSettle();
     expectSelected(DrivingMode.normal);
   });
+
+  testSettings('theme defaults, manual switching, and automatic selection', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ListenableBuilder(
+        listenable: themeSettings,
+        builder: (context, child) => MaterialApp(
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeSettings.themeMode,
+          home: const SettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final auto = find.byKey(const ValueKey('auto-theme-switch'));
+    final dark = find.byKey(const ValueKey('dark-theme-switch'));
+    expect(tester.widget<SwitchListTile>(auto).value, isFalse);
+    expect(tester.widget<SwitchListTile>(dark).value, isTrue);
+    expect(Theme.of(tester.element(dark)).brightness, Brightness.dark);
+
+    await tester.ensureVisible(dark);
+    await tester.tap(dark);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(dark).value, isFalse);
+    expect(Theme.of(tester.element(dark)).brightness, Brightness.light);
+
+    await tester.ensureVisible(auto);
+    await tester.tap(auto);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(auto).value, isTrue);
+    expect(dark, findsNothing);
+    expect(find.textContaining('Waiting for your location'), findsOneWidget);
+
+    await tester.tap(auto);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(dark).value, isFalse);
+    await themeSettings.load();
+    await tester.pumpAndSettle();
+    expect(themeSettings.isDark, isFalse);
+    expect(themeSettings.autoSwitch, isFalse);
+  });
+
+  testSettings(
+    'failed theme save keeps the previous selection and shows an error',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SettingsPage()));
+      await tester.pumpAndSettle();
+      failWrites = true;
+      final dark = find.byKey(const ValueKey('dark-theme-switch'));
+      await tester.ensureVisible(dark);
+      await tester.tap(dark);
+      await tester.pumpAndSettle();
+      expect(themeSettings.isDark, isTrue);
+      expect(tester.widget<SwitchListTile>(dark).value, isTrue);
+      expect(
+        find.text('Could not save your theme. Please try again.'),
+        findsOneWidget,
+      );
+    },
+  );
 }
