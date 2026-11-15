@@ -2,6 +2,7 @@
 import logging
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from .. import models, schemas
 from ..dependencies import CurrentUser, DbSession
 from ..email import send_family_invitation_email
@@ -18,6 +19,11 @@ from ..services.family_transactions import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["families"])
+MAX_CODE_GENERATION_ATTEMPTS = 10
+
+
+class InvitationCodeCollision(Exception):
+    """Retry the whole transaction with a fresh random code."""
 
 
 def family_error(status_code: int, code: str, message: str) -> HTTPException:
@@ -179,11 +185,38 @@ def invite_to_family(
             invited_by_user_id=current_user.id,
             code_hash=hash_invitation_code(code),
         )
-        db.add(invitation)
-        db.flush()
+        # The unique index arbitrates collisions, including concurrent sends.
+        # Roll back and retry the whole transaction so MySQL snapshots/locks
+        # cannot cause a collision to loop on stale data.
+        try:
+            db.add(invitation)
+            db.flush()
+        except IntegrityError as error:
+            duplicate = (
+                db.get_bind().dialect.name == "mysql"
+                and error.orig.args and error.orig.args[0] == 1062
+                and "code_hash" in str(error.orig)
+            ) or (
+                db.get_bind().dialect.name == "sqlite"
+                and "UNIQUE constraint failed: family_invitations.code_hash" in str(error.orig)
+            )
+            if not duplicate:
+                raise
+            raise InvitationCodeCollision from error
         return invitation.id, code, current_user.username
 
-    invitation_id, code, inviter = mutate_family(db, invite)
+    for _ in range(MAX_CODE_GENERATION_ATTEMPTS):
+        try:
+            invitation_id, code, inviter = mutate_family(db, invite)
+            break
+        except InvitationCodeCollision:
+            continue
+    else:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Could not generate an invitation code. Please try again.",
+            headers={"Retry-After": "1"},
+        )
     try:
         # Outside the retried transaction: a deadlock must not send duplicate mail.
         send_family_invitation_email(payload.email, code, inviter)

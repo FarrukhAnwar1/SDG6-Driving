@@ -419,8 +419,8 @@ class FamilyInvitationCreate(BaseModel):
 class FamilyJoinRequest(BaseModel):
     """POST /families/join accepts only the emailed code.
 
-    The joining account and its email come from the access token. The code
-    keeps its case and punctuation, matching what the app sends.
+    The joining account and its email come from the access token. Codes are
+    strings so leading zeroes are preserved.
     """
 
     model_config = _CAMEL_CONFIG
@@ -429,12 +429,10 @@ class FamilyJoinRequest(BaseModel):
 
     @field_validator("code")
     @classmethod
-    def code_must_be_one_token(cls, code: str) -> str:
+    def code_must_be_six_digits(cls, code: str) -> str:
         code = code.strip()
-        if not code:
-            raise ValueError("code must not be blank")
-        if any(character.isspace() for character in code):
-            raise ValueError("code must not contain whitespace")
+        if not re.fullmatch(r"[0-9]{6}", code):
+            raise ValueError("Enter the 6-digit join code from your email.")
         return code
 
 

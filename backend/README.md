@@ -520,19 +520,25 @@ listed among its members.
 | `family_id` | `int` | FK → `driving_families.id` (`ON DELETE CASCADE`) |
 | `email` | `varchar(255)` | the invited recipient, stored trimmed and lowercased (`normalize_email` in `schemas.py`) |
 | `invited_by_user_id` | `int` | FK → `users.id` (`ON DELETE CASCADE`), always taken from the token |
-| `code_hash` | `char(64)` | `UNIQUE`, hex SHA-256 of the emailed join code |
+| `code_hash` | `char(64)` | `UNIQUE`, hex HMAC-SHA-256 of the emailed six-digit join code |
 | `created_at` | `datetime` | defaults to the insert time |
 
 An invitation row lives only until it is redeemed: joining deletes it in the
 same transaction that sets the user's `family_id`, which is what makes a code
 single use. There are no redemption or expiry columns.
 
-`code_hash` is SHA-256, not bcrypt like `reset_code_hash`. Joining sends only
-the code, so the server has to find the invitation from the code alone, and a
-salted bcrypt hash of the same code is different every time. A deterministic
-hash is safe here because the code is long and random (for example
-`secrets.token_urlsafe(32)`), unlike a 6-digit reset code. The `UNIQUE` index
-doubles as the lookup index.
+New invitations use six random digits, including leading zeroes (for example
+`042917`), generated with `secrets.randbelow(1_000_000)`. They have no expiry or
+join-attempt limit. The invited email must match the authenticated account,
+and successful redemption deletes the invitation and sibling codes for that
+family/recipient. No database migration is needed for six-digit invitations.
+
+`code_hash` uses HMAC-SHA-256 with `JWT_SECRET_KEY` and a family-invitation
+prefix. This supports indexed lookup while preventing enumeration of all six
+digits from a database dump alone. The unique index also prevents duplicate
+codes; invitation creation retries a collision with a fresh code before sending
+email. Keep `JWT_SECRET_KEY` stable across API workers; rotating it invalidates
+pending invitations.
 
 ### Creating them
 

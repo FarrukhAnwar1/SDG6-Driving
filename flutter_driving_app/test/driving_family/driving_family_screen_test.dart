@@ -187,14 +187,11 @@ void main() {
             expect(request.url.path, '/families/join');
             expect(
               jsonDecode(request.body)['code'],
-              posts == 0 ? 'bad-Code' : 'aB_123-XYZ',
+              posts == 0 ? '123456' : '042917',
             );
             posts++;
             if (posts == 1) {
-              return http.Response(
-                '{"detail":"Invalid or expired join code"}',
-                400,
-              );
+              return http.Response('{"detail":"Invalid join code"}', 400);
             }
             joined = true;
             return http.Response('', 204);
@@ -203,20 +200,26 @@ void main() {
         },
         () async {
           await _tap(tester, find.text('Join Family'));
+          final field = tester.widget<TextField>(find.byType(TextField));
+          expect(field.keyboardType, TextInputType.number);
+          expect(field.autofillHints, contains(AutofillHints.oneTimeCode));
+          expect(find.text('6-digit join code'), findsOneWidget);
           await _tap(tester, _dialogButton('Join Family'));
           expect(find.text('Enter your join code.'), findsOneWidget);
-          await tester.enterText(find.byType(TextFormField), 'bad code');
-          await _tap(tester, _dialogButton('Join Family'));
-          expect(
-            find.text('Join codes cannot contain spaces.'),
-            findsOneWidget,
-          );
+          for (final invalid in ['12345', '1234567', 'abcdef', '123 456']) {
+            await tester.enterText(find.byType(TextFormField), invalid);
+            await _tap(tester, _dialogButton('Join Family'));
+            expect(
+              find.text('Enter the 6-digit join code from your email.'),
+              findsOneWidget,
+            );
+          }
           expect(posts, 0);
-          await tester.enterText(find.byType(TextFormField), ' bad-Code ');
+          await tester.enterText(find.byType(TextFormField), ' 123456 ');
           await _tap(tester, _dialogButton('Join Family'));
-          expect(find.text('Invalid or expired join code'), findsOneWidget);
+          expect(find.text('Invalid join code'), findsOneWidget);
           expect(find.byType(AlertDialog), findsOneWidget);
-          await tester.enterText(find.byType(TextFormField), ' aB_123-XYZ ');
+          await tester.enterText(find.byType(TextFormField), ' 042917 ');
           await _tap(tester, _dialogButton('Join Family'));
           expect(posts, 2);
           expect(find.text('You joined the Driving Family.'), findsOneWidget);
@@ -369,7 +372,7 @@ void main() {
             joins++;
             expect(request.url.path, '/families/join');
             // The account identity comes from authentication, not a submitted email
-            expect(jsonDecode(request.body), {'code': 'single-use-Code'});
+            expect(jsonDecode(request.body), {'code': '042917'});
             return http.Response(
               jsonEncode({
                 'detail': {'code': error.code},
@@ -391,7 +394,7 @@ void main() {
           );
           expect(find.text('Signed in as'), findsOneWidget);
           expect(find.text('alex@example.com'), findsOneWidget);
-          await tester.enterText(find.byType(TextFormField), 'single-use-Code');
+          await tester.enterText(find.byType(TextFormField), '042917');
           await _tap(tester, _dialogButton('Join Family'));
           expect(find.text(error.message), findsOneWidget);
           expect(find.byType(AlertDialog), findsOneWidget);
@@ -401,7 +404,7 @@ void main() {
                 .widget<TextFormField>(find.byType(TextFormField))
                 .controller!
                 .text,
-            'single-use-Code',
+            '042917',
           );
           expect(joins, 1);
           expect(reads, 1);

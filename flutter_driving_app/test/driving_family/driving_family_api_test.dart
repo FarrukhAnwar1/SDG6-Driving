@@ -104,13 +104,13 @@ void main() {
   });
 
   test(
-    'sends authenticated mutations and preserves the opaque join code',
+    'sends authenticated mutations and preserves leading zeroes in the join code',
     () async {
       final paths = <String>[];
       await http.runWithClient(
         () async {
           await DrivingFamilyApi.create();
-          await DrivingFamilyApi.join('  aB_123-XYZ  ');
+          await DrivingFamilyApi.join('  042917  ');
           await DrivingFamilyApi.invite('  sam@example.com  ');
           await DrivingFamilyApi.leave();
           await DrivingFamilyApi.removeMember(2);
@@ -125,7 +125,7 @@ void main() {
             expect(request.headers['Content-Type'], 'application/json');
             final body = jsonDecode(request.body);
             if (request.url.path.endsWith('/join')) {
-              expect(body, {'code': 'aB_123-XYZ'});
+              expect(body, {'code': '042917'});
             } else if (request.url.path.endsWith('/invitations')) {
               expect(body, {'email': 'sam@example.com'});
             } else {
@@ -259,7 +259,7 @@ void main() {
         ]) {
           await expectLater(
             http.runWithClient(
-              () => DrivingFamilyApi.join('opaque-Code'),
+              () => DrivingFamilyApi.join('042917'),
               () => MockClient(
                 (_) async => http.Response(jsonEncode(body), error.status),
               ),

@@ -2,6 +2,7 @@ import secrets
 import bcrypt
 import jwt
 import hashlib
+import hmac
 from datetime import datetime, timedelta, timezone
 from .config import settings
 from .password_policy import validate_password_byte_length
@@ -66,10 +67,15 @@ def hash_reset_code(code: str) -> str:
 def verify_reset_code(code: str, code_hash: str) -> bool:
     return verify_password(code, code_hash)
 
-# Invitation codes are long and random, so a deterministic SHA-256 hash is safe and lets 
-# /families/join find the row from the code alone
+# Use the same zero-padded numeric format as password resets.
 def generate_invitation_code() -> str:
-    return secrets.token_urlsafe(32)
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 def hash_invitation_code(code: str) -> str:
-    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+    # A keyed digest prevents enumerating every six-digit code from a DB dump,
+    # while still supporting indexed lookup without storing the plaintext code.
+    return hmac.new(
+        settings.jwt_secret_key.encode("utf-8"),
+        f"family-invitation:{code}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
